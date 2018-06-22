@@ -1,0 +1,7 @@
+rainy-env/
+*.pyc
+**/__pycache__/
+**/dist/
+**/build/
+**/*.egg-info/
+**/.mypy_cache/
