@@ -1,3 +1,4 @@
+.idea
 rainy-env/
 *.pyc
 **/__pycache__/
