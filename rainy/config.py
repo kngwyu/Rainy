@@ -7,7 +7,7 @@ class Config:
         self.network_fn = None
         self.gpu_limits = None
 
-    def set_gpu_limits(self, gpu_limits: Optional[List[int]]):
+    def set_gpu_limits(self, gpu_limits: List[int]):
         self.gpu_limits = gpu_limits
 
     def set_optimizer_fn(self):

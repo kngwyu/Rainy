@@ -20,7 +20,7 @@ class Device():
         else:
             gpu_max = torch.cuda.device_count()
             self.gpu_indices = [i for i in gpu_limits if i < gpu_max]
-            self.main_device = torch.device('cuda:%d' % self.gpu_indices[0])
+            self.device = torch.device('cuda:%d' % self.gpu_indices[0])
 
     def tensor(self, x: Union[ndarray, Tensor]) -> Tensor:
         """Convert numpy array or Tensor into Tensor on main_device
@@ -30,12 +30,12 @@ class Device():
         return torch.tensor(x, device=self.main_device, dtype=torch.float32)
 
     def data_parallel(self, module: nn.Module) -> nn.DataParallel:
-        nn.DataParallel(module, device_ids=self.gpu_indices)
+        return nn.DataParallel(module, device_ids=self.gpu_indices)
 
     def __use_all_gpu(self):
         self.gpu_indices = list(range(torch.cuda.device_count()))
-        self.main_device = torch.device('cuda:0')
+        self.device = torch.device('cuda:0')
 
     def __use_cpu(self):
         self.gpu_indices = []
-        self.main_device = torch.device('cpu')
+        self.device = torch.device('cpu')
