@@ -32,22 +32,22 @@ class LinearHead(NetworkHead):
             output_dim: int,
             body: NetworkBody,
             device: Device = Device(),
-            ini: Initializer = Initializer()
+            init: Initializer = Initializer()
     ) -> None:
         super(LinearHead, self).__init__()
         self.dev = device
         self.op_dim = output_dim
-        self.fc = ini.init(nn.Linear(body.output_dim(), output_dim))
+        self.fc = init(nn.Linear(body.output_dim(), output_dim))
         self.body = body
 
     def device(self) -> Device:
-        self.dev
+        return self.dev
 
     def input_dim(self) -> int:
-        self.body.input_dim()
+        return self.body.input_dim()
 
     def output_dim(self) -> int:
-        self.op_dim
+        return self.op_dim
 
     def predict(self, x: Tensor) -> Tensor:
         x = self.body(x)

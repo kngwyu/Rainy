@@ -4,6 +4,7 @@ import torch
 from typing import Iterable
 from ..net import NetworkHead, NetworkBody
 
+
 class Agent(ABC):
     @abstractmethod
     def network(self) -> NetworkHead:

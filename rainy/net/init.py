@@ -1,5 +1,7 @@
+from collections import OrderedDict
 from functools import partial
-from typing import Callable, List
+from itertools import chain
+from typing import Callable, List, Union, Iterable
 from torch import nn, Tensor
 
 # function to init Tensor
@@ -35,20 +37,37 @@ class Initializer:
         self.bias_init = bias_init
         self.scale = scale
 
-    def init(self, mod: nn.Module) -> nn.Module:
+    def __call__(
+            self,
+            mod: Union[nn.Module, nn.Sequential, Iterable[nn.Module]]
+    ) -> nn.Module:
+        if hasattr(mod, '__iter__'):
+            self.__init_list(mod)
+        elif isinstance(mod, nn.Sequential):
+            self.__init_seq(mod)
+        else:
+            self.__init_mod(mod)
+        return mod
+
+    def to_list(self, *args) -> nn.ModuleList:
+        return nn.ModuleList([self.__init_mod(mod) for mod in args])
+
+    def to_seq(self, *args) -> nn.Sequential:
+        return nn.Sequential(*map(lambda mod: self.__init_mod(mod), args))
+
+    def __init_mod(self, mod: nn.Module) -> nn.Module:
         self.weight_init(mod.weight.data)
         self.bias_init(mod.bias.data)
         mod.weight.data.mul_(self.scale)
         return mod
 
-    def init_list(self, mods: nn.ModuleList) -> nn.ModuleList:
+    def __init_list(self, mods: Iterable[nn.Module]) -> Iterable[nn.Module]:
         for mod in mods:
-            self.init(mod)
+            self.__init_mod(mod)
         return mods
 
-    def make_mod_list(self, mods: List[nn.Module]) -> nn.ModuleList:
-        for mod in mods:
-            self.init(mod)
-        return nn.ModuleList(mods)
-
+    def __init_seq(self, seq: nn.Sequential) -> nn.Sequential:
+        for mod in seq._modules.values():
+            self.__init_mod(mod)
+        return seq
 

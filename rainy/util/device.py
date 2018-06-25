@@ -27,7 +27,7 @@ class Device():
         :param x: ndarray or Tensor you want to convert
         :return: Tensor
         """
-        return torch.tensor(x, device=self.main_device, dtype=torch.float32)
+        return torch.tensor(x, device=self.device, dtype=torch.float32)
 
     def data_parallel(self, module: nn.Module) -> nn.DataParallel:
         return nn.DataParallel(module, device_ids=self.gpu_indices)

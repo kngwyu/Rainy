@@ -22,15 +22,19 @@ BodyFn = Callable[[], NetworkBody]
 class NatureDqnBody(NetworkBody):
     """Convolutuion Network used in https://www.nature.com/articles/nature14236
     """
-    def __init__(self, input_dim: int, ini: Initializer = Initializer()) -> None:
+    def __init__(
+            self,
+            input_dim: int,
+            init: Initializer = Initializer()
+    ) -> None:
         super(NatureDqnBody, self).__init__()
         self.ip_dim = input_dim
         self.op_dim = 512
         conv1 = nn.Conv2d(input_dim, 32, kernel_size=8, stride=4)
         conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-        self.conv = ini.make_mod_list([conv1, conv2, conv3])
-        self.fc = nn.Linear(7 * 7 * 64, self.__feature_dim)
+        self.conv = init.make_list(conv1, conv2, conv3)
+        self.fc = init(nn.Linear(7 * 7 * 64, self.__feature_dim))
 
     def forward(self, x: Tensor) -> Tensor:
         for conv in self.conv:
