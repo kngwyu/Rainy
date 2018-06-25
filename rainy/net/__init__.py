@@ -1,5 +1,6 @@
-from .bodies import *
-from .heads import *
-from .init import *
+from .body import NetworkBody, NatureDqnBody
+from .head import NetworkHead, LinearHead
+from .init import InitFn, Initializer
+
 
 

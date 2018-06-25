@@ -2,7 +2,9 @@
 from abc import ABC, abstractmethod
 from torch import nn, Tensor
 import torch.nn.functional as F
+from typing import Callable
 from .init import Initializer
+
 
 class NetworkBody(nn.Module, ABC):
     @abstractmethod
@@ -12,6 +14,10 @@ class NetworkBody(nn.Module, ABC):
     @abstractmethod
     def output_dim(self) -> int:
         pass
+
+
+BodyFn = Callable[[], NetworkBody]
+
 
 class NatureDqnBody(NetworkBody):
     """Convolutuion Network used in https://www.nature.com/articles/nature14236
@@ -38,5 +44,3 @@ class NatureDqnBody(NetworkBody):
 
     def output_dim(self) -> int:
         return self.op_dim
-
-
