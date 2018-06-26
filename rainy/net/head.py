@@ -10,10 +10,6 @@ from ..util import Device
 
 class NetworkHead(nn.Module, ABC):
     @abstractmethod
-    def device(self) -> Device:
-        pass
-
-    @abstractmethod
     def input_dim(self) -> int:
         pass
 
@@ -22,7 +18,7 @@ class NetworkHead(nn.Module, ABC):
         pass
 
     @abstractmethod
-    def predict(self, x: Tensor) -> Tensor:
+    def predict(self, x: ndarray) -> Tensor:
         pass
 
 
@@ -40,16 +36,14 @@ class LinearHead(NetworkHead):
         self.fc = init(nn.Linear(body.output_dim(), output_dim))
         self.body = body
 
-    def device(self) -> Device:
-        return self.dev
-
     def input_dim(self) -> int:
         return self.body.input_dim()
 
     def output_dim(self) -> int:
         return self.op_dim
 
-    def predict(self, x: Tensor) -> Tensor:
+    def predict(self, x: ndarray) -> Tensor:
+        x = self.device.tensor(x)
         x = self.body(x)
         x = self.fc(x)
         return x

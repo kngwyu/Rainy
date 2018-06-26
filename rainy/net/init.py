@@ -1,18 +1,16 @@
-from collections import OrderedDict
 from functools import partial
-from itertools import chain
-from typing import Callable, List, Union, Iterable
+from typing import Callable, Union, Iterable
 from torch import nn, Tensor
 
 # function to init Tensor
 InitFn = Callable[[Tensor], None]
 
 
-def uniform(mean: float = 0, var: float = 1) -> InitFn:
+def uniform(mean: float = 0., var: float = 1.) -> InitFn:
     return partial(nn.init.uniform_, a=mean, b=var)
 
 
-def orthogonal(gain: float = 1) -> InitFn:
+def orthogonal(gain: float = 1.) -> InitFn:
     return partial(nn.init.orthogonal_, gain=gain)
 
 
@@ -31,7 +29,7 @@ class Initializer:
             self,
             weight_init: InitFn = uniform(),
             bias_init: InitFn = zero(),
-            scale: float = 1
+            scale: float = 1.,
     ) -> None:
         self.weight_init = weight_init
         self.bias_init = bias_init
@@ -39,7 +37,7 @@ class Initializer:
 
     def __call__(
             self,
-            mod: Union[nn.Module, nn.Sequential, Iterable[nn.Module]]
+            mod: Union[nn.Module, nn.Sequential, Iterable[nn.Module]],
     ) -> nn.Module:
         if hasattr(mod, '__iter__'):
             self.__init_list(mod)
@@ -49,10 +47,10 @@ class Initializer:
             self.__init_mod(mod)
         return mod
 
-    def to_list(self, *args) -> nn.ModuleList:
+    def make_list(self, *args) -> nn.ModuleList:
         return nn.ModuleList([self.__init_mod(mod) for mod in args])
 
-    def to_seq(self, *args) -> nn.Sequential:
+    def make_seq(self, *args) -> nn.Sequential:
         return nn.Sequential(*map(lambda mod: self.__init_mod(mod), args))
 
     def __init_mod(self, mod: nn.Module) -> nn.Module:
@@ -70,4 +68,5 @@ class Initializer:
         for mod in seq._modules.values():
             self.__init_mod(mod)
         return seq
+
 

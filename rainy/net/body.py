@@ -34,7 +34,7 @@ class NatureDqnBody(NetworkBody):
         conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
         self.conv = init.make_list(conv1, conv2, conv3)
-        self.fc = init(nn.Linear(7 * 7 * 64, self.__feature_dim))
+        self.fc = init(nn.Linear(7 * 7 * 64, self.op_dim))
 
     def forward(self, x: Tensor) -> Tensor:
         for conv in self.conv:
