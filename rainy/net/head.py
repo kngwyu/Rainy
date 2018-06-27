@@ -4,6 +4,7 @@ from numpy import ndarray
 import torch
 from torch import nn, Tensor
 import torch.nn.functional as F
+from typing import Callable
 from .body import NetworkBody
 from .init import Initializer
 from ..lib import Device
@@ -20,41 +21,26 @@ class NetworkHead(nn.Module, ABC):
     def output_dim(self) -> int:
         pass
 
-    @abstractmethod
-    def predict(self, x: ndarray) -> Tensor:
-        pass
-
-    def save(self, filename):
-        torch.save(self.state_dict(), filename)
-
-    def load(self, filename):
-        data = torch.load(filename)
-        self.load_state_dict(data)
 
 class LinearHead(NetworkHead):
     def __init__(
             self,
+            input_dim: int,
             output_dim: int,
-            body: NetworkBody,
-            device: Device = Device(),
             init: Initializer = Initializer()
     ) -> None:
         super(LinearHead, self).__init__()
-        self.dev = device
+        self.__input_dim = input_dim
         self.__output_dim = output_dim
-        self.fc = init(nn.Linear(body.output_dim, output_dim))
-        self.body = body
+        self.fc = init(nn.Linear(input_dim, output_dim))
 
     @property
     def input_dim(self) -> int:
-        return self.body.input_dim
+        return self.__input_dim
 
     @property
     def output_dim(self) -> int:
         return self.__output_dim
 
-    def predict(self, x: ndarray) -> Tensor:
-        x = self.device.tensor(x)
-        x = self.body(x)
-        x = self.fc(x)
-        return x
+    def forward(self, x: Tensor) -> Tensor:
+        return self.fc(x)

@@ -42,19 +42,3 @@ class Agent(ABC):
             else:
                 setattr(self, member_str, saved_item)
 
-
-from ..net import *
-class TestAgent(Agent):
-    def __init__(self):
-        body = NatureDqnBody(4)
-        self.head = LinearHead(4, body)
-        self.number = 4
-        self.name = "test_agent"
-
-    def members_to_save(self) -> Tuple:
-        return "head", "number", "name"
-
-    def action(self, x):
-        return 5
-
-

@@ -18,17 +18,22 @@ class NetworkBody(nn.Module, ABC):
         pass
 
 
-class NatureDqnBody(NetworkBody):
+Activator = Callable[[Tensor], Tensor]
+
+
+class NatureDqnConv(NetworkBody):
     """Convolutuion Network used in https://www.nature.com/articles/nature14236
     """
     def __init__(
             self,
             input_dim: int,
+            activator: Activator = F.relu,
             init: Initializer = Initializer()
     ) -> None:
-        super(NatureDqnBody, self).__init__()
+        super(NatureDqnConv, self).__init__()
         self.__input_dim = input_dim
         self.__output_dim = 512
+        self.activator = activator
         conv1 = nn.Conv2d(input_dim, 32, kernel_size=8, stride=4)
         conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
@@ -37,9 +42,9 @@ class NatureDqnBody(NetworkBody):
 
     def forward(self, x: Tensor) -> Tensor:
         for conv in self.conv:
-            x = F.relu(conv(x))
+            x = self.activator(conv(x))
         x = x.view(x.size(0), -1)
-        x = F.relu(self.fc(x))
+        x = self.activator(self.fc(x))
         return x
 
     @property
