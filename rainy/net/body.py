@@ -7,16 +7,15 @@ from .init import Initializer
 
 
 class NetworkBody(nn.Module, ABC):
+    @property
     @abstractmethod
     def input_dim(self) -> int:
         pass
 
+    @property
     @abstractmethod
     def output_dim(self) -> int:
         pass
-
-
-BodyFn = Callable[[], NetworkBody]
 
 
 class NatureDqnBody(NetworkBody):
@@ -28,13 +27,13 @@ class NatureDqnBody(NetworkBody):
             init: Initializer = Initializer()
     ) -> None:
         super(NatureDqnBody, self).__init__()
-        self.ip_dim = input_dim
-        self.op_dim = 512
+        self.__input_dim = input_dim
+        self.__output_dim = 512
         conv1 = nn.Conv2d(input_dim, 32, kernel_size=8, stride=4)
         conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
         self.conv = init.make_list(conv1, conv2, conv3)
-        self.fc = init(nn.Linear(7 * 7 * 64, self.op_dim))
+        self.fc = init(nn.Linear(7 * 7 * 64, self.output_dim))
 
     def forward(self, x: Tensor) -> Tensor:
         for conv in self.conv:
@@ -43,8 +42,10 @@ class NatureDqnBody(NetworkBody):
         x = F.relu(self.fc(x))
         return x
 
+    @property
     def input_dim(self) -> int:
-        return self.ip_dim
+        return self.__input_dim
 
+    @property
     def output_dim(self) -> int:
-        return self.op_dim
+        return self.__output_dim
