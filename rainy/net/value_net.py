@@ -30,17 +30,10 @@ class ValueNet(nn.Module):
     def action_dim(self) -> int:
         self.head.output_dim
 
-    def action_values(self, x: ndarray) -> Tensor:
-        x = self.device.tensor(x)
+    def action_values(self, state: ndarray) -> Tensor:
+        x = self.device.tensor(state)
         x = self.body(x)
         x = self.head(x)
         return x
-
-    def save(self, filename):
-        torch.save(self.state_dict(), filename)
-
-    def load(self, filename):
-        data = torch.load(filename)
-        self.load_state_dict(data)
 
 
