@@ -22,25 +22,25 @@ class NetworkHead(nn.Module, ABC):
         pass
 
 
-class LinearHead(NetworkHead):
+class Linear(NetworkHead):
     def __init__(
             self,
             input_dim: int,
             output_dim: int,
             init: Initializer = Initializer()
     ) -> None:
-        super(LinearHead, self).__init__()
-        self.__input_dim = input_dim
-        self.__output_dim = output_dim
+        super(Linear, self).__init__()
+        self._input_dim = input_dim
+        self._output_dim = output_dim
         self.fc = init(nn.Linear(input_dim, output_dim))
 
     @property
     def input_dim(self) -> int:
-        return self.__input_dim
+        return self._input_dim
 
     @property
     def output_dim(self) -> int:
-        return self.__output_dim
+        return self._output_dim
 
     def forward(self, x: Tensor) -> Tensor:
         return self.fc(x)

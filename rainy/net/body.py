@@ -31,8 +31,8 @@ class NatureDqnConv(NetworkBody):
             init: Initializer = Initializer()
     ) -> None:
         super(NatureDqnConv, self).__init__()
-        self.__input_dim = input_dim
-        self.__output_dim = 512
+        self._input_dim = input_dim
+        self._output_dim = 512
         self.activator = activator
         conv1 = nn.Conv2d(input_dim, 32, kernel_size=8, stride=4)
         conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
@@ -49,8 +49,8 @@ class NatureDqnConv(NetworkBody):
 
     @property
     def input_dim(self) -> int:
-        return self.__input_dim
+        return self._input_dim
 
     @property
     def output_dim(self) -> int:
-        return self.__output_dim
+        return self._output_dim
