@@ -6,15 +6,17 @@ class Cooler(ABC):
         pass
 
 class LinearCooler(Cooler):
-    def __init__(self, initial: float, minimal: float, terminate: int) -> None:
+    """decrease epsilon linearly, from initial to minimal, via `max_step` steps
+    """
+    def __init__(self, initial: float, minimal: float, max_step: int) -> None:
         self.initial = initial
         self.minimal = minimal
-        self.terminate = terminate
-        self.current = 0
+        self.max_step = max_step
+        self.current_step = 0
 
     def __call__(self, eps: float) -> float:
-        part = float(self.current) / float(self.terminate)
-        self.current += 1
+        part = float(self.current_step) / float(self.terminate_step)
+        self.current_step += 1
         res = eps - part * (self.initial - self.minimal)
         return max(res, self.minimal)
 

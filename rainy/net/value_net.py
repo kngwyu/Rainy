@@ -1,11 +1,11 @@
 from numpy import ndarray
-import torch
 from torch import nn, Tensor
+from typing import Callable
 from .body import NetworkBody
 from .head import NetworkHead
 from ..lib import Device
 
-
+# TODO: is it enough robust?
 class ValueNet(nn.Module):
     """State -> [Value..]
     """
@@ -36,4 +36,26 @@ class ValueNet(nn.Module):
         x = self.head(x)
         return x
 
+
+class ValueNetGen:
+    """Value Net builder
+    """
+    def __init__(
+            self,
+            body_gen: Callable[[int], NetworkBody],
+            head_gen: Callable[[int, int], NetworkHead],
+    ) -> None:
+        self.body_gen = body_gen
+        self.head_gen = head_gen
+
+    def __call__(
+            self,
+            state_dim: int,
+            action_dim: int,
+            device: Device
+    ) -> ValueNet:
+        body = self.body_gen(state_dim)
+        head_input_dim = body.output_dim
+        head = self.head_gen(head_input_dim, action_dim)
+        return ValueNet(body, head, device=device)
 

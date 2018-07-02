@@ -1,11 +1,16 @@
 """Exploration strategy for value based algorithms
 """
+from abc import ABC, abstractmethod
 import numpy as np
 from np import ndarray
 from .base import Policy
 from .cooler import Cooler
 from ..net.value_net import ValueNet
 
+
+class Explorer(Policy, ABC):
+    def update(self) -> None:
+        pass
 
 class Greedy(Policy):
     """ε-greedy policy
@@ -29,5 +34,4 @@ class Greedy(Policy):
 
     def update(self) -> None:
         self.epsilon = self.cooler(self.epsilon)
-
 

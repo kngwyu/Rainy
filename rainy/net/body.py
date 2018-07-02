@@ -27,6 +27,7 @@ class NatureDqnConv(NetworkBody):
     def __init__(
             self,
             input_dim: int,
+            lazy_init: bool = False,
             activator: Activator = F.relu,
             init: Initializer = Initializer()
     ) -> None:

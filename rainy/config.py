@@ -1,25 +1,29 @@
 from torch.optim import Optimizer
-from typing import List, Optional
+from typing import Any, Iterable
+from .lib.device import Device
+from .net.value_net import ValueNet
+from .policy.explore import Explorer
 
 class Config:
     def __init__(self) -> None:
-        self.optimizer_fn = None
-        self.network_fn = None
         self.gpu_limits = None
+        self.optimizer_gen = None
+        self.value_net_gen = None
 
-    def set_gpu_limits(self, gpu_limits: List[int]):
-        self.gpu_limits = gpu_limits
+    def gen_value_net(self, state_dim: int, action_dim: int) -> ValueNet:
+        device = self.gen_device()
+        return self.value_net_gen(state_dim, action_dim, device)
 
-    def set_optimizer_fn(self):
+    def get_explorer(self, valuenet: ValueNet):
+        pass
+    
+    def gen_policy_net(self):
         pass
 
-    def get_optimizer(self) -> Optimizer:
-        pass
+    def gen_device(self) -> Device:
+        return Device(gpu_limits=self.gpu_limits)
 
-    def get_network(self):
-        pass
+    def gen_optimizer(self, params: Iterable[Any]) -> Optimizer:
+        return self.optimizer_gen(params)
 
-class ConfigInner:
-    def __init__(self, config: Config)-> None:
-        pass
 

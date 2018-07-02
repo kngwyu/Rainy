@@ -8,8 +8,5 @@ class Policy(ABC):
     def select_action(self, state: ndarray) -> int:
         pass
 
-    @abstractmethod
-    def update(self) -> None:
-        pass
 
 
