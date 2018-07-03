@@ -6,11 +6,11 @@ from torch import nn, Tensor
 InitFn = Callable[[Tensor], None]
 
 
-def uniform(mean: float = 0., var: float = 1.) -> InitFn:
+def uniform(mean: float=0., var: float=1.) -> InitFn:
     return partial(nn.init.uniform_, a=mean, b=var)
 
 
-def orthogonal(gain: float = 1.) -> InitFn:
+def orthogonal(gain: float=1.) -> InitFn:
     return partial(nn.init.orthogonal_, gain=gain)
 
 
@@ -27,7 +27,7 @@ class Initializer:
     """
     def __init__(
             self,
-            weight_init: InitFn = uniform(),
+            weight_init: InitFn = orthogonal(),
             bias_init: InitFn = zero(),
             scale: float = 1.,
     ) -> None:

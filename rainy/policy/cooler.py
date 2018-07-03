@@ -15,7 +15,7 @@ class LinearCooler(Cooler):
         self.current_step = 0
 
     def __call__(self, eps: float) -> float:
-        part = float(self.current_step) / float(self.terminate_step)
+        part = float(self.current_step) / float(self.max_step)
         self.current_step += 1
         res = eps - part * (self.initial - self.minimal)
         return max(res, self.minimal)

@@ -9,9 +9,10 @@ from ..net.value_net import ValueNet
 
 
 class Explorer(Policy, ABC):
+    @abstractmethod
     def update(self) -> None:
         pass
-
+    
 class Greedy(Policy):
     """ε-greedy policy
     """

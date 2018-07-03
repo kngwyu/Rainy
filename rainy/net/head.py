@@ -22,14 +22,14 @@ class NetworkHead(nn.Module, ABC):
         pass
 
 
-class Linear(NetworkHead):
+class LinearHead(NetworkHead):
     def __init__(
             self,
             input_dim: int,
             output_dim: int,
             init: Initializer = Initializer()
     ) -> None:
-        super(Linear, self).__init__()
+        super(LinearHead, self).__init__()
         self._input_dim = input_dim
         self._output_dim = output_dim
         self.fc = init(nn.Linear(input_dim, output_dim))

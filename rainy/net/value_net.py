@@ -5,11 +5,11 @@ from .body import NetworkBody
 from .head import NetworkHead
 from ..lib import Device
 
+
 # TODO: is it enough robust?
 class ValueNet(nn.Module):
     """State -> [Value..]
     """
-
     def __init__(
             self,
             body: NetworkBody,
@@ -24,11 +24,11 @@ class ValueNet(nn.Module):
 
     @property
     def state_dim(self) -> int:
-        self.body.input_dim
+        return self.body.input_dim
 
     @property
     def action_dim(self) -> int:
-        self.head.output_dim
+        return self.head.output_dim
 
     def action_values(self, state: ndarray) -> Tensor:
         x = self.device.tensor(state)
@@ -58,4 +58,5 @@ class ValueNetGen:
         head_input_dim = body.output_dim
         head = self.head_gen(head_input_dim, action_dim)
         return ValueNet(body, head, device=device)
+
 

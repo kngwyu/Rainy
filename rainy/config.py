@@ -9,14 +9,15 @@ class Config:
         self.gpu_limits = None
         self.optimizer_gen = None
         self.value_net_gen = None
+        self.explorer_gen = None
 
     def gen_value_net(self, state_dim: int, action_dim: int) -> ValueNet:
         device = self.gen_device()
         return self.value_net_gen(state_dim, action_dim, device)
 
-    def get_explorer(self, valuenet: ValueNet):
-        pass
-    
+    def gen_explorer(self, valuenet: ValueNet) -> Explorer:
+        return self.explorer_gen(valuenet)
+
     def gen_policy_net(self):
         pass
 
