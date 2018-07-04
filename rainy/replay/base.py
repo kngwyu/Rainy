@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from numpy import ndarray
 
+
 class ReplayBuffer(ABC):
     @abstractmethod
     def append(

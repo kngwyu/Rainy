@@ -12,7 +12,7 @@ class NormalReplayBuffer(ReplayBuffer):
             state: ndarray,
             action: int,
             reward: float,
-            next_state: ndarray,            
+            next_state: ndarray,
             is_terminal: bool,
     ) -> None:
         exp = dict(

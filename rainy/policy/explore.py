@@ -2,7 +2,7 @@
 """
 from abc import ABC, abstractmethod
 import numpy as np
-from np import ndarray
+from numpy import ndarray
 from .base import Policy
 from .cooler import Cooler
 from ..net.value_net import ValueNet
