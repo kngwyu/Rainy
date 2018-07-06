@@ -62,20 +62,20 @@ class ArrayDeque:
     def __setitem__(self, pos: int, item: Any) -> None:
         self.buf[(self.base + pos) % len(self.buf)] = item
 
-    def push(self, item: Any) -> None:
+    def push_back(self, item: Any) -> None:
         if self.fixed_len and self.num_elems == len(self.buf):
-            self.pop_left()
+            self.pop_front()
         self._add(self.num_elems, item)
 
-    def pop(self) -> Any:
+    def pop_back(self) -> Any:
         return self._remove(self.num_elems - 1)
 
-    def push_left(self, item: Any) -> None:
+    def push_front(self, item: Any) -> None:
         if self.fixed_len and self.num_elems == len(self.buf):
-            self.pop()
+            self.pop_back()
         self._add(0, item)
 
-    def pop_left(self) -> Any:
+    def pop_front(self) -> Any:
         return self._remove(0)
 
     def clear(self) -> None:
@@ -87,5 +87,5 @@ class ArrayDeque:
         else:
             for i in range(buf_len):
                 self.buf[i] = None
-        
+
 

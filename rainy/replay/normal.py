@@ -1,10 +1,11 @@
-from collections import deque
 from numpy import ndarray
 from .base import ReplayBuffer
+from .array_deque import ArrayDeque
+
 
 class NormalReplayBuffer(ReplayBuffer):
     def __init__(self, max_length: int = 1000):
-        self.buf = deque()
+        self.buf = ArrayDeque(default_size=max_length, fixed_len=True)
         self.cap = max_length
 
     def append(
@@ -22,7 +23,7 @@ class NormalReplayBuffer(ReplayBuffer):
             next_state=next_state,
             is_terminal=is_terminal
         )
-        self.buf.append(exp)
+        self.buf.push(exp)
         if len(self) > self.cap:
             self.buf.popleft()
 

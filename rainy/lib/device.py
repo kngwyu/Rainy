@@ -4,6 +4,7 @@ from torch import nn
 from typing import List, Optional, Union
 from numpy import ndarray
 
+
 class Device():
     """Utilities for handling devices
     """
