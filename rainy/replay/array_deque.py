@@ -1,86 +1,71 @@
-"""Implementation of deque using list
+"""Implementation of deque using 2 lists
 """
-from typing import Any
-
-MOD = 2147483648
-MOD_ = 2147483647
+from typing import Any, Optional
 
 
 class ArrayDeque:
-    def __init__(self, capacity: int=7, fixed_len: bool=False) -> None:
-        self.cap = capacity
-        self.buf_cap = 1
-        while self.buf_cap < capacity:
-            self.buf_cap <<= 1
-        self.tail = 0
-        self.head = 0
-        self.num_elems = 0
-        self.buf = [None for _ in range(self.buf_cap)]
-        self.fixed_len = fixed_len
-
-    def __double(self):
-        old_cap = self.buf_cap
-        self.buf.extend([None for _ in range(old_cap)])
-        if self.tail <= self.head:
-            pass
-        elif self.head < old_cap - self.tail:
-            for i in range(self.head):
-                self.buf[i + old_cap] = self[i]
-            self.head += old_cap
-        else:
-            for i in range(self.tail, old_cap):
-                self[i + old_cap] = self[i]
-            self.tail += old_cap
-        self.buf_cap += old_cap
-
-    def __getitem__(self, i: int) -> Any:
-        if i < self.num_elems:
-            idx = ((self.tail + i) & MOD_) & (self.buf_cap - 1)
-            return self.buf[idx]
-        else:
-            return None
-
-    def __setitem__(self, i: int, item: Any):
-        if i < self.num_elems:
-            idx = ((self.tail + i) & MOD_) & (self.buf_cap - 1)
-            self.buf[idx] = item
+    def __init__(self, capacity: Optional[int] = None) -> None:
+        self.front = []
+        self.back = []
+        self.capacity = capacity
 
     def __len__(self):
-        return self.num_elems
+        return len(self.front) + len(self.back)
 
-    def pop_front(self) -> Any:
-        if self.head == self.tail:
-            return None
+    def __getitem__(self, i: int) -> Any:
+        front_len = len(self.front)
+        if i < front_len:
+            return self.front[~i]
         else:
-            self.num_elems -= 1
-            tail = self.tail
-            self.tail = ((tail + 1) & MOD_) & (self.buf_cap - 1)
-            return self.buf[tail]
+            return self.back[i - front_len]
 
-    def push_front(self, item: Any):
-        if not self.fixed_len and self.buf_cap - self.num_elems is 1:
-            self.__double()
-        self.tail = ((self.tail + MOD - 1) & MOD_) & (self.buf_cap - 1)
-        self.buf[self.tail] = item
-        self.num_elems += 1
-        if self.fixed_len and self.num_elems == self.cap + 1:
+    def __setitem__(self, i: int, item: Any) -> None:
+        front_len = len(self.front)
+        if i < front_len:
+            self.front[~i] = item
+        else:
+            self.back[i - front_len] = item
+
+    def push_back(self, item: Any) -> None:
+        self.back.append(item)
+        if self.capacity and len(self) > self.capacity:
+            self.pop_front()
+
+    def push_front(self, item: Any) -> None:
+        self.front.append(item)
+        if self.capacity and len(self) > self.capacity:
             self.pop_back()
 
     def pop_back(self) -> Any:
-        if self.head == self.tail:
-            return None
-        else:
-            self.num_elems -= 1
-            self.head = ((self.head + MOD - 1) & MOD_) & (self.buf_cap - 1)
-            return self.buf[self.head]
+        if not self.back:
+            if len(self) >= 2:
+                self.balance()
+            else:
+                return self.front.pop()
+        return self.back.pop()
 
-    def push_back(self, item: Any):
-        if not self.fixed_len and self.buf_cap - self.num_elems is 1:
-            self.__double()
-        head = self.head
-        self.head = ((head + 1) & MOD_) & (self.buf_cap - 1)
-        self.buf[head] = item
-        self.num_elems += 1
-        if self.fixed_len and self.num_elems == self.cap + 1:
-            self.pop_front()
+    def pop_front(self) -> Any:
+        self.balance()
+        return self.front.pop()
+
+    def clear(self) -> None:
+        self.front.clear()
+        self.back.clear()
+
+    def balance(self) -> None:
+        front_len = len(self.front)
+        back_len = len(self.back)
+        n = front_len + back_len
+        if 3 * front_len < back_len:
+            front_len_new = max(n // 2, 1)
+            ext_len = front_len_new - front_len
+            front = [self.back[i] for i in reversed(range(ext_len))]
+            self.front = front + self.front
+            self.back = [self.back[i] for i in range(ext_len, n - front_len)]
+        elif 3 * back_len < front_len:
+            front_len_new = max(n // 2, 1)
+            extend_len = front_len - front_len_new
+            back = [self.front[i] for i in reversed(range(extend_len))]
+            self.back = back + self.back
+            self.front = [self.front[i] for i in range(extend_len, front_len)]
 

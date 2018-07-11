@@ -4,7 +4,7 @@ import random
 
 
 def test_deque_push_back():
-    deq = ArrayDeque(capacity=10, fixed_len=True)
+    deq = ArrayDeque(capacity=10)
     for i in range(14):
         deq.push_back(i)
 
@@ -13,7 +13,7 @@ def test_deque_push_back():
 
 
 def test_deque_push_front():
-    deq = ArrayDeque(capacity=10, fixed_len=True)
+    deq = ArrayDeque(capacity=10)
     for i in range(14):
         deq.push_front(i)
     print(deq)
@@ -22,7 +22,7 @@ def test_deque_push_front():
 
 
 def test_deque_stress():
-    mydeq = ArrayDeque(capacity=2000)
+    mydeq = ArrayDeque()
     deq = deque()
     N = 10000
     for i in range(N):
