@@ -3,16 +3,17 @@ from collections import deque
 import random
 
 
-def test_deque_push():
-    deq = ArrayDeque(default_size=10, fixed_len=True)
+def test_deque_push_back():
+    deq = ArrayDeque(capacity=10, fixed_len=True)
     for i in range(14):
         deq.push_back(i)
+
     for i in range(4, 14):
         assert deq[i - 4] == i
 
 
-def test_deque_push_left():
-    deq = ArrayDeque(default_size=10, fixed_len=True)
+def test_deque_push_front():
+    deq = ArrayDeque(capacity=10, fixed_len=True)
     for i in range(14):
         deq.push_front(i)
     print(deq)
@@ -21,7 +22,7 @@ def test_deque_push_left():
 
 
 def test_deque_stress():
-    mydeq = ArrayDeque(default_size=2000)
+    mydeq = ArrayDeque(capacity=2000)
     deq = deque()
     N = 10000
     for i in range(N):

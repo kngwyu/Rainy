@@ -22,11 +22,3 @@ class ReplayBuffer(ABC):
     def __len__(self):
         pass
 
-    @abstractmethod
-    def save(self, filename):
-        pass
-
-    @abstractmethod
-    def load(self, filename):
-        pass
-
