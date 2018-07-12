@@ -7,7 +7,7 @@ def sample_indices(n: int, k: int) -> np.ndarray:
         return np.random.choice(n, k, replace=False)
     else:
         selected = set()
-        rands = np.random.randint(0, n, size=k*2)
+        rands = np.random.randint(0, n, size=k * 2)
         j = k
         for i in range(k):
             x = rands[i]

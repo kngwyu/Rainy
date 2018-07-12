@@ -23,12 +23,7 @@ class NetworkHead(nn.Module, ABC):
 
 
 class LinearHead(NetworkHead):
-    def __init__(
-            self,
-            input_dim: int,
-            output_dim: int,
-            init: Initializer = Initializer()
-    ) -> None:
+    def __init__(self, input_dim: int, output_dim: int, init: Initializer = Initializer()) -> None:
         super(LinearHead, self).__init__()
         self._input_dim = input_dim
         self._output_dim = output_dim

@@ -35,10 +35,7 @@ class Initializer:
         self.bias_init = bias_init
         self.scale = scale
 
-    def __call__(
-            self,
-            mod: Union[nn.Module, nn.Sequential, Iterable[nn.Module]],
-    ) -> nn.Module:
+    def __call__(self, mod: Union[nn.Module, nn.Sequential, Iterable[nn.Module]]) -> nn.Module:
         if hasattr(mod, '__iter__'):
             self.__init_list(mod)
         elif isinstance(mod, nn.Sequential):

@@ -12,16 +12,12 @@ class Explorer(Policy, ABC):
     @abstractmethod
     def update(self) -> None:
         pass
-    
+
+
 class Greedy(Policy):
     """ε-greedy policy
     """
-    def __init__(
-            self,
-            epsilon: float,
-            cooler: Cooler,
-            valuenet: ValueNet
-    ) -> None:
+    def __init__(self, epsilon: float, cooler: Cooler, valuenet: ValueNet) -> None:
         self.epsilon = epsilon
         self.cooler = cooler
         self.valuenet = valuenet

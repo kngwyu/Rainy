@@ -1,6 +1,7 @@
 """Implementation of deque using 2 lists
 """
 from typing import Any, Optional
+from util.sample import sample_indices
 
 
 class ArrayDeque:
@@ -59,13 +60,16 @@ class ArrayDeque:
         if 3 * front_len < back_len:
             front_len_new = max(n // 2, 1)
             ext_len = front_len_new - front_len
-            front = [self.back[i] for i in reversed(range(ext_len))]
-            self.front = front + self.front
-            self.back = [self.back[i] for i in range(ext_len, n - front_len)]
+            self.front = [x for x in reversed(self.back[:ext_len])] + self.front
+            self.back = self.back[ext_len:]
         elif 3 * back_len < front_len:
             front_len_new = max(n // 2, 1)
-            extend_len = front_len - front_len_new
-            back = [self.front[i] for i in reversed(range(extend_len))]
-            self.back = back + self.back
-            self.front = [self.front[i] for i in range(extend_len, front_len)]
+            ext_len = front_len - front_len_new
+            self.back = [x for x in reversed(self.front[:ext_len])] + self.back
+            self.front = self.front[ext_len:]
 
+    def sample(self, k):
+        front_len = len(self.front)
+        n = front_len + len(self.back)
+        return [self.front[i] if i < front_len else self.back[i - front_len]
+                for i in sample_indices(n, k)]

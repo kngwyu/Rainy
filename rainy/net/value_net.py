@@ -10,12 +10,7 @@ from ..lib import Device
 class ValueNet(nn.Module):
     """State -> [Value..]
     """
-    def __init__(
-            self,
-            body: NetworkBody,
-            head: NetworkHead,
-            device: Device = Device(),
-    ) -> None:
+    def __init__(self, body: NetworkBody, head: NetworkHead, device: Device = Device()) -> None:
         assert body.output_dim == head.input__dim, \
             'body output and head input must have a same dimention'
         self.head = head
@@ -48,12 +43,7 @@ class ValueNetGen:
         self.body_gen = body_gen
         self.head_gen = head_gen
 
-    def __call__(
-            self,
-            state_dim: int,
-            action_dim: int,
-            device: Device
-    ) -> ValueNet:
+    def __call__(self, state_dim: int, action_dim: int, device: Device) -> ValueNet:
         body = self.body_gen(state_dim)
         head_input_dim = body.output_dim
         head = self.head_gen(head_input_dim, action_dim)
