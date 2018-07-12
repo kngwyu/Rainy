@@ -1,7 +1,7 @@
 """Implementation of deque using 2 lists
 """
 from typing import Any, Optional
-from util.sample import sample_indices
+from ..util.sample import sample_indices
 
 
 class ArrayDeque:
