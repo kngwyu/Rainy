@@ -4,12 +4,14 @@ from .lib.device import Device
 from .net.value_net import ValueNet
 from .policy.explore import Explorer
 
+
 class Config:
     def __init__(self) -> None:
         self.gpu_limits = None
         self.optimizer_gen = None
         self.value_net_gen = None
         self.explorer_gen = None
+        self.replay_size = None
 
     def gen_value_net(self, state_dim: int, action_dim: int) -> ValueNet:
         device = self.gen_device()

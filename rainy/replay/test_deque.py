@@ -43,3 +43,14 @@ def test_deque_stress():
             assert deq.pop() == mydeq.pop_back()
         else:
             assert deq.popleft() == mydeq.pop_front()
+
+
+def test_deque_sample():
+    deq = ArrayDeque()
+    N = 10000
+    for i in range(N):
+        deq.push_back(i)
+    K = 8000
+    samples = deq.sample(K)
+    samples = list(set(samples))
+    assert len(samples) == K

@@ -39,14 +39,19 @@ class ArrayDeque:
 
     def pop_back(self) -> Any:
         if not self.back:
-            if len(self) >= 2:
+            n = len(self)
+            if n >= 2:
                 self.balance()
-            else:
+            elif n >= 1:
                 return self.front.pop()
+            else:
+                raise IndexError('[ArrayDeque::pop_back] Empty')
         return self.back.pop()
 
     def pop_front(self) -> Any:
         self.balance()
+        if not self.front:
+            raise IndexError('[ArrayDeque::pop_front] Empty')
         return self.front.pop()
 
     def clear(self) -> None:
@@ -71,5 +76,7 @@ class ArrayDeque:
     def sample(self, k):
         front_len = len(self.front)
         n = front_len + len(self.back)
+        if n < k:
+            raise ValueError('[ArrayDeque::sample] n < k')
         return [self.front[i] if i < front_len else self.back[i - front_len]
                 for i in sample_indices(n, k)]

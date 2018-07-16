@@ -12,6 +12,5 @@ class DqnAgent(Agent):
         self.optimizer = config.gen_optimizer(self.net.parameters())
         self.criterion = nn.MSELoss()
         self.policy = config.get_explorer(self.net)
-
         self.steps = 0
 
