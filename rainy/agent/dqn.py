@@ -13,4 +13,13 @@ class DqnAgent(Agent):
         self.criterion = nn.MSELoss()
         self.policy = config.get_explorer(self.net)
         self.steps = 0
-        self.replay_
+        self.replay = config.replay_buffer()
+
+    def members_to_save(self):
+        return "net", "target_net"
+
+
+    def episode(self):
+        pass
+
+

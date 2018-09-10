@@ -17,9 +17,9 @@ class Agent(ABC):
         """
         pass
 
-    @abstractmethod
-    def action(self, state: ndarray):
-        pass
+    # @abstractmethod
+    # def action(self, state: ndarray):
+    #     pass
 
     def save(self, filename: str) -> None:
         save_dict = {}
