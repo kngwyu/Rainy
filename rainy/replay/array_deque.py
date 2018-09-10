@@ -61,17 +61,16 @@ class ArrayDeque:
     def balance(self) -> None:
         front_len = len(self.front)
         back_len = len(self.back)
-        n = front_len + back_len
         if 3 * front_len < back_len:
-            front_len_new = max(n // 2, 1)
+            front_len_new = max((front_len + back_len) // 2, 1)
             ext_len = front_len_new - front_len
-            self.front = [x for x in reversed(self.back[:ext_len])] + self.front
-            self.back = self.back[ext_len:]
+            self.front[:0] = [x for x in reversed(self.back[:ext_len])]
+            del self.back[:ext_len]
         elif 3 * back_len < front_len:
-            front_len_new = max(n // 2, 1)
+            front_len_new = max((front_len + back_len) // 2, 1)
             ext_len = front_len - front_len_new
-            self.back = [x for x in reversed(self.front[:ext_len])] + self.back
-            self.front = self.front[ext_len:]
+            self.back[:0] = [x for x in reversed(self.front[:ext_len])]
+            del self.front[:ext_len]
 
     def sample(self, k):
         front_len = len(self.front)

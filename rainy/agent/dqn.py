@@ -13,4 +13,3 @@ class DqnAgent(Agent):
         self.criterion = nn.MSELoss()
         self.policy = config.get_explorer(self.net)
         self.steps = 0
-
