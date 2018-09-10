@@ -6,7 +6,6 @@ from ..net.value_net import ValueNet
 
 class DqnAgent(Agent):
     def __init__(self, config: Config):
-        self.config = config
         self.net = config.value_net()
         self.target_net = config.value_net()
         self.optimizer = config.gen_optimizer(self.net.parameters())
@@ -14,10 +13,11 @@ class DqnAgent(Agent):
         self.policy = config.get_explorer(self.net)
         self.steps = 0
         self.replay = config.replay_buffer()
+        self.env = config.env()
+        self.config = config
 
     def members_to_save(self):
         return "net", "target_net"
-
 
     def episode(self):
         pass

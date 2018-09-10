@@ -1,3 +1,4 @@
+from gym import Env
 from torch.optim import Optimizer, RMSprop
 from typing import Any, Callable, Iterable
 from .lib.device import Device
@@ -5,19 +6,28 @@ from .net.value_net import ValueNet
 from .policy import Explorer, linear_greedy
 from .replay import ReplayBuffer, UniformReplayBuffer
 
+
 class Config:
     def __init__(self) -> None:
         # for value based methods
         self.__exp_gen = lambda v: linear_greedy(0.01, v)
         self.__optim_gen = lambda params: RMSprop(params, 0.001)
         self.__replay_gen = lambda capacity: UniformReplayBuffer(capacity)
+        self.__task_gen = None
         self.__vn_gen = None
         self.gpu_limits = 0
         self.state_dim = 1000
+        self.action_dim = 1000
         self.replay_size = 1000
 
     def device(self) -> Device:
         return Device(gpu_limits=self.gpu_limits)
+
+    def env(self) -> Env:
+        self.__env_gen()
+
+    def set_env(self, env: Callable[[], Env]) -> None:
+        self.__env_gen = env
 
     def explorer(self, value_net: ValueNet) -> Explorer:
         return self.__exp_gen(value_net)
