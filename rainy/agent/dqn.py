@@ -7,9 +7,10 @@ from ..net.value_net import ValueNet
 class DqnAgent(Agent):
     def __init__(self, config: Config):
         self.config = config
-        self.net = config.gen_value_net()
-        self.target_net = config.gen_value_net()
+        self.net = config.value_net()
+        self.target_net = config.value_net()
         self.optimizer = config.gen_optimizer(self.net.parameters())
         self.criterion = nn.MSELoss()
         self.policy = config.get_explorer(self.net)
         self.steps = 0
+        self.replay_

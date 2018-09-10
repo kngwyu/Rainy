@@ -1,32 +1,51 @@
-from torch.optim import Optimizer
-from typing import Any, Iterable
+from torch.optim import Optimizer, RMSprop
+from typing import Any, Callable, Iterable
 from .lib.device import Device
 from .net.value_net import ValueNet
-from .policy.explore import Explorer
-
+from .policy import Explorer, linear_greedy
+from .replay import ReplayBuffer, UniformReplayBuffer
 
 class Config:
     def __init__(self) -> None:
-        self.gpu_limits = None
-        self.optimizer_gen = None
-        self.value_net_gen = None
-        self.explorer_gen = None
-        self.replay_size = None
+        # for value based methods
+        self.__exp_gen = lambda v: linear_greedy(0.01, v)
+        self.__optim_gen = lambda params: RMSprop(params, 0.001)
+        self.__replay_gen = lambda capacity: UniformReplayBuffer(capacity)
+        self.__vn_gen = None
+        self.gpu_limits = 0
+        self.state_dim = 1000
+        self.replay_size = 1000
 
-    def gen_value_net(self, state_dim: int, action_dim: int) -> ValueNet:
-        device = self.gen_device()
-        return self.value_net_gen(state_dim, action_dim, device)
-
-    def gen_explorer(self, valuenet: ValueNet) -> Explorer:
-        return self.explorer_gen(valuenet)
-
-    def gen_policy_net(self):
-        pass
-
-    def gen_device(self) -> Device:
+    def device(self) -> Device:
         return Device(gpu_limits=self.gpu_limits)
 
-    def gen_optimizer(self, params: Iterable[Any]) -> Optimizer:
-        return self.optimizer_gen(params)
+    def explorer(self, value_net: ValueNet) -> Explorer:
+        return self.__exp_gen(value_net)
+
+    def set_explorer(self, exp_gen: Callable[[ValueNet], Explorer]) -> None:
+        self.__exp_gen = exp_gen
+
+    def optimizer(self, params: Iterable[Any]) -> Optimizer:
+        return self.__optim_gen(params)
+
+    def set_optimizer(self, optim_gen: Callable[[Iterable[Any]], Optimizer]) -> None:
+        self.__optim_gen = optim_gen
+
+    def replay_buffer(self) -> ReplayBuffer:
+        self.__replay_gen(self.replay_size)
+
+    def set_replay_buffer(self, replay_gen: Callable[[int], ReplayBuffer]) -> None:
+        self.__replay_gen = replay_gen
+
+    def value_net(self, state_dim: int, action_dim: int) -> ValueNet:
+        device = self.gen_device()
+        return self.__vn_gen(state_dim, action_dim, device)
+
+    def set_value_net(self, vn_gen: Callable[[int, int, Device], ValueNet]) -> None:
+        self.__vn_gen = vn_gen
+
+    def policy_net(self):
+        pass
+
 
 
