@@ -1,34 +1,28 @@
+from typing import Generic, Tuple
 import numpy as np
 from numpy import ndarray
-from .base import ReplayBuffer
+from .base import ReplayBuffer, State
 from .array_deque import ArrayDeque
 
-
-class UniformReplayBuffer(ReplayBuffer):
+class UniformReplayBuffer(ReplayBuffer, Generic[State]):
     def __init__(self, capacity: int = 1000) -> None:
         self.buf = ArrayDeque(capacity=capacity)
         self.cap = capacity
 
     def append(
             self,
-            state: ndarray,
+            state: State,
             action: int,
             reward: float,
-            next_state: ndarray,
+            next_state: State,
             is_terminal: bool,
     ) -> None:
-        exp = dict(
-            state=state,
-            action=action,
-            reward=reward,
-            next_state=next_state,
-            is_terminal=is_terminal
-        )
+        exp = (state, action, reward, next_state, is_terminal)
         self.buf.push_back(exp)
         if len(self) > self.cap:
             self.buf.pop_front()
 
-    def sample(self, batch_size: int):
+    def sample(self, batch_size: int) -> List[Tuple[State, int, float, State, bool]]:
         n = len(self.buf)
         return [self.buf[idx] for idx in np.random.choice(n, batch_size)]
 

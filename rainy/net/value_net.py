@@ -25,7 +25,7 @@ class ValueNet(nn.Module):
     def action_dim(self) -> int:
         return self.head.output_dim
 
-    def values(self, state: ndarray) -> Tensor:
+    def action_values(self, state: ndarray) -> Tensor:
         x = self.device.tensor(state)
         x = self.body(x)
         x = self.head(x)

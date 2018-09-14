@@ -4,20 +4,21 @@ from torch.optim import Optimizer, RMSprop
 from typing import Any, Callable, Iterable
 from .lib.device import Device
 from .net.value_net import ValueNet
-from .explore import LinearCooler, Explorer, Greedy
-from .replay import ReplayBuffer, UniformReplayBuffer
+from .explore import LinearCooler, Explorer, EpsGreedy
+from .replay import ReplayBuffer, State, UniformReplayBuffer
 
 
 class Config:
     def __init__(self) -> None:
         # for value based methods
-        self.gpu_limits = [0]
-        self.state_dim = 1000
         self.action_dim = 1000
+        self.batch_size = 100
+        self.gpu_limits = [0]
         self.replay_size = 1000
-        self.exp_steps = 1000
+        self.state_dim = 1000
         self.seed = 0
-        self.__exp_gen = lambda net: Greedy(0.01, LinearCooler(0.1, 0, 100000) ,net)
+        self.train_start = 1000
+        self.__exp_gen = lambda net: EpsGreedy(0.01, LinearCooler(0.1, 0, 100000) ,net)
         self.__optim_gen = lambda params: RMSprop(params, 0.001)
         self.__replay_gen = lambda capacity: UniformReplayBuffer(capacity)
         self.__task_gen = None
@@ -58,10 +59,10 @@ class Config:
     def set_value_net(self, vn_gen: Callable[[int, int, Device], ValueNet]) -> None:
         self.__vn_gen = vn_gen
 
-    def wrap_state(self, state: ndarray) -> ndarray:
+    def wrap_state(self, state: State) -> ndarray:
         return self.__wrap_state(state)
     
-    def set_wrap_state(self, wrap_state: Callable[[ndarray], ndarray]) -> None:
+    def set_wrap_state(self, wrap_state: Callable[[State], ndarray]) -> None:
         self.__wrap_state = wrap_state
 
     def policy_net(self):
