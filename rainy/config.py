@@ -1,4 +1,5 @@
 from gym import Env
+from numpy import ndarray
 from torch.optim import Optimizer, RMSprop
 from typing import Any, Callable, Iterable
 from .lib.device import Device
@@ -15,10 +16,13 @@ class Config:
         self.__replay_gen = lambda capacity: UniformReplayBuffer(capacity)
         self.__task_gen = None
         self.__vn_gen = None
+        self.__wrap_state = lambda state: state
         self.gpu_limits = 0
         self.state_dim = 1000
         self.action_dim = 1000
         self.replay_size = 1000
+        self.exp_steps = 1000
+        self.seed = 0
 
     def device(self) -> Device:
         return Device(gpu_limits=self.gpu_limits)
@@ -42,7 +46,7 @@ class Config:
         self.__optim_gen = optim_gen
 
     def replay_buffer(self) -> ReplayBuffer:
-        self.__replay_gen(self.replay_size)
+        return self.__replay_gen(self.replay_size)
 
     def set_replay_buffer(self, replay_gen: Callable[[int], ReplayBuffer]) -> None:
         self.__replay_gen = replay_gen
@@ -53,6 +57,12 @@ class Config:
 
     def set_value_net(self, vn_gen: Callable[[int, int, Device], ValueNet]) -> None:
         self.__vn_gen = vn_gen
+
+    def wrap_state(self, state: ndarray) -> ndarray:
+        return self.__wrap_state(state)
+    
+    def set_wrap_state(self, wrap_state: Callable[[ndarray], ndarray]) -> None:
+        self.__wrap_state = wrap_state
 
     def policy_net(self):
         pass
