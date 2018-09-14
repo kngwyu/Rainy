@@ -4,7 +4,7 @@ from torch.optim import Optimizer, RMSprop
 from typing import Any, Callable, Iterable
 from .lib.device import Device
 from .net.value_net import ValueNet
-from .policy import Explorer, linear_greedy
+from .explore import Explorer, linear_greedy
 from .replay import ReplayBuffer, UniformReplayBuffer
 
 

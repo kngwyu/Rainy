@@ -3,11 +3,11 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from numpy import ndarray
-from .base import Policy
+from .base import Exploler
 from .cooler import Cooler, LinearCooler
 from ..net.value_net import ValueNet
 
-class Greedy(Policy):
+class Greedy(Exploler):
     """ε-greedy policy
     """
     def __init__(self, epsilon: float, cooler: Cooler, value_net: ValueNet) -> None:

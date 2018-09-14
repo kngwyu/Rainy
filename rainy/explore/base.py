@@ -1,9 +1,7 @@
 from abc import ABC, abstractmethod
 from numpy import ndarray
 
-
-class Policy(ABC):
-    # TODO: continuous
+class Exploler(ABC):
     @abstractmethod
     def select_action(self, state: ndarray) -> int:
         pass
