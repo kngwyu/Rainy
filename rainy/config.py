@@ -4,25 +4,25 @@ from torch.optim import Optimizer, RMSprop
 from typing import Any, Callable, Iterable
 from .lib.device import Device
 from .net.value_net import ValueNet
-from .explore import Explorer, linear_greedy
+from .explore import LinearCooler, Explorer, Greedy
 from .replay import ReplayBuffer, UniformReplayBuffer
 
 
 class Config:
     def __init__(self) -> None:
         # for value based methods
-        self.__exp_gen = lambda v: linear_greedy(0.01, v)
-        self.__optim_gen = lambda params: RMSprop(params, 0.001)
-        self.__replay_gen = lambda capacity: UniformReplayBuffer(capacity)
-        self.__task_gen = None
-        self.__vn_gen = None
-        self.__wrap_state = lambda state: state
-        self.gpu_limits = 0
+        self.gpu_limits = [0]
         self.state_dim = 1000
         self.action_dim = 1000
         self.replay_size = 1000
         self.exp_steps = 1000
         self.seed = 0
+        self.__exp_gen = lambda net: Greedy(0.01, LinearCooler(0.1, 0, 100000) ,net)
+        self.__optim_gen = lambda params: RMSprop(params, 0.001)
+        self.__replay_gen = lambda capacity: UniformReplayBuffer(capacity)
+        self.__task_gen = None
+        self.__vn_gen = None
+        self.__wrap_state = lambda state: state
 
     def device(self) -> Device:
         return Device(gpu_limits=self.gpu_limits)
@@ -52,7 +52,7 @@ class Config:
         self.__replay_gen = replay_gen
 
     def value_net(self, state_dim: int, action_dim: int) -> ValueNet:
-        device = self.gen_device()
+        device = self.device()
         return self.__vn_gen(state_dim, action_dim, device)
 
     def set_value_net(self, vn_gen: Callable[[int, int, Device], ValueNet]) -> None:

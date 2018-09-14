@@ -5,8 +5,8 @@ from .array_deque import ArrayDeque
 
 
 class UniformReplayBuffer(ReplayBuffer):
-    def __init__(self, capacity: int = 1000):
-        self.buf = ArrayDeque(default_size=capacity, fixed_len=True)
+    def __init__(self, capacity: int = 1000) -> None:
+        self.buf = ArrayDeque(capacity=capacity)
         self.cap = capacity
 
     def append(

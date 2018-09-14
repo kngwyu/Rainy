@@ -1,13 +1,13 @@
 """Implementation of deque using 2 lists
 """
-from typing import Any, Optional
+from typing import Any, List, Optional
 from ..util.sample import sample_indices
 
 
 class ArrayDeque:
     def __init__(self, capacity: Optional[int] = None) -> None:
-        self.front = []
-        self.back = []
+        self.front: List[Any] = []
+        self.back: List[Any] = []
         self.capacity = capacity
 
     def __len__(self):

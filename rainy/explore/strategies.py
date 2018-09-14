@@ -3,11 +3,11 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from numpy import ndarray
-from .base import Exploler
+from .base import Explorer
 from .cooler import Cooler, LinearCooler
 from ..net.value_net import ValueNet
 
-class Greedy(Exploler):
+class Greedy(Explorer):
     """ε-greedy policy
     """
     def __init__(self, epsilon: float, cooler: Cooler, value_net: ValueNet) -> None:
@@ -20,9 +20,6 @@ class Greedy(Exploler):
             action_dim = self.value_net.action_dim
             return np.random.randint(0, action_dim)
         self.epsilon = self.cooler(self.epsilon)
-        action_values = self.valuenet.action_values(state)
+        action_values = self.value_net.action_values(state)
         return action_values.argmax()
 
-
-def linear_greedy(epsilon: float, value_net: ValueNet) -> Greedy:
-    Greedy(epsilon, LinearCooler, value_net)
