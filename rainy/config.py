@@ -65,6 +65,9 @@ class Config:
     def set_wrap_state(self, wrap_state: Callable[[State], ndarray]) -> None:
         self.__wrap_state = wrap_state
 
+    def set(self, key: str, value: Any):
+        self.__setattr__(key, value)
+
     def policy_net(self):
         pass
 

@@ -1,5 +1,5 @@
 import numpy as np
-from torch import nn, Tensor
+from torch import nn, Tensor, torch
 from .base import Agent
 from ..config import Config
 from ..net.value_net import ValueNet
@@ -7,7 +7,7 @@ from ..explore import Greedy
 
 class DqnAgent(Agent):
     def __init__(self, config: Config):
-        self.predict_net = config.value_net()
+        self.net = config.value_net()
         self.target_net = config.value_net()
         self.optimizer = config.gen_optimizer(self.net.parameters())
         self.criterion = nn.MSELoss()
@@ -25,7 +25,7 @@ class DqnAgent(Agent):
 
     def episode(self, train: bool = True):
         if not train:
-            self.policy = Greedy(self.predict_net)
+            self.policy = Greedy(self.net)
         total_reward = 0.0
         steps = 0
         self.env.seed(self.config.seed)
@@ -52,5 +52,8 @@ class DqnAgent(Agent):
             self.total_steps += 1
         if train and train_started:
             observation = self.replay.sample(self.config.batch_size)
-            states, actions, rewards, next_states, is_terminals = map(np.asarray, zip(*observation))
-            
+            states, actions, rewards, next_states, is_terms = map(np.asarray, zip(*observation))
+            next_states = self.wrap_states(next_states)
+            q_next = self.target_net(next_states).detach()
+            if self.config.double_q:
+                best_actions = torch.argmax

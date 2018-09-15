@@ -41,3 +41,6 @@ class Agent(ABC):
             else:
                 setattr(self, member_str, saved_item)
 
+    def wrap_states(self, states: ndarray) -> ndarray:
+        return np.apply_along_axis(self.config.wrap_state, states.ndim - 1, states)
+
