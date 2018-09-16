@@ -1,4 +1,4 @@
-from typing import Generic, Tuple
+from typing import Generic, List, Tuple
 import numpy as np
 from numpy import ndarray
 from .base import ReplayBuffer, State

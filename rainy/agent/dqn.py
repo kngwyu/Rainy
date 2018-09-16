@@ -1,5 +1,6 @@
 import numpy as np
 from torch import nn, Tensor, torch
+from typing import Tuple
 from .base import Agent
 from ..config import Config
 from ..net.value_net import ValueNet
@@ -9,19 +10,21 @@ class DqnAgent(Agent):
     def __init__(self, config: Config):
         self.net = config.value_net()
         self.target_net = config.value_net()
-        self.optimizer = config.gen_optimizer(self.net.parameters())
+        self.optimizer = config.optimizer(self.net.parameters())
         self.criterion = nn.MSELoss()
-        self.policy = config.get_explorer(self.net)
+        self.policy = config.explorer(self.net)
         self.total_steps = 0
         self.replay = config.replay_buffer()
         self.env = config.env()
         self.config = config
+        self.batch_indices = torch.arange(
+            config.batch_size,
+            device=self.config.device(),
+            dtype=torch.int32
+        )
 
     def members_to_save(self):
         return "net", "target_net"
-
-    def episode(self):
-        pass
 
     def episode(self, train: bool = True):
         if not train:
@@ -31,29 +34,40 @@ class DqnAgent(Agent):
         self.env.seed(self.config.seed)
         state = self.env.reset()
         while True:
-            action = self.policy.select_action(state)
-            next_state, reward, done, _ = self.env.step(action)
-            total_reward += reward
-            if train:
-                self.replay.append(state, action, reward, next_state, done)
-                self.total_steps += 1
+            state, reward, done = self.step(state, train=train)
             steps += 1
+            self.total_steps += 1
+            total_reward += reward
+            if done:
+                break
 
-    def step(self, state: ndarray, train: bool = True):
+    def step(self, state: ndarray, train: bool = True) -> Tuple[ndarray, float, bool]:
         train_started = self.total_steps > self.config.train_start
-        if train_started:
-            action = self.policy.select_action(self.config.wrap_state(state))
+        if not train or train_started:
+            action = self.policy.select_action(self.config.wrap_states(np.stack([state])))
         else:
             action = np.random.randint(self.value_net.action_dim)
         next_state, reward, done, _ = self.env.step(state)
-        next_state = next_state
-        if train:
-            self.replay.append(state, action, reward, next_state, done)
-            self.total_steps += 1
-        if train and train_started:
-            observation = self.replay.sample(self.config.batch_size)
-            states, actions, rewards, next_states, is_terms = map(np.asarray, zip(*observation))
-            next_states = self.wrap_states(next_states)
-            q_next = self.target_net(next_states).detach()
-            if self.config.double_q:
-                best_actions = torch.argmax
+        if not train:
+            return next_state, done
+        self.replay.append(state, action, reward, next_state, done)
+        if not train_started:
+            return next_state, done
+        observation = self.replay.sample(self.config.batch_size)
+        states, actions, rewards, next_states, is_terms = map(np.asarray, zip(*observation))
+        q_next = self.target_net(self.wrap_states(next_states)).detach()
+        if self.config.double_q:
+            best_actions = torch.argmax(dim=-1)
+            q_next = q_next[self.batch_indices, best_actions]
+        else:
+            q_next, _ = q_next.max(1)
+        q_next *= 1.0 - self.config.device.tensor(is_terms)
+        q_next *= self.config.discount_factor
+        q_next += self.config.device.tensor(is_terms)
+        q_current = self.net(self.wrap_states(states))
+        q_current = q_current[self.batch_indices, actions]
+        loss = self.config.loss(q_current, q_next)
+        self.optimizer.zero_grad()
+        loss.backward()
+        nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
+        self.optimizer.step()

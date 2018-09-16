@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import numpy as np
 from numpy import ndarray
 import torch
 from torch import nn
@@ -7,6 +8,7 @@ from ..net import NetworkHead, NetworkBody, Initializer
 
 
 class Agent(ABC):
+
     @abstractmethod
     def members_to_save(self) -> Tuple[str, ...]:
         """Here you can specify members you want to save.
@@ -40,7 +42,3 @@ class Agent(ABC):
                 mod.load_state_dict(saved_item)
             else:
                 setattr(self, member_str, saved_item)
-
-    def wrap_states(self, states: ndarray) -> ndarray:
-        return np.apply_along_axis(self.config.wrap_state, states.ndim - 1, states)
-

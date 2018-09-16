@@ -1,6 +1,4 @@
-import torch
-from torch import Tensor
-from torch import nn
+from torch import nn, Tensor, torch
 from typing import List, Optional, Union
 from numpy import ndarray
 
@@ -22,6 +20,9 @@ class Device():
             gpu_max = torch.cuda.device_count()
             self.gpu_indices = [i for i in gpu_limits if i < gpu_max]
             self.device = torch.device('cuda:%d' % self.gpu_indices[0])
+
+    def __call__(self):
+        return self.device
 
     def tensor(self, x: Union[ndarray, Tensor]) -> Tensor:
         """Convert numpy array or Tensor into Tensor on main_device
