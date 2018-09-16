@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from typing import Callable
 from .body import NetworkBody
 from .init import Initializer
-from ..lib import Device
+from ..util import Device
 
 
 class NetworkHead(nn.Module, ABC):

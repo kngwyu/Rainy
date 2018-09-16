@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import ndarray
 from torch import nn, Tensor, torch
 from typing import Tuple
 from .base import Agent
@@ -46,8 +47,8 @@ class DqnAgent(Agent):
         if not train or train_started:
             action = self.policy.select_action(self.config.wrap_states(np.stack([state])))
         else:
-            action = np.random.randint(self.value_net.action_dim)
-        next_state, reward, done, _ = self.env.step(state)
+            action = np.random.randint(self.net.action_dim)
+        next_state, reward, done, _ = self.env.step(action)
         if not train:
             return next_state, done
         self.replay.append(state, action, reward, next_state, done)
