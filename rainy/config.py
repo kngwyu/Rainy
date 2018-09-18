@@ -7,7 +7,6 @@ from .explore import LinearCooler, Explorer, EpsGreedy
 from .replay import ReplayBuffer, UniformReplayBuffer
 from .util import Device, loss
 
-
 class Config:
     def __init__(self) -> None:
         # initialized lazily
