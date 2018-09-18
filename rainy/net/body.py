@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 from torch import nn, Tensor
 import torch.nn.functional as F
-from typing import Callable
+from typing import Callable, List
 from .init import Initializer
 
 
@@ -27,11 +27,10 @@ class NatureDqnConv(NetworkBody):
     def __init__(
             self,
             input_dim: int,
-            lazy_init: bool = False,
             activator: Activator = F.relu,
             init: Initializer = Initializer()
     ) -> None:
-        super(NatureDqnConv, self).__init__()
+        super().__init__()
         self._input_dim = input_dim
         self._output_dim = 512
         self.activator = activator
@@ -55,3 +54,33 @@ class NatureDqnConv(NetworkBody):
     @property
     def output_dim(self) -> int:
         return self._output_dim
+
+
+class FullyConnected(nn.Module):
+    def __init__(
+            self,
+            input_dim: int,
+            units: List[int] = [64, 64],
+            activator: Activator = F.relu,
+            init: Initializer = Initializer()
+    ) -> None:
+        super().__init__()
+        self._input_dim = input_dim
+        dims = [input_dim] + units
+        self.layers = init.make_list(*map(lambda i, o: nn.Linear(i, o), *zip(dims[:-1], dims[1:])))
+        self.activator = activator
+        self.dims = dims
+
+    def forward(self, x: Tensor) -> Tensor:
+        for layer in self.layers:
+            x = self.activator(layer(x))
+        return x
+
+    @property
+    def input_dim(self) -> int:
+        return self.dims[0]
+
+    @property
+    def output_dim(self) -> int:
+        return self.dims[-1]
+

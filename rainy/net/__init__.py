@@ -6,5 +6,4 @@ from .value_net import ValueNet
 del body
 del head
 del init
-del value_net
 

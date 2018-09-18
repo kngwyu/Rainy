@@ -2,7 +2,8 @@ from numpy import ndarray
 from torch import Tensor
 from torch.optim import Optimizer, RMSprop
 from typing import Any, Callable, Iterable
-from .net.value_net import ValueNet, nature_dqn
+from .net import value_net
+from .net.value_net import ValueNet
 from .explore import LinearCooler, Explorer, EpsGreedy
 from .replay import ReplayBuffer, UniformReplayBuffer
 from .util import Device, loss
@@ -14,8 +15,10 @@ class Config:
         self.env = ClassicalControl()
         self.batch_size = 100
         self.discount_factor = 0.01
+        self.double_q = False
         self.device = Device()
         self.grad_clip = 5.0
+        self.max_steps = 100000
         self.replay_size = 1000
         self.seed = 0
         self.train_start = 1000
@@ -25,7 +28,7 @@ class Config:
         self.__loss_function = loss.mean_squared_loss
         self.__optim = lambda params: RMSprop(params, 0.001)
         self.__replay = lambda capacity: UniformReplayBuffer(capacity)
-        self.__vn = nature_dqn
+        self.__vn = value_net.fc
         self.__wrap_states = lambda states: states
 
     def explorer(self, value_net: ValueNet) -> Explorer:

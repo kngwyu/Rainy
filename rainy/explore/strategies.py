@@ -14,7 +14,7 @@ class Greedy(Explorer):
         self.value_net = value_net
 
     def select_action(self, state: ndarray) -> int:
-        action_values = self.value_net.action_values(state)
+        action_values = self.value_net.action_values(state).detach()
         return action_values.argmax()
 
 
