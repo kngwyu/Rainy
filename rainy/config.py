@@ -6,13 +6,12 @@ from .net.value_net import ValueNet, nature_dqn
 from .explore import LinearCooler, Explorer, EpsGreedy
 from .replay import ReplayBuffer, UniformReplayBuffer
 from .util import Device, loss
+from .env_ext import ClassicalControl
+
 
 class Config:
     def __init__(self) -> None:
-        # initialized lazily
-        self.action_dim = 0
-        self.state_dim = 0
-
+        self.env = ClassicalControl()
         self.batch_size = 100
         self.discount_factor = 0.01
         self.device = Device()
@@ -54,7 +53,7 @@ class Config:
         self.__replay = replay
 
     def value_net(self) -> ValueNet:
-        return self.__vn(self.state_dim, self.action_dim, self.device)
+        return self.__vn(self.env.state_dim, self.env.action_dim, self.device)
 
     def set_value_net(self, vn: Callable[[int, int, Device], ValueNet]) -> None:
         self.__vn = vn
