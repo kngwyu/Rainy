@@ -4,10 +4,16 @@ from numpy import ndarray
 import torch
 from torch import nn
 from typing import Any, Tuple
-from ..net import NetworkHead, NetworkBody, Initializer
+from ..config import Config
 
 
 class Agent(ABC):
+    """Children must call super().__init__(config) first
+    """
+    def __init__(self, config: Config) -> None:
+        self.config = config
+        self.env = config.env()
+        self.total_steps = 0
 
     @abstractmethod
     def members_to_save(self) -> Tuple[str, ...]:
@@ -19,9 +25,23 @@ class Agent(ABC):
         """
         pass
 
-    # @abstractmethod
-    # def action(self, state: ndarray):
-    #     pass
+    @abstractmethod
+    def step(self, state: ndarray) -> Tuple[ndarray, float, bool]:
+        pass
+
+    def episode(self) -> float:
+        total_reward = 0.0
+        steps = 0
+        self.env.seed(self.config.seed)
+        state = self.env.reset()
+        while True:
+            state, reward, done = self.step(state)
+            steps += 1
+            self.total_steps += 1
+            total_reward += reward
+            if done:
+                break
+        return total_reward
 
     def save(self, filename: str) -> None:
         save_dict = {}

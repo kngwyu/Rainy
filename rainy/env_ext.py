@@ -36,7 +36,7 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
 
 
 class ClassicalControl(EnvExt):
-    def __init__(self, name: str = 'CartPole-v0', max_steps: int = 200):
+    def __init__(self, name: str = 'CartPole-v0', max_steps: int = 200) -> None:
         self.name = name
         self.__env = gym.make(name)
         self.__env._max_episode_steps = max_steps
