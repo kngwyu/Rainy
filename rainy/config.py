@@ -1,7 +1,7 @@
 from numpy import ndarray
 from torch import Tensor
 from torch.optim import Optimizer, RMSprop
-from typing import Any, Callable, Iterable, Optional
+from typing import Callable, Iterable, Tuple, Union
 from .net import value_net
 from .net.value_net import ValueNet
 from .explore import LinearCooler, Explorer, EpsGreedy
@@ -9,11 +9,13 @@ from .replay import ReplayBuffer, UniformReplayBuffer
 from .util import Device
 from .env_ext import ClassicalControl, EnvExt
 
+Params = Iterable[Union[Tensor, dict]]
+
 
 class Config:
     def __init__(self) -> None:
         self.action_dim = 0
-        self.state_dim = 0
+        self.state_dims = (0,)
         self.batch_size = 10
         self.discount_factor = 0.99
         self.device = Device()
@@ -26,16 +28,17 @@ class Config:
         self.train_start = 1000
 
         self.__env = lambda: ClassicalControl()
-        self.__exp = lambda net: EpsGreedy(0.01, LinearCooler(0.1, 0, 100000), net)
+        self.__exp = lambda net: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000), net)
         self.__optim = lambda params: RMSprop(params, 0.001)
         self.__replay = lambda capacity: UniformReplayBuffer(capacity)
+        self.__delattr__
         self.__vn = value_net.fc
         self.__wrap_states = lambda states: states
 
     def env(self) -> EnvExt:
         env = self.__env()
         self.action_dim = env.action_dim
-        self.state_dim = env.state_dim
+        self.state_dims = env.state_dims
         return env
 
     def set_env(self, env: Callable[[], EnvExt]) -> None:
@@ -47,10 +50,10 @@ class Config:
     def set_explorer(self, exp: Callable[[ValueNet], Explorer]) -> None:
         self.__exp = exp
 
-    def optimizer(self, params: Iterable[Any]) -> Optimizer:
+    def optimizer(self, params: Params) -> Optimizer:
         return self.__optim(params)
 
-    def set_optimizer(self, optim: Callable[[Iterable[Any]], Optimizer]) -> None:
+    def set_optimizer(self, optim: Callable[[Params], Optimizer]) -> None:
         self.__optim = optim
 
     def replay_buffer(self) -> ReplayBuffer:
@@ -60,9 +63,9 @@ class Config:
         self.__replay = replay
 
     def value_net(self) -> ValueNet:
-        return self.__vn(self.state_dim, self.action_dim, self.device)
+        return self.__vn(self.state_dims, self.action_dim, self.device)
 
-    def set_value_net(self, vn: Callable[[int, int, Device], ValueNet]) -> None:
+    def set_value_net(self, vn: Callable[[Tuple[int, ...], int, Device], ValueNet]) -> None:
         self.__vn = vn
 
     def wrap_states(self, state: ndarray) -> ndarray:
@@ -70,9 +73,6 @@ class Config:
 
     def set_wrap_states(self, wrap_states: Callable[[ndarray], ndarray]) -> None:
         self.__wrap_states = wrap_states
-
-    def set(self, key: str, value: Any):
-        self.__setattr__(key, value)
 
     def policy_net(self):
         pass

@@ -1,7 +1,7 @@
 from numpy import ndarray
 from torch import nn, Tensor
-from typing import Union
-from .body import NatureDqnConv, NetworkBody, FullyConnected
+from typing import Tuple, Union
+from .body import DqnConv, NetworkBody, FullyConnected
 from .head import LinearHead, NetworkHead
 from ..util import Device
 
@@ -20,7 +20,7 @@ class ValueNet(nn.Module):
         self.to(self.device())
 
     @property
-    def state_dim(self) -> int:
+    def state_dims(self) -> Tuple[int, ...]:
         return self.body.input_dim
 
     @property
@@ -37,14 +37,14 @@ class ValueNet(nn.Module):
         return x
 
 
-def nature_dqn(state_dim: int, action_dim: int, device: Device) -> ValueNet:
-    body = NatureDqnConv(state_dim)
+def dqn_conv(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> ValueNet:
+    body = DqnConv(state_dim[2])
     head = LinearHead(body.output_dim, action_dim)
     return ValueNet(body, head, device=device)
 
 
-def fc(state_dim: int, action_dim: int, device: Device) -> ValueNet:
-    body = FullyConnected(state_dim)
+def fc(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> ValueNet:
+    body = FullyConnected(state_dim[0])
     head = LinearHead(body.output_dim, action_dim)
     return ValueNet(body, head, device=device)
 

@@ -1,12 +1,11 @@
 import numpy as np
 from numpy import ndarray
-from torch import nn, Tensor, torch
+import torch
+from torch import nn
 from typing import Tuple
 from .base import Agent
 from ..config import Config
 from ..env_ext import Action
-from ..explore import Greedy
-from ..net.value_net import ValueNet
 
 
 class DqnAgent(Agent):

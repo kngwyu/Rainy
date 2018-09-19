@@ -3,9 +3,9 @@ import numpy as np
 from numpy import ndarray
 import torch
 from torch import nn
-from typing import Any, Tuple
+from typing import Any, Optional, Tuple
 from ..config import Config
-from ..env_ext import Action
+from ..env_ext import Action, EnvExt
 
 
 class Agent(ABC):
@@ -34,17 +34,21 @@ class Agent(ABC):
     def step(self, state: ndarray) -> Tuple[ndarray, float, bool]:
         pass
 
-    def episode(self, train: bool = True) -> float:
+    def episode(self, train: bool = True, eval_env: Optional[EnvExt] = None) -> float:
         total_reward = 0.0
         steps = 0
-        self.env.seed(self.config.seed)
+        if not train and eval_env:
+            env = eval_env
+        else:
+            env = self.env
+            env.seed(self.config.seed)
         state = self.env.reset()
         while True:
             if train:
                 state, reward, done = self.step(state)
             else:
                 action = self.best_action(state)
-                state, reward, done, _ = self.env.step(action)
+                state, reward, done, _ = env.step(action)
             steps += 1
             self.total_steps += 1
             total_reward += reward

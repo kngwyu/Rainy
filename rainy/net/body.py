@@ -2,14 +2,14 @@
 from abc import ABC, abstractmethod
 from torch import nn, Tensor
 import torch.nn.functional as F
-from typing import Callable, List
+from typing import Callable, List, Tuple
 from .init import Initializer
 
 
 class NetworkBody(nn.Module, ABC):
     @property
     @abstractmethod
-    def input_dim(self) -> int:
+    def input_dim(self) -> Tuple[int]:
         pass
 
     @property
@@ -21,20 +21,19 @@ class NetworkBody(nn.Module, ABC):
 Activator = Callable[[Tensor], Tensor]
 
 
-class NatureDqnConv(NetworkBody):
+class DqnConv(NetworkBody):
     """Convolutuion Network used in https://www.nature.com/articles/nature14236
     """
     def __init__(
             self,
-            input_dim: int,
+            in_channels: int,
             activator: Activator = F.relu,
             init: Initializer = Initializer()
     ) -> None:
         super().__init__()
-        self._input_dim = input_dim
         self._output_dim = 512
         self.activator = activator
-        conv1 = nn.Conv2d(input_dim, 32, kernel_size=8, stride=4)
+        conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
         conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
         conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
         self.conv = init.make_list(conv1, conv2, conv3)
@@ -48,8 +47,8 @@ class NatureDqnConv(NetworkBody):
         return x
 
     @property
-    def input_dim(self) -> int:
-        return self._input_dim
+    def input_dim(self) -> Tuple[int]:
+        return (0,)
 
     @property
     def output_dim(self) -> int:
@@ -77,8 +76,8 @@ class FullyConnected(nn.Module):
         return x
 
     @property
-    def input_dim(self) -> int:
-        return self.dims[0]
+    def input_dim(self) -> Tuple[int]:
+        return (self.dims[0],)
 
     @property
     def output_dim(self) -> int:

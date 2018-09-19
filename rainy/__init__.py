@@ -1,6 +1,6 @@
 from .config import Config
-from .env_ext import EnvExt
 from . import agent
+from . import env_ext
 from . import explore
 from . import net
 from . import replay
