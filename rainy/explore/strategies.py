@@ -7,6 +7,7 @@ from .base import Explorer
 from .cooler import Cooler, LinearCooler
 from ..net.value_net import ValueNet
 
+
 class Greedy(Explorer):
     """deterministic greedy policy
     """

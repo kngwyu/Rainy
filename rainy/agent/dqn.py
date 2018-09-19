@@ -4,8 +4,9 @@ from torch import nn, Tensor, torch
 from typing import Tuple
 from .base import Agent
 from ..config import Config
-from ..net.value_net import ValueNet
+from ..env_ext import Action
 from ..explore import Greedy
+from ..net.value_net import ValueNet
 
 
 class DqnAgent(Agent):
@@ -25,6 +26,10 @@ class DqnAgent(Agent):
 
     def members_to_save(self) -> Tuple[str, ...]:
         return "net", "target_net"
+
+    def best_action(self, state: ndarray) -> Action:
+        action_values = self.net.action_values(state).detach()
+        return action_values.argmax()
 
     def step(self, state: ndarray) -> Tuple[ndarray, float, bool]:
         train_started = self.total_steps > self.config.train_start

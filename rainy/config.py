@@ -14,15 +14,15 @@ class Config:
     def __init__(self) -> None:
         self.action_dim = 0
         self.state_dim = 0
-        self.batch_size = 100
-        self.discount_factor = 0.01
+        self.batch_size = 10
+        self.discount_factor = 0.99
         self.device = Device()
         self.double_q = False
         self.grad_clip = 5.0
-        self.max_steps = 100000
-        self.replay_size = 1000
+        self.max_steps = 10000
+        self.replay_size = 10000
         self.seed = 0
-        self.sync_freq = 1000
+        self.sync_freq = 200
         self.train_start = 1000
 
         self.__env = lambda: ClassicalControl()

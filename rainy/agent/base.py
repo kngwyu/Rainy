@@ -5,6 +5,7 @@ import torch
 from torch import nn
 from typing import Any, Tuple
 from ..config import Config
+from ..env_ext import Action
 
 
 class Agent(ABC):
@@ -26,16 +27,24 @@ class Agent(ABC):
         pass
 
     @abstractmethod
+    def best_action(self, state: ndarray) -> Action:
+        pass
+
+    @abstractmethod
     def step(self, state: ndarray) -> Tuple[ndarray, float, bool]:
         pass
 
-    def episode(self) -> float:
+    def episode(self, train: bool = True) -> float:
         total_reward = 0.0
         steps = 0
         self.env.seed(self.config.seed)
         state = self.env.reset()
         while True:
-            state, reward, done = self.step(state)
+            if train:
+                state, reward, done = self.step(state)
+            else:
+                action = self.best_action(state)
+                state, reward, done, _ = self.env.step(action)
             steps += 1
             self.total_steps += 1
             total_reward += reward
@@ -57,8 +66,8 @@ class Agent(ABC):
         saved_dict = torch.load(filename)
         for idx, member_str in enumerate(self.members_to_save()):
             saved_item = saved_dict[idx]
-            if isinstance(saved_item, nn.Module):
-                mod = getattr(self, member_str)
-                mod.load_state_dict(saved_item)
+            mem = getattr(self, member_str)
+            if isinstance(mem, nn.Module):
+                mem.load_state_dict(saved_item)
             else:
                 setattr(self, member_str, saved_item)
