@@ -28,20 +28,19 @@ def run():
 
 def run_atari():
     c = Config()
-    c.set_env(lambda: Atari('Breakout'))
+    c.set_env(lambda: Atari('Breakout', frame_stack=True))
     c.set_optimizer(
         lambda params: RMSprop(params, lr=0.00025, alpha=0.95, eps=0.01, centered=True)
     )
     c.set_explorer(
-        lambda net: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 1e6), net)
+        lambda net: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 1000000), net)
     )
     c.set_value_net(net.value_net.dqn_conv)
-    c.max_steps = 10000
-    c.replay_size = 1e6
+    c.replay_size = 100000
     c.batch_size = 32
     c.set_wrap_states(np.vectorize(lambda x: x / 255.0))
     c.train_start = 50000
-    c.max_steps = 1e7
+    c.max_steps = 10000000
     a = agent.DqnAgent(c)
     # a.load("saved-example")
     run_agent(a)

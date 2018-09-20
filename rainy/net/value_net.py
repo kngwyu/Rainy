@@ -38,7 +38,7 @@ class ValueNet(nn.Module):
 
 
 def dqn_conv(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> ValueNet:
-    body = DqnConv(state_dim[2])
+    body = DqnConv(state_dim[0])
     head = LinearHead(body.output_dim, action_dim)
     return ValueNet(body, head, device=device)
 

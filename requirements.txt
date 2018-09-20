@@ -1,6 +1,6 @@
 -e git://github.com/kngwyu/baselines.git#egg=baselines
 GitPython>=2.0
-gym>=0.10.5
+gym[atari]>=0.10.5
 numpy>=1.0
 torch>=0.4
 torchvision>=0.2.1

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from baselines.common.atari_wrappers import make_atari, wrap_deepmind
+from baselines.common.atari_wrappers import LazyFrames, make_atari, wrap_deepmind
+import numpy as np
 from numpy import ndarray
 import gym
 from gym.spaces import Box
@@ -73,7 +74,7 @@ class Atari(EnvExt):
             clip_rewards=clip_rewards,
             frame_stack=frame_stack
         )
-        env = wrap_pytorch(env)
+        env = TransposeImage(env)
         self.__env = env
 
     @property
@@ -89,13 +90,6 @@ class Atari(EnvExt):
         return self.__env.observation_space.shape
 
 
-def wrap_pytorch(env: gym.Env) -> gym.Env:
-    obs_shape = env.observation_space.shape
-    if len(obs_shape) == 3 and obs_shape[2] in [1, 3]:
-        env = TransposeImage(env)
-    return env
-
-
 # from https://github.com/ikostrikov/pytorch-a2c-ppo-acktr/blob/master/envs.py
 class TransposeImage(gym.ObservationWrapper):
     def __init__(self, env: gym.Env = None) -> None:
@@ -104,8 +98,12 @@ class TransposeImage(gym.ObservationWrapper):
         self.observation_space = Box(
             self.observation_space.low[0, 0, 0],
             self.observation_space.high[0, 0, 0],
-            [obs_shape[2], obs_shape[1], obs_shape[0]],
+            [obs_shape[2], obs_shape[0], obs_shape[1]],
             dtype=self.observation_space.dtype)
 
-    def observation(self, observation: Union[Tensor, ndarray]):
-        return observation.transpose(2, 0, 1)
+    def observation(self, observation: Union[ndarray, LazyFrames]):
+        t = type(observation)
+        if t is LazyFrames:
+            return np.concatenate(observation._frames, axis=2).transpose(2, 0, 1)
+        else:
+            return observation.transpose(2, 0, 1)
