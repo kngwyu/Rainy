@@ -8,14 +8,15 @@ from torch.optim import RMSprop
 def run_agent(ag: Agent, train: bool = True):
     max_steps = ag.config.max_steps
     turn = 0
+    rewards_sum = 0
     while True:
         if max_steps and ag.total_steps > max_steps:
             break
         if turn % 100 == 0:
             print(turn)
-            print(ag.episode(train=train))
-        else:
-            ag.episode(train=train)
+            print(ag.total_steps)
+            print(rewards_sum)
+        rewards_sum = ag.episode(train=train)
         turn += 1
     ag.save("saved-example.rainy")
 
@@ -42,6 +43,7 @@ def run_atari():
     c.batch_size = 32
     c.set_wrap_states(np.vectorize(lambda x: x / 255.0))
     c.train_start = 50000
+    c.sync_freq = 10000
     c.max_steps = int(2e7)
     a = agent.DqnAgent(c)
     # a.load("saved-example")

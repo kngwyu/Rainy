@@ -1,10 +1,9 @@
 """Exploration strategies for value based algorithms
 """
-from abc import ABC, abstractmethod
 import numpy as np
 from numpy import ndarray
 from .base import Explorer
-from .cooler import Cooler, LinearCooler
+from .cooler import Cooler
 from ..net.value_net import ValueNet
 
 
@@ -28,10 +27,11 @@ class EpsGreedy(Explorer):
         self.value_net = value_net
 
     def select_action(self, state: ndarray) -> int:
-        if np.random.rand() < self.epsilon:
+        old_eps = self.epsilon
+        self.epsilon = self.cooler(self.epsilon)
+        if np.random.rand() < old_eps:
             action_dim = self.value_net.action_dim
             return np.random.randint(0, action_dim)
-        self.epsilon = self.cooler(self.epsilon)
         action_values = self.value_net.action_values(state).detach()
         return action_values.argmax()
 
