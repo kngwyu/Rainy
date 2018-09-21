@@ -12,6 +12,7 @@ def run_agent(ag: Agent, train: bool = True):
         if max_steps and ag.total_steps > max_steps:
             break
         if turn % 100 == 0:
+            print(turn)
             print(ag.episode(train=train))
         else:
             ag.episode(train=train)
@@ -26,6 +27,7 @@ def run():
     # a.load("saved-example")
     run_agent(a)
 
+
 def run_atari():
     c = Config()
     c.set_env(lambda: Atari('Breakout', frame_stack=True))
@@ -33,14 +35,14 @@ def run_atari():
         lambda params: RMSprop(params, lr=0.00025, alpha=0.95, eps=0.01, centered=True)
     )
     c.set_explorer(
-        lambda net: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 1000000), net)
+        lambda net: EpsGreedy(1.0, LinearCooler(1.0, 0.1, int(1e6)), net)
     )
     c.set_value_net(net.value_net.dqn_conv)
-    c.replay_size = 100000
+    c.replay_size = int(1e6)
     c.batch_size = 32
     c.set_wrap_states(np.vectorize(lambda x: x / 255.0))
     c.train_start = 50000
-    c.max_steps = 10000000
+    c.max_steps = int(2e7)
     a = agent.DqnAgent(c)
     # a.load("saved-example")
     run_agent(a)
