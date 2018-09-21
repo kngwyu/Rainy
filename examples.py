@@ -1,11 +1,12 @@
 import numpy as np
 from rainy import agent, Config, net
 from rainy.agent import Agent
-from rainy.env_ext import Atari
+from rainy.env_ext import Atari, EnvExt
 from rainy.explore import EpsGreedy, LinearCooler
+from typing import Optional
 from torch.optim import RMSprop
 
-def run_agent(ag: Agent, train: bool = True):
+def run_agent(ag: Agent, eval_env: Optional[EnvExt] = None):
     max_steps = ag.config.max_steps
     turn = 0
     rewards_sum = 0
@@ -13,10 +14,14 @@ def run_agent(ag: Agent, train: bool = True):
         if max_steps and ag.total_steps > max_steps:
             break
         if turn % 100 == 0:
-            print(turn)
-            print(ag.total_steps)
-            print(rewards_sum)
-        rewards_sum = ag.episode(train=train)
+            print('turn: {}, total_steps: {}, rewards: {}'.format(
+                turn,
+                ag.total_steps,
+                rewards_sum
+            ))
+            print('eval: {}'.format(ag.eval_episode(eval_env=eval_env)))
+            rewards_sum = 0
+        rewards_sum += ag.episode()
         turn += 1
     ag.save("saved-example.rainy")
 
@@ -47,8 +52,9 @@ def run_atari():
     c.max_steps = int(2e7)
     a = agent.DqnAgent(c)
     # a.load("saved-example")
+    eval_env = Atari('Breakout', frame_stack=True, episode_life=False)
     run_agent(a)
 
 
 if __name__ == '__main__':
-    run_atari()
+    run()
