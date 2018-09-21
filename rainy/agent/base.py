@@ -44,7 +44,7 @@ class Agent(ABC):
             env = eval_env
         state = env.reset()
         while True:
-            action = self.best_action(state)
+            action = self.best_action(np.stack([state]))
             state, reward, done, _ = env.step(action)
             steps += 1
             total_reward += reward
