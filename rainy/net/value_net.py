@@ -1,3 +1,4 @@
+import numpy as np
 from numpy import ndarray
 from torch import nn, Tensor
 from typing import Tuple, Union
@@ -28,7 +29,7 @@ class ValueNet(nn.Module):
         return self.head.output_dim
 
     def action_values(self, state: ndarray) -> Tensor:
-        return self.forward(state)
+        return self.forward(np.stack([state]))
 
     def forward(self, x: Union[ndarray, Tensor]) -> Tensor:
         x = self.device.tensor(x)

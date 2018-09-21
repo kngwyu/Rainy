@@ -33,7 +33,6 @@ class Config:
         self.__replay = lambda capacity: UniformReplayBuffer(capacity)
         self.__delattr__
         self.__vn = value_net.fc
-        self.__wrap_states = lambda states: states
 
     def env(self) -> EnvExt:
         env = self.__env()
@@ -67,9 +66,6 @@ class Config:
 
     def set_value_net(self, vn: Callable[[Tuple[int, ...], int, Device], ValueNet]) -> None:
         self.__vn = vn
-
-    def wrap_states(self, state: ndarray) -> ndarray:
-        return self.__wrap_states(state)
 
     def set_wrap_states(self, wrap_states: Callable[[ndarray], ndarray]) -> None:
         self.__wrap_states = wrap_states

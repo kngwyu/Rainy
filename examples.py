@@ -19,10 +19,12 @@ def run_agent(ag: Agent, eval_env: Optional[EnvExt] = None):
                 ag.total_steps,
                 rewards_sum
             ))
-            print('eval: {}'.format(ag.eval_episode(eval_env=eval_env)))
             rewards_sum = 0
+        if turn % 1000 == 0:
+            print('eval: {}'.format(ag.eval_episode(eval_env=eval_env)))
         rewards_sum += ag.episode()
         turn += 1
+        print(turn)
     ag.save("saved-example.rainy")
 
 
@@ -46,14 +48,13 @@ def run_atari():
     c.set_value_net(net.value_net.dqn_conv)
     c.replay_size = int(1e6)
     c.batch_size = 32
-    c.set_wrap_states(np.vectorize(lambda x: x / 255.0))
     c.train_start = 50000
     c.sync_freq = 10000
     c.max_steps = int(2e7)
     a = agent.DqnAgent(c)
     # a.load("saved-example")
     eval_env = Atari('Breakout', frame_stack=True, episode_life=False)
-    run_agent(a)
+    run_agent(a, eval_env=eval_env)
 
 
 if __name__ == '__main__':

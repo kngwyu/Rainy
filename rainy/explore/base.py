@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from numpy import ndarray
+from typing import Callable, Union
+
 
 class Explorer(ABC):
     @abstractmethod

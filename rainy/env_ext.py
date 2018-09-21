@@ -90,11 +90,12 @@ class Atari(EnvExt):
         return self.__env.observation_space.shape
 
 
-# from https://github.com/ikostrikov/pytorch-a2c-ppo-acktr/blob/master/envs.py
+# based on https://github.com/ikostrikov/pytorch-a2c-ppo-acktr/blob/master/envs.py
 class TransposeImage(gym.ObservationWrapper):
     def __init__(self, env: gym.Env = None) -> None:
         super(TransposeImage, self).__init__(env)
         obs_shape = self.observation_space.shape
+        self.scaler = np.vectorize(lambda x: x / 255.0)
         self.observation_space = Box(
             self.observation_space.low[0, 0, 0],
             self.observation_space.high[0, 0, 0],
@@ -104,6 +105,7 @@ class TransposeImage(gym.ObservationWrapper):
     def observation(self, observation: Union[ndarray, LazyFrames]):
         t = type(observation)
         if t is LazyFrames:
-            return np.concatenate(observation._frames, axis=2).transpose(2, 0, 1)
+            img = np.concatenate(observation._frames, axis=2).transpose(2, 0, 1)
         else:
-            return observation.transpose(2, 0, 1)
+            img = observation.transpose(2, 0, 1)
+        return self.scaler(img)

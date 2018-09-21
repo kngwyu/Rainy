@@ -42,17 +42,15 @@ class DqnAgent(Agent):
             return next_state, reward, done
         observation = self.replay.sample(self.config.batch_size)
         states, actions, rewards, next_states, is_terms = map(np.asarray, zip(*observation))
-        q_next = self.target_net(self.config.wrap_states(next_states)).detach()
+        q_next = self.target_net(next_states).detach()
         if self.config.double_q:
             best_actions = torch.argmax(dim=-1)
             q_next = q_next[self.batch_indices, best_actions]
         else:
             q_next, _ = q_next.max(1)
-        q_next *= self.config.device.tensor(1.0 - is_terms)
-        q_next *= self.config.discount_factor
+        q_next *= self.config.device.tensor(1.0 - is_terms) * self.config.discount_factor
         q_next += self.config.device.tensor(rewards)
-        q_current = self.net(self.config.wrap_states(states))
-        q_current = q_current[self.batch_indices, actions]
+        q_current = self.net(states)[self.batch_indices, actions]
         loss = self.criterion(q_current, q_next)
         self.optimizer.zero_grad()
         loss.backward()

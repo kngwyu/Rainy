@@ -3,7 +3,7 @@ import numpy as np
 from numpy import ndarray
 import torch
 from torch import nn
-from typing import Any, Optional, Tuple
+from typing import Optional, Tuple
 from ..config import Config
 from ..env_ext import Action, EnvExt
 
@@ -44,7 +44,7 @@ class Agent(ABC):
             env = eval_env
         state = env.reset()
         while True:
-            action = self.best_action(np.stack([state]))
+            action = self.best_action(state)
             state, reward, done, _ = env.step(action)
             steps += 1
             total_reward += reward
