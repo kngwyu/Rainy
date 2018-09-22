@@ -28,8 +28,11 @@ class ValueNet(nn.Module):
     def action_dim(self) -> int:
         return self.head.output_dim
 
-    def action_values(self, state: ndarray) -> Tensor:
-        return self.forward(np.stack([state]))
+    def action_values(self, state: ndarray, nostack: bool = False) -> Tensor:
+        if nostack:
+            return self.forward(state)
+        else:
+            return self.forward(np.stack([state]))
 
     def forward(self, x: Union[ndarray, Tensor]) -> Tensor:
         x = self.device.tensor(x)

@@ -46,8 +46,8 @@ class DqnAgent(Agent):
         q_next = self.target_net(next_states).detach()
         if self.config.double_q:
             # Here supposes action_values is batch_size×(action_dim) array
-            action_values = self.net.action_values(next_states).detach()
-            q_next = q_next[self.batch_indices, action_values.argmax(dim=-1)][0]
+            action_values = self.net.action_values(next_states, nostack=True).detach()
+            q_next = q_next[self.batch_indices, action_values.argmax(dim=-1)]
         else:
             q_next, _ = q_next.max(1)
         q_next *= self.config.device.tensor(1.0 - is_terms) * self.config.discount_factor
