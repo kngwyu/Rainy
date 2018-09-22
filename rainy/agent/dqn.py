@@ -28,6 +28,7 @@ class DqnAgent(Agent):
 
     def best_action(self, state: ndarray) -> Action:
         action_values = self.net.action_values(state).detach()
+        # Here supposes action_values is 1×(action_dim) array
         return action_values.argmax()
 
     def step(self, state: ndarray) -> Tuple[ndarray, float, bool]:
@@ -44,8 +45,9 @@ class DqnAgent(Agent):
         states, actions, rewards, next_states, is_terms = map(np.asarray, zip(*observation))
         q_next = self.target_net(next_states).detach()
         if self.config.double_q:
-            best_actions = torch.argmax(dim=-1)
-            q_next = q_next[self.batch_indices, best_actions]
+            # Here supposes action_values is batch_size×(action_dim) array
+            action_values = self.net.action_values(next_states).detach()
+            q_next = q_next[self.batch_indices, action_values.argmax(dim=-1)][0]
         else:
             q_next, _ = q_next.max(1)
         q_next *= self.config.device.tensor(1.0 - is_terms) * self.config.discount_factor
