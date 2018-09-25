@@ -1,5 +1,6 @@
 .idea
 .agent
+Pipfile.lock
 rainy-env/
 *.pyc
 **/__pycache__/

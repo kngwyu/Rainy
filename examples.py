@@ -26,14 +26,19 @@ def run_agent(ag: Agent, eval_env: Optional[EnvExt] = None):
             ag.save("saved-example.rainy")
         rewards_sum += ag.episode()
         turn += 1
+    ag.save("saved-example.rainy")
 
 
-def run():
+def run(train: bool = True):
     c = Config()
     c.max_steps = 100000
     c.double_q = True
     a = agent.DqnAgent(c)
-    run_agent(a)
+    if train:
+        run_agent(a)
+    else:
+        a.load("saved-example.rainy")
+        print('eval: {}'.format(a.eval_episode()))
 
 
 def run_atari(train: bool = True):
