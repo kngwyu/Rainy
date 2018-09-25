@@ -33,11 +33,10 @@ def run():
     c.max_steps = 100000
     c.double_q = True
     a = agent.DqnAgent(c)
-    # a.load("saved-example")
     run_agent(a)
 
 
-def run_atari():
+def run_atari(train: bool = True):
     c = Config()
     c.set_env(lambda: Atari('Breakout', frame_stack=True))
     c.set_optimizer(
@@ -54,10 +53,13 @@ def run_atari():
     c.sync_freq = 10000
     c.max_steps = int(2e7)
     a = agent.DqnAgent(c)
-    # a.load("saved-example")
     eval_env = Atari('Breakout', frame_stack=True, episode_life=False)
-    run_agent(a, eval_env=eval_env)
+    if train:
+        run_agent(a, eval_env=eval_env)
+    else:
+        a.load("saved-example.rainy")
+        print('eval: {}'.format(a.eval_episode(eval_env=eval_env)))
 
 
 if __name__ == '__main__':
-    run_atari()
+    run_atari(train=False)
