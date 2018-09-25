@@ -34,14 +34,12 @@ class Agent(ABC):
     def step(self, state: ndarray) -> Tuple[ndarray, float, bool]:
         pass
 
-    def eval_episode(self, eval_env: Optional[EnvExt] = None) -> float:
+    def eval_episode(self, env: Optional[EnvExt] = None) -> float:
         total_reward = 0.0
         steps = 0
-        if eval_env is None:
+        if env is None:
             env = self.env
-            env.seed(self.config.seed)
-        else:
-            env = eval_env
+        env.seed(self.config.seed)
         state = env.reset()
         while True:
             action = self.best_action(state)
