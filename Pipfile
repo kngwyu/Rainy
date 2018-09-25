@@ -12,6 +12,7 @@ torchvision = ">=0.2.1"
 GitPython = ">=2.0"
 
 [dev-packages]
+pytest = ">=3.0"
 
 [requires]
 python_version = "3.6"
