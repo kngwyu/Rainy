@@ -21,7 +21,7 @@ def run_agent(ag: Agent, eval_env: Optional[EnvExt] = None):
             ))
             rewards_sum = 0
         if turn != 0 and turn % 1000 == 0:
-            print('eval: {}'.format(ag.eval_episode(eval_env=eval_env)))
+            print('eval: {}'.format(ag.eval_episode(env=eval_env)))
         if turn != 0 and turn % 10000 == 0:
             ag.save("saved-example.rainy")
         rewards_sum += ag.episode()
@@ -58,7 +58,7 @@ def run_atari(train: bool = True):
         run_agent(a, eval_env=eval_env)
     else:
         a.load("saved-example.rainy")
-        print('eval: {}'.format(a.eval_episode(eval_env=eval_env)))
+        print('eval: {}'.format(a.eval_episode(env=eval_env)))
 
 
 if __name__ == '__main__':
