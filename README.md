@@ -3,10 +3,16 @@ Reinforcement learning utilities and algrithm implementations using PyTorch.
 
 # setup
 
+## use as library
+```
+python setup.py install
+```
+
 ## with pipenv(for developping)
 Install [pipenv](https://pipenv.readthedocs.io/en/latest/) first, and
 ```
-pipenv install --site-packages
+pipenv --site-packages
+pipenv install
 ```
 
 # Referenced Implementaions

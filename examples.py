@@ -67,4 +67,4 @@ def run_atari(train: bool = True):
 
 
 if __name__ == '__main__':
-    run_atari(train=False)
+    run_atari()

@@ -4,9 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-baselines = {editable = true, git = "git://github.com/kngwyu/baselines.git"}
 gym = {version = ">=0.10.5", extras = ["atari"]}
 numpy = ">=1.0"
+opencv-python = ">=3.4"
 torch = ">=0.4"
 torchvision = ">=0.2.1"
 GitPython = ">=2.0"

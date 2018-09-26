@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from baselines.common.atari_wrappers import LazyFrames, make_atari, wrap_deepmind
+from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
 import numpy as np
 from numpy import ndarray
 import gym
