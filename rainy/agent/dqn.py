@@ -24,7 +24,7 @@ class DqnAgent(Agent):
         )
 
     def members_to_save(self) -> Tuple[str, ...]:
-        return "net", "target_net"
+        return "net", "target_net", "policy"
 
     def best_action(self, state: ndarray) -> Action:
         action_values = self.net.action_values(state).detach()

@@ -1,17 +1,18 @@
 from abc import ABC, abstractmethod
-import numpy as np
 from numpy import ndarray
+from pathlib import Path
 import torch
 from torch import nn
-from typing import Optional, Tuple
+from typing import Tuple
 from ..config import Config
-from ..env_ext import Action, EnvExt
+from ..env_ext import Action
 
 
 class Agent(ABC):
     """Children must call super().__init__(config) first
     """
     def __init__(self, config: Config) -> None:
+        self.logger = config.logger
         self.config = config
         self.env = config.env()
         self.total_steps = 0
@@ -34,11 +35,10 @@ class Agent(ABC):
     def step(self, state: ndarray) -> Tuple[ndarray, float, bool]:
         pass
 
-    def eval_episode(self, env: Optional[EnvExt] = None) -> float:
+    def eval_episode(self) -> float:
         total_reward = 0.0
         steps = 0
-        if env is None:
-            env = self.env
+        env = self.config.eval_env
         env.seed(self.config.seed)
         state = env.reset()
         while True:
@@ -72,7 +72,10 @@ class Agent(ABC):
                 save_dict[idx] = value.state_dict()
             else:
                 save_dict[idx] = value
-        torch.save(save_dict, filename)
+        log_dir = self.config.logger.log_dir()
+        if log_dir is None:
+            log_dir = Path('.')
+        torch.save(save_dict, log_dir.joinpath(filename))
 
     def load(self, filename: str) -> None:
         saved_dict = torch.load(filename)

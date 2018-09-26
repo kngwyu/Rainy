@@ -1,5 +1,7 @@
 .idea
 .agent
+.save
+log.txt
 Pipfile.lock
 rainy-env/
 *.pyc

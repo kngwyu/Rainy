@@ -35,3 +35,10 @@ class EpsGreedy(Explorer):
         action_values = self.value_net.action_values(state).detach()
         return action_values.argmax()
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state['value_net']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)

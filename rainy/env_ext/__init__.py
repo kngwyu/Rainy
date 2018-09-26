@@ -64,7 +64,7 @@ class Atari(EnvExt):
             name: str,
             clip_rewards: bool = True,
             episode_life: bool = True,
-            frame_stack: bool = False,
+            frame_stack: bool = True,
     ) -> None:
         name += 'NoFrameskip-v4'
         env = make_atari(name)

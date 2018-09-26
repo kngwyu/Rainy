@@ -2,6 +2,7 @@
 Reinforcement learning utilities and algrithm implementations using PyTorch.
 
 # setup
+Please install [pipenv](https://pipenv.readthedocs.io/en/latest/) first, and then
 
 ## use as library
 ```
@@ -9,7 +10,6 @@ python setup.py install
 ```
 
 ## with pipenv(for developping)
-Install [pipenv](https://pipenv.readthedocs.io/en/latest/) first, and
 ```
 pipenv --site-packages
 pipenv install
