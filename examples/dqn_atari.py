@@ -22,12 +22,12 @@ def dqn_atari() -> Agent:
     c.train_start = 50000
     c.sync_freq = 10000
     c.max_steps = int(2e7)
-    c.eval_env = lambda: Atari('Breakout', episode_life=False)
+    c.eval_env = Atari('Breakout', episode_life=False)
     c.logger.set_dir_from_script_path(os.path.realpath(__file__))
     a = agent.DqnAgent(c)
     return a
 
 
 if __name__ == '__main__':
-    ag = dqn_cartpole()
+    ag = dqn_atari()
     train_agent(ag)
