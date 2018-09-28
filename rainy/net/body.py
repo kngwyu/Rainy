@@ -39,6 +39,7 @@ class DqnConv(NetworkBody):
         conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
         self.conv = init.make_list(conv1, conv2, conv3)
         self.fc = init(nn.Linear(7 * 7 * 64, self.output_dim))
+        self.init = init
 
     def forward(self, x: Tensor) -> Tensor:
         for conv in self.conv:

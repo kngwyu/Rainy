@@ -12,10 +12,8 @@ State = TypeVar('State')
 
 
 class EnvExt(gym.Env, ABC, Generic[Action, State]):
-    @property
-    @abstractmethod
-    def _env(self) -> gym.Env:
-        pass
+    def __init__(self):
+        self._env = gym.Env()
 
     @property
     @abstractmethod
@@ -27,8 +25,14 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
     def state_dims(self) -> Tuple[int]:
         pass
 
+    def close(self):
+        self._env.close
+
     def reset(self) -> State:
         return self._env.reset()
+
+    def render(self, mode: str = 'human') -> State:
+        self._env.render(mode=mode)
 
     def seed(self, seed: int) -> None:
         self._env.seed(seed)
@@ -38,24 +42,24 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
             action = action.item()
         return self._env.step(action)
 
+    @property
+    def unwrapped(self) -> gym.Env:
+        return self.unwrapped
+
 
 class ClassicalControl(EnvExt):
     def __init__(self, name: str = 'CartPole-v0', max_steps: int = 200) -> None:
         self.name = name
-        self.__env = gym.make(name)
-        self.__env._max_episode_steps = max_steps
-
-    @property
-    def _env(self) -> gym.Env:
-        return self.__env
+        self._env = gym.make(name)
+        self._env._max_episode_steps = max_steps
 
     @property
     def action_dim(self) -> int:
-        return self.__env.action_space.n
+        return self._env.action_space.n
 
     @property
     def state_dims(self) -> Tuple[int]:
-        return self.__env.observation_space.shape
+        return self._env.observation_space.shape
 
 
 class Atari(EnvExt):
@@ -75,19 +79,15 @@ class Atari(EnvExt):
             frame_stack=frame_stack
         )
         env = TransposeImage(env)
-        self.__env = env
-
-    @property
-    def _env(self) -> gym.Env:
-        return self.__env
+        self._env = env
 
     @property
     def action_dim(self) -> int:
-        return self.__env.action_space.n
+        return self._env.action_space.n
 
     @property
     def state_dims(self) -> Tuple[int]:
-        return self.__env.observation_space.shape
+        return self._env.observation_space.shape
 
 
 # based on https://github.com/ikostrikov/pytorch-a2c-ppo-acktr/blob/master/envs.py
