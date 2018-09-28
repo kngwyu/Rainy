@@ -6,6 +6,9 @@ from typing import Callable, List, Tuple
 from .init import Initializer
 
 
+Activator = Callable[[Tensor], Tensor]
+
+
 class NetworkBody(nn.Module, ABC):
     @property
     @abstractmethod
@@ -18,23 +21,21 @@ class NetworkBody(nn.Module, ABC):
         pass
 
 
-Activator = Callable[[Tensor], Tensor]
-
-
 class DqnConv(NetworkBody):
     """Convolutuion Network used in https://www.nature.com/articles/nature14236
     """
     def __init__(
             self,
             in_channels: int,
+            batch_size: int = 32,
             activator: Activator = F.relu,
             init: Initializer = Initializer()
     ) -> None:
         super().__init__()
         self._output_dim = 512
         self.activator = activator
-        conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
-        conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
+        conv1 = nn.Conv2d(in_channels, batch_size, kernel_size=8, stride=4)
+        conv2 = nn.Conv2d(batch_size, 64, kernel_size=4, stride=2)
         conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
         self.conv = init.make_list(conv1, conv2, conv3)
         self.fc = init(nn.Linear(7 * 7 * 64, self.output_dim))
