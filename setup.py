@@ -1,5 +1,3 @@
-from pipenv.project import Project
-from pipenv.utils import convert_deps_to_pip
 from setuptools import setup, find_packages
 import sys
 
@@ -7,10 +5,15 @@ if sys.version_info.major != 3:
     print('This Python is only compatible with Python 3, but you are running '
           'Python {}. The installation will likely fail.'.format(sys.version_info.major))
 
-pfile = Project(chdir=False).parsed_pipfile
-
-requirements = convert_deps_to_pip(pfile['packages'], r=False)
-test_requirements = convert_deps_to_pip(pfile['dev-packages'], r=False)
+requirements = [
+    'gym[atari]>=0.10.5',
+    'numpy>=1.0',
+    'opencv-python>=3.4',
+    'torch>=0.4',
+    'torchvision>=0.2.1',
+    'GitPython>=2.0'
+]
+test_requirements = ['pytest>=3.0']
 print(requirements)
 setup(name='rainy',
       author='Yuji Kanagawa',
