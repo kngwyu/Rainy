@@ -27,7 +27,7 @@ class ConvBody(NetworkBody):
             activator: Activator,
             fc: nn.Linear,
             init: Initializer,
-            conv1: nn.Conv2D, *args
+            conv1: nn.Conv2d, *args
     ) -> None:
         super().__init__()
         self.conv = init.make_list(conv1, *args)
