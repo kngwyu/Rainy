@@ -24,6 +24,7 @@ def dqn_atari() -> Agent:
     c.max_steps = int(2e7)
     c.eval_env = Atari('Breakout', episode_life=False)
     c.logger.set_dir_from_script_path(os.path.realpath(__file__))
+    c.logger.set_stderr()
     a = agent.DqnAgent(c)
     return a
 
