@@ -21,7 +21,30 @@ class NetworkBody(nn.Module, ABC):
         pass
 
 
-class DqnConv(NetworkBody):
+class ConvBody(NetworkBody):
+    def __init__(self, fc: nn.Linear, init: Initializer, *args) -> None:
+        super().__init__()
+        self.conv = init.make_list(*args)
+        self.fc = init(fc)
+        self.init = init
+
+    @property
+    def input_dim(self) -> Tuple[int]:
+        return (self.conv[0].in_channels, self.conv[0].out_channels)
+
+    @property
+    def output_dim(self) -> int:
+        return self.fc.out_features
+
+    def forward(self, x: Tensor) -> Tensor:
+        for conv in self.conv:
+            x = self.activator(conv(x))
+        x = x.view(x.size(0), -1)
+        x = self.activator(self.fc(x))
+        return x
+
+
+class DqnConv(ConvBody):
     """Convolutuion Network used in https://www.nature.com/articles/nature14236
     """
     def __init__(
@@ -31,33 +54,16 @@ class DqnConv(NetworkBody):
             activator: Activator = F.relu,
             init: Initializer = Initializer()
     ) -> None:
-        super().__init__()
         self._output_dim = 512
         self.activator = activator
         conv1 = nn.Conv2d(in_channels, batch_size, kernel_size=8, stride=4)
         conv2 = nn.Conv2d(batch_size, 64, kernel_size=4, stride=2)
         conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-        self.conv = init.make_list(conv1, conv2, conv3)
-        self.fc = init(nn.Linear(7 * 7 * 64, self.output_dim))
-        self.init = init
-
-    def forward(self, x: Tensor) -> Tensor:
-        for conv in self.conv:
-            x = self.activator(conv(x))
-        x = x.view(x.size(0), -1)
-        x = self.activator(self.fc(x))
-        return x
-
-    @property
-    def input_dim(self) -> Tuple[int]:
-        return (0,)
-
-    @property
-    def output_dim(self) -> int:
-        return self._output_dim
+        fc = init(nn.Linear(7 * 7 * 64, self._output_dim))
+        super().__init__(fc, init, conv1, conv2, conv3)
 
 
-class FullyConnected(nn.Module):
+class FcBody(nn.Module):
     def __init__(
             self,
             input_dim: int,

@@ -2,7 +2,7 @@ import numpy as np
 from numpy import ndarray
 from torch import nn, Tensor
 from typing import Tuple, Union
-from .body import DqnConv, NetworkBody, FullyConnected
+from .body import DqnConv, FcBody, NetworkBody
 from .head import LinearHead, NetworkHead
 from ..util import Device
 
@@ -48,7 +48,7 @@ def dqn_conv(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> Val
 
 
 def fc(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> ValueNet:
-    body = FullyConnected(state_dim[0])
+    body = FcBody(state_dim[0])
     head = LinearHead(body.output_dim, action_dim)
     return ValueNet(body, head, device=device)
 
