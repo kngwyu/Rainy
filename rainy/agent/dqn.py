@@ -5,7 +5,7 @@ from torch import nn
 from typing import Tuple
 from .base import Agent
 from ..config import Config
-from ..env_ext import Action
+from ..env_ext import Action, State
 
 
 class DqnAgent(Agent):
@@ -31,10 +31,10 @@ class DqnAgent(Agent):
         # Here supposes action_values is 1×(action_dim) array
         return action_values.argmax()
 
-    def step(self, state: ndarray) -> Tuple[ndarray, float, bool]:
+    def step(self, state: State) -> Tuple[ndarray, float, bool]:
         train_started = self.total_steps > self.config.train_start
         if train_started:
-            action = self.policy.select_action(state)
+            action = self.policy.select_action(self.env.expand_state(state))
         else:
             action = np.random.randint(self.env.action_dim)
         next_state, reward, done, _ = self.env.step(action)
@@ -43,6 +43,7 @@ class DqnAgent(Agent):
             return next_state, reward, done
         observation = self.replay.sample(self.config.batch_size)
         states, actions, rewards, next_states, is_terms = map(np.asarray, zip(*observation))
+        next_states = self.env.expand_states(next_states)
         q_next = self.target_net(next_states).detach()
         if self.config.double_q:
             # Here supposes action_values is batch_size×(action_dim) array

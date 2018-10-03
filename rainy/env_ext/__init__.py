@@ -5,15 +5,15 @@ from numpy import ndarray
 import gym
 from gym.spaces import Box
 from torch import Tensor
-from typing import Any, Generic, Tuple, TypeVar, Union
+from typing import Any, Generic, Iterable, Tuple, TypeVar, Union
 
 Action = TypeVar('Action')
 State = TypeVar('State')
 
 
 class EnvExt(gym.Env, ABC, Generic[Action, State]):
-    def __init__(self):
-        self._env = gym.Env()
+    def __init__(self, env: gym.Env):
+        self._env = env
 
     @property
     @abstractmethod
@@ -42,6 +42,21 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
             action = action.item()
         return self._env.step(action)
 
+    def expand_state(self, state: State) -> ndarray:
+        """
+        Expand state to ndarray.
+        Only used for ndarray repl is too large and do not want to use it for replay.
+        """
+        return state
+
+    def expand_states(self, states: Iterable[State]) -> ndarray:
+        """
+        Expand multiple state to ndarray.
+        e.g.
+        return np.fromiter((self.expand_state(s) for s in states), np.float32)
+        """
+        return states
+
     @property
     def unwrapped(self) -> gym.Env:
         return self.unwrapped
@@ -50,7 +65,7 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
 class ClassicalControl(EnvExt):
     def __init__(self, name: str = 'CartPole-v0', max_steps: int = 200) -> None:
         self.name = name
-        self._env = gym.make(name)
+        super().__init__(gym.make(name))
         self._env._max_episode_steps = max_steps
 
     @property
@@ -79,7 +94,7 @@ class Atari(EnvExt):
             frame_stack=frame_stack
         )
         env = TransposeImage(env)
-        self._env = env
+        super().__init__(env)
 
     @property
     def action_dim(self) -> int:
