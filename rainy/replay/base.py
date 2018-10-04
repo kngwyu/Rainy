@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Generic, List, Tuple, TypeVar
+from numpy import ndarray
+from typing import Callable, Generic, List, Tuple, TypeVar
 
 State = TypeVar('State')
 
@@ -17,6 +18,14 @@ class ReplayBuffer(ABC, Generic[State]):
 
     @abstractmethod
     def sample(self, batch_size: int) -> List[Tuple[State, int, float, State, bool]]:
+        pass
+
+    @abstractmethod
+    def sample_with_state_wrapper(
+            self,
+            batch_size: int,
+            wrap_state: Callable[[State], ndarray],
+    ) -> List[Tuple[ndarray, int, float, ndarray, bool]]:
         pass
 
     @abstractmethod

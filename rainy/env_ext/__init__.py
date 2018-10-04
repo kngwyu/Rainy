@@ -42,20 +42,13 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
             action = action.item()
         return self._env.step(action)
 
-    def expand_state(self, state: State) -> ndarray:
+    def state_to_array(self, state: State) -> ndarray:
         """
-        Expand state to ndarray.
-        Only used for ndarray repl is too large and do not want to use it for replay.
+        Convert state to ndarray.
+        For the case ndarray repl is too large and do not want to
+        directly throw it to a replay buffer.
         """
         return state
-
-    def expand_states(self, states: Iterable[State]) -> ndarray:
-        """
-        Expand multiple state to ndarray.
-        e.g.
-        return np.fromiter((self.expand_state(s) for s in states), np.float32)
-        """
-        return states
 
     @property
     def unwrapped(self) -> gym.Env:
