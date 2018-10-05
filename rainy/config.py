@@ -41,7 +41,6 @@ class Config:
         self.__exp = lambda net: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000), net)
         self.__optim = lambda params: RMSprop(params, 0.001)
         self.__replay = lambda capacity: UniformReplayBuffer(capacity)
-        self.__delattr__
         self.__vn = value_net.fc
 
     def env(self) -> EnvExt:
