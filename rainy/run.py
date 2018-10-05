@@ -1,8 +1,9 @@
 from .agent import Agent
+from typing import Optional
 
 
-def __interval(turn: int, freq: int) -> bool:
-    return turn != 0 and turn % freq == 0
+def __interval(turn: int, freq: Optional[int]) -> bool:
+    return freq and turn != 0 and turn % freq == 0
 
 
 def train_agent(ag: Agent, save_file_name: str = 'rainy-agent.save') -> None:

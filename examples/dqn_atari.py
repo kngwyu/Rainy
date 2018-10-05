@@ -19,10 +19,11 @@ def dqn_atari() -> Agent:
     c.set_value_net(net.value_net.dqn_conv)
     c.replay_size = int(1e6)
     c.batch_size = 32
-    c.train_start = 50000
+    c.train_start = 5000
     c.sync_freq = 10000
     c.max_steps = int(2e7)
     c.eval_env = Atari('Breakout', episode_life=False)
+    c.eval_freq = None
     c.logger.set_dir_from_script_path(os.path.realpath(__file__))
     c.logger.set_stderr()
     a = agent.DqnAgent(c)
