@@ -42,6 +42,7 @@ class Agent(ABC):
         env.seed(self.config.seed)
         state = env.reset()
         while True:
+            state = env.state_to_array(state)
             action = self.best_action(state)
             state, reward, done, _ = env.step(action)
             steps += 1

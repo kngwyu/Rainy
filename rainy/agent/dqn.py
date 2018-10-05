@@ -26,7 +26,7 @@ class DqnAgent(Agent):
     def members_to_save(self) -> Tuple[str, ...]:
         return "net", "target_net", "policy"
 
-    def best_action(self, state: ndarray) -> Action:
+    def best_action(self, state: State) -> Action:
         action_values = self.net.action_values(state).detach()
         # Here supposes action_values is 1×(action_dim) array
         return action_values.argmax()

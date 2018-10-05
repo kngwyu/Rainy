@@ -5,7 +5,7 @@ from numpy import ndarray
 import gym
 from gym.spaces import Box
 from torch import Tensor
-from typing import Any, Generic, Iterable, Tuple, TypeVar, Union
+from typing import Any, Generic, Tuple, TypeVar, Union
 
 Action = TypeVar('Action')
 State = TypeVar('State')
