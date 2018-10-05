@@ -11,7 +11,6 @@ def dqn_cartpole() -> Agent:
     path = os.path.realpath(__file__)
     c.logger.set_dir_from_script_path(path)
     c.logger.set_stderr()
-    c.log_freq = 100
     return a
 
 

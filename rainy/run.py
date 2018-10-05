@@ -15,7 +15,7 @@ def train_agent(ag: Agent, save_file_name: str = 'rainy-agent.save') -> None:
             end = True
         rewards_sum += ag.episode()
         episodes += 1
-        if __interval(episodes, ag.config.log_freq):
+        if __interval(episodes, ag.config.episode_log_freq):
             ag.logger.exp(
                 'episodes: {}, total_steps: {}, rewards: {}'.format(
                     episodes,

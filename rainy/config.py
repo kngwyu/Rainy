@@ -31,7 +31,8 @@ class Config:
 
         # logger and logging frequency
         self.logger = Logger()
-        self.log_freq = 100
+        self.episode_log_freq = 100
+        self.step_log_freq = 1000
         self.eval_freq = 1000
         self.save_freq = 10000
 

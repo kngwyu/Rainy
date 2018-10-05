@@ -61,6 +61,8 @@ class DqnAgent(Agent):
         loss.backward()
         nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
         self.optimizer.step()
+        if self.total_steps % self.config.step_log_freq == 0:
+            self.logger.exp('total_steps: {}, loss: {}'.format(self.total_steps, loss))
         if self.total_steps % self.config.sync_freq == 0:
             self.sync_target_net()
         return next_state, reward, done
