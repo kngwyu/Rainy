@@ -39,13 +39,16 @@ class DqnAgent(Agent):
             action = self.random_action()
         next_state, reward, done, _ = self.env.step(action)
         self.replay.append(state, action, reward, next_state, done)
-        if not train_started:
-            return next_state, reward, done
-        observation = self.replay.sample_with_state_wrapper(
+        if train_started:
+            self._train()
+        return next_state, reward, done
+
+    def _train(self) -> None:
+        observations = self.replay.sample_with_state_wrapper(
             self.config.batch_size,
             self.env.state_to_array
         )
-        states, actions, rewards, next_states, is_terms = map(np.asarray, zip(*observation))
+        states, actions, rewards, next_states, is_terms = map(np.asarray, zip(*observations))
         q_next = self.target_net(next_states).detach()
         if self.config.double_q:
             # Here supposes action_values is batch_size×(action_dim) array
@@ -65,7 +68,6 @@ class DqnAgent(Agent):
             self.logger.exp('total_steps: {}, loss: {}'.format(self.total_steps, loss))
         if self.total_steps % self.config.sync_freq == 0:
             self.sync_target_net()
-        return next_state, reward, done
 
     def sync_target_net(self) -> None:
         self.target_net.load_state_dict(self.net.state_dict())

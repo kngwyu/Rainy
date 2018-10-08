@@ -56,7 +56,9 @@ class Agent(ABC):
         return total_reward
 
     def random_episode(self) -> float:
-        return self.__episode(lambda _state: self.random_action())
+        def act(_state) -> Action:
+            return self.random_action()
+        return self.__episode(act)
 
     def eval_episode(self) -> float:
         return self.__episode(self.best_action)

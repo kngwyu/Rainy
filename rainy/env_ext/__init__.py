@@ -7,12 +7,12 @@ from gym.spaces import Box
 from torch import Tensor
 from typing import Any, Generic, Tuple, TypeVar, Union
 
-Action = TypeVar('Action')
+Action = TypeVar('Action', int, Tensor)
 State = TypeVar('State')
 
 
 class EnvExt(gym.Env, ABC, Generic[Action, State]):
-    def __init__(self, env: gym.Env):
+    def __init__(self, env: gym.Env) -> None:
         self._env = env
 
     @property
@@ -31,7 +31,7 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
     def reset(self) -> State:
         return self._env.reset()
 
-    def render(self, mode: str = 'human') -> State:
+    def render(self, mode: str = 'human') -> None:
         self._env.render(mode=mode)
 
     def seed(self, seed: int) -> None:
@@ -39,8 +39,10 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
 
     def step(self, action: Action) -> Tuple[State, float, bool, Any]:
         if type(action) == Tensor:
-            action = action.item()
-        return self._env.step(action)
+            act: Tensor = action
+            return self._env.step(act)
+        else:
+            return self._env.step(action)
 
     def state_to_array(self, state: State) -> ndarray:
         """
@@ -104,7 +106,7 @@ class TransposeImage(gym.ObservationWrapper):
         super(TransposeImage, self).__init__(env)
         obs_shape = self.observation_space.shape
         self.scaler = np.vectorize(lambda x: x / 255.0)
-        self.observation_space = Box(
+        self.observation_space: gym.Box = Box(
             self.observation_space.low[0, 0, 0],
             self.observation_space.high[0, 0, 0],
             [obs_shape[2], obs_shape[0], obs_shape[1]],

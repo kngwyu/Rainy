@@ -13,7 +13,7 @@ class Logger(logging.Logger):
     def __init__(self) -> None:
         # set log level to debug
         super().__init__('rainy', EXP)
-        self._log_dir = None
+        self._log_dir: Optional[Path] = None
 
     def set_dir_from_script_path(self, script_path: str) -> None:
         path = Path(script_path)
@@ -37,7 +37,7 @@ class Logger(logging.Logger):
         def make_handler(log_path: Path, level: int) -> logging.Handler:
             if not log_path.exists():
                 log_path.touch()
-            handler = logging.FileHandler(log_path)
+            handler = logging.FileHandler(log_path.as_posix())
             handler.setFormatter(DEFAULT_FORMATTER)
             handler.setLevel(level)
             return handler

@@ -19,7 +19,7 @@ def dqn_atari() -> Agent:
     c.set_value_net(net.value_net.dqn_conv)
     c.replay_size = int(1e6)
     c.batch_size = 32
-    c.train_start = 5000
+    c.train_start = 50000
     c.sync_freq = 10000
     c.max_steps = int(2e7)
     c.eval_env = Atari('Breakout', episode_life=False)
@@ -33,3 +33,4 @@ def dqn_atari() -> Agent:
 if __name__ == '__main__':
     ag = dqn_atari()
     train_agent(ag)
+    print("random play: {}, trained: {}".format(ag.random_episode(), ag.eval_episode()))

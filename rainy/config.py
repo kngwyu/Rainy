@@ -1,7 +1,7 @@
 from numpy import ndarray
 from torch import Tensor
 from torch.optim import Optimizer, RMSprop
-from typing import Callable, Iterable, Tuple, Union
+from typing import Any, Callable, Iterable, Tuple, Union
 from .net import value_net
 from .net.value_net import ValueNet
 from .explore import LinearCooler, Explorer, EpsGreedy
@@ -38,10 +38,12 @@ class Config:
 
         self.__env = lambda: ClassicalControl()
         self.__eval_env = None
-        self.__exp = lambda net: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000), net)
+        self.__exp: Callable[[ValueNet], Explorer] = \
+            lambda net: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000), net)
         self.__optim = lambda params: RMSprop(params, 0.001)
-        self.__replay = lambda capacity: UniformReplayBuffer(capacity)
-        self.__vn = value_net.fc
+        self.__replay: Callable[[int], ReplayBuffer[Any]] = \
+            lambda capacity: UniformReplayBuffer(capacity)
+        self.__vn: Callable[[Tuple[int, ...], int, Device], ValueNet] = value_net.fc
 
     def env(self) -> EnvExt:
         env = self.__env()

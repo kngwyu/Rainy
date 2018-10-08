@@ -12,7 +12,7 @@ Activator = Callable[[Tensor], Tensor]
 class NetworkBody(nn.Module, ABC):
     @property
     @abstractmethod
-    def input_dim(self) -> Tuple[int]:
+    def input_dim(self) -> Tuple[int, ...]:
         pass
 
     @property
@@ -36,7 +36,7 @@ class ConvBody(NetworkBody):
         self.activator = activator
 
     @property
-    def input_dim(self) -> Tuple[int]:
+    def input_dim(self) -> Tuple[int, ...]:
         return (self.conv[0].in_channels, self.conv[0].out_channels)
 
     @property
@@ -89,7 +89,7 @@ class FcBody(nn.Module):
         return x
 
     @property
-    def input_dim(self) -> Tuple[int]:
+    def input_dim(self) -> Tuple[int, ...]:
         return (self.dims[0],)
 
     @property
