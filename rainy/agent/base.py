@@ -6,7 +6,7 @@ import torch
 from torch import nn
 from typing import Callable, Tuple
 from ..config import Config
-from ..env_ext import Action, State
+from ..env_ext import Action, EnvExt, State
 
 
 class Agent(ABC):
@@ -39,7 +39,7 @@ class Agent(ABC):
     def random_action(self) -> Action:
         return np.random.randint(self.env.action_dim)
 
-    def __episode(self, select_action: Callable[[State], Action]) -> float:
+    def __eval_episode(self, select_action: Callable[[State], Action]) -> Tuple[float, EnvExt]:
         total_reward = 0.0
         steps = 0
         env = self.config.eval_env
@@ -53,15 +53,20 @@ class Agent(ABC):
             total_reward += reward
             if done:
                 break
-        return total_reward
+        return total_reward, env
 
     def random_episode(self) -> float:
         def act(_state) -> Action:
             return self.random_action()
-        return self.__episode(act)
+        return self.__eval_episode(act)[0]
 
     def eval_episode(self) -> float:
-        return self.__episode(self.best_action)
+        return self.__eval_episode(self.best_action)[0]
+
+    def eval_and_save(self, fname: str) -> float:
+        res, env = self.__eval_episode(self.best_action)
+        env.save_history(fname)
+        return res
 
     def episode(self) -> float:
         total_reward = 0.0

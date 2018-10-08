@@ -52,6 +52,9 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
         """
         return state
 
+    def save_history(self, file_name: str) -> None:
+        pass
+
     @property
     def unwrapped(self) -> gym.Env:
         return self.unwrapped
