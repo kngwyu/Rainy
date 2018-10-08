@@ -36,7 +36,7 @@ class DqnAgent(Agent):
         if train_started:
             action = self.policy.select_action(self.env.state_to_array(state))
         else:
-            action = np.random.randint(self.env.action_dim)
+            action = self.random_action()
         next_state, reward, done, _ = self.env.step(action)
         self.replay.append(state, action, reward, next_state, done)
         if not train_started:

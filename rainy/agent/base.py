@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
+import numpy as np
 from numpy import ndarray
 from pathlib import Path
 import torch
 from torch import nn
-from typing import Tuple
+from typing import Callable, Tuple
 from ..config import Config
-from ..env_ext import Action
+from ..env_ext import Action, State
 
 
 class Agent(ABC):
@@ -35,7 +36,10 @@ class Agent(ABC):
     def step(self, state: ndarray) -> Tuple[ndarray, float, bool]:
         pass
 
-    def eval_episode(self) -> float:
+    def random_action(self) -> Action:
+        return np.random.randint(self.env.action_dim)
+
+    def __episode(self, select_action: Callable[[State], Action]) -> float:
         total_reward = 0.0
         steps = 0
         env = self.config.eval_env
@@ -43,13 +47,19 @@ class Agent(ABC):
         state = env.reset()
         while True:
             state = env.state_to_array(state)
-            action = self.best_action(state)
+            action = select_action(state)
             state, reward, done, _ = env.step(action)
             steps += 1
             total_reward += reward
             if done:
                 break
         return total_reward
+
+    def random_episode(self) -> float:
+        return self.__episode(lambda _state: self.random_action())
+
+    def eval_episode(self) -> float:
+        return self.__episode(self.best_action)
 
     def episode(self) -> float:
         total_reward = 0.0

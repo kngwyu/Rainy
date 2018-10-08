@@ -17,3 +17,4 @@ def dqn_cartpole() -> Agent:
 if __name__ == '__main__':
     ag = dqn_cartpole()
     train_agent(ag)
+    print("random play: {}, trained: {}".format(ag.random_episode(), ag.eval_episode()))
