@@ -39,8 +39,7 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
 
     def step(self, action: Action) -> Tuple[State, float, bool, Any]:
         if type(action) == Tensor:
-            act: Tensor = action
-            return self._env.step(act)
+            return self._env.step(action.item())
         else:
             return self._env.step(action)
 
