@@ -18,16 +18,22 @@ class Config:
         self.action_dim = 0
         self.state_dims = (0,)
 
+        # these parameters are set really small by default,
+        # so please change them manually in use
         self.batch_size = 10
         self.discount_factor = 0.99
         self.device = Device()
-        self.double_q = False
         self.grad_clip = 5.0
         self.max_steps = 10000
         self.replay_size = 10000
-        self.seed: Optinal[int] = 0
-        self.sync_freq = 200
         self.train_start = 1000
+
+        # for the cases you can't set seed in constructor, like gym.atari
+        self.seed: Optinal[int] = 0
+
+        # for DQN-like algorithms
+        self.double_q = False
+        self.sync_freq = 200
 
         # logger and logging frequency
         self.logger = Logger()
@@ -89,9 +95,6 @@ class Config:
 
     def set_value_net(self, vn: Callable[[Tuple[int, ...], int, Device], ValueNet]) -> None:
         self.__vn = vn
-
-    def set_wrap_states(self, wrap_states: Callable[[ndarray], ndarray]) -> None:
-        self.__wrap_states = wrap_states
 
     def policy_net(self):
         pass
