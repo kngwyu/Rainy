@@ -15,48 +15,80 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
     def __init__(self, env: gym.Env) -> None:
         self._env = env
 
-    @property
-    @abstractmethod
-    def action_dim(self) -> int:
-        pass
-
-    @property
-    @abstractmethod
-    def state_dims(self) -> Tuple[int]:
-        pass
-
     def close(self):
+        """
+        Inherited from gym.Env.
+        """
         self._env.close
 
     def reset(self) -> State:
+        """
+        Inherited from gym.Env.
+        """
         return self._env.reset()
 
     def render(self, mode: str = 'human') -> None:
+        """
+        Inherited from gym.Env.
+        """
         self._env.render(mode=mode)
 
     def seed(self, seed: int) -> None:
+        """
+        Inherited from gym.Env.
+        """
         self._env.seed(seed)
 
     def step(self, action: Action) -> Tuple[State, float, bool, Any]:
+        """
+        Inherited from gym.Env.
+        """
         if type(action) == Tensor:
             return self._env.step(action.item())
         else:
             return self._env.step(action)
 
+    @property
+    def unwrapped(self) -> gym.Env:
+        """
+        Inherited from gym.Env.
+        """
+        return self.unwrapped
+
+    @property
+    @abstractmethod
+    def action_dim(self) -> int:
+        """
+        Extended method.
+        Returns a ndim of action space.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def state_dims(self) -> Tuple[int]:
+        """
+        Extended method.
+        Returns a shape of observation space.
+        """
+        pass
+
+
     def state_to_array(self, state: State) -> ndarray:
         """
+        Extended method.
         Convert state to ndarray.
-        For the case ndarray repl is too large and do not want to
-        directly throw it to a replay buffer.
+        It's useful for the cases where numpy.ndarray representation is too large to
+        throw it to replay buffer directly.
         """
         return state
 
     def save_history(self, file_name: str) -> None:
+        """
+        Extended method.
+        Save agent's action history to file.
+        """
         pass
-
-    @property
-    def unwrapped(self) -> gym.Env:
-        return self.unwrapped
 
 
 class ClassicalControl(EnvExt):
