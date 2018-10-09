@@ -25,7 +25,7 @@ class Config:
         self.grad_clip = 5.0
         self.max_steps = 10000
         self.replay_size = 10000
-        self.seed = 0
+        self.seed: Optinal[int] = 0
         self.sync_freq = 200
         self.train_start = 1000
 

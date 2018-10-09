@@ -43,7 +43,8 @@ class Agent(ABC):
         total_reward = 0.0
         steps = 0
         env = self.config.eval_env
-        env.seed(self.config.seed)
+        if self.config.seed:
+            env.seed(self.config.seed)
         state = env.reset()
         while True:
             state = env.state_to_array(state)
@@ -71,7 +72,8 @@ class Agent(ABC):
     def episode(self) -> float:
         total_reward = 0.0
         steps = 0
-        self.env.seed(self.config.seed)
+        if self.config.seed:
+            self.env.seed(self.config.seed)
         state = self.env.reset()
         while True:
             state, reward, done = self.step(state)
