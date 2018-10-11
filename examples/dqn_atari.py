@@ -1,8 +1,9 @@
 import os
-from rainy import agent, Config, net, train_agent
-from rainy.agent import Agent
+from rainy import Config, net
+from rainy.agent import DqnAgent
 from rainy.env_ext import Atari
 from rainy.explore import EpsGreedy, LinearCooler
+import rainy.util.cli as cli
 from torch.optim import RMSprop
 
 
