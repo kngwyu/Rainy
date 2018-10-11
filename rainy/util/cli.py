@@ -1,5 +1,5 @@
 import click
-from typing import Tuple
+from typing import Callable, Optional, Tuple
 
 from ..agent import Agent
 from ..config import Config
@@ -17,8 +17,9 @@ def rainy_cli(ctx: dict, gpu: Tuple[int]) -> None:
 @click.pass_context
 def train(ctx: dict) -> None:
     c = ctx.obj['config']
-    name = ctx.obj['name']
-    c.logger.set_dir_from_prefix(name)
+    scr = ctx.obj['script_path']
+    if scr:
+        c.logger.set_dir_from_script_path(scr)
     c.logger.set_stderr()
     ag = ctx.obj['make_agent'](c)
     train_agent(ag)
@@ -49,11 +50,15 @@ def eval(ctx: dict, logdir: str, fname: str) -> None:
     eval_agent(ag, logdir, action_file=fname)
 
 
-def run_cli(name: str, config: Config, agent_gen: Callable[[Config], Agent]) -> rainy_cli:
-    ctx = {
-        'name': name,
+def run_cli(
+        config: Config,
+        agent_gen: Callable[[Config], Agent],
+        script_path: Optional[str] = None
+) -> rainy_cli:
+    obj = {
         'config': config,
-        'agent': agent_gen,
+        'make_agent': agent_gen,
+        'script_path': script_path
     }
-    rainy_cli(ctx)
+    rainy_cli(obj=obj)
 

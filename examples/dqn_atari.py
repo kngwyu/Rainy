@@ -6,7 +6,7 @@ from rainy.explore import EpsGreedy, LinearCooler
 from torch.optim import RMSprop
 
 
-def dqn_atari() -> Agent:
+def config() -> Config:
     c = Config()
     c.set_env(lambda: Atari('Breakout'))
     c.set_optimizer(
@@ -24,13 +24,9 @@ def dqn_atari() -> Agent:
     c.max_steps = int(2e7)
     c.eval_env = Atari('Breakout', episode_life=False)
     c.eval_freq = None
-    c.logger.set_dir_from_script_path(os.path.realpath(__file__))
-    c.logger.set_stderr()
-    a = agent.DqnAgent(c)
-    return a
+    return c
 
 
 if __name__ == '__main__':
-    ag = dqn_atari()
-    train_agent(ag)
-    print("random play: {}, trained: {}".format(ag.random_episode(), ag.eval_episode()))
+    cli.run_cli(config(), lambda c: DqnAgent(c), script_path=os.path.realpath(__file__))
+
