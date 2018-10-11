@@ -34,9 +34,9 @@ def random(ctx: dict, save: bool, fname: str) -> None:
     c = ctx.obj['config']
     ag = ctx.obj['make_agent'](c)
     if save:
-        r = ag.random_episode_and_save(fname)
+        r = ag.random_and_save(fname)
     else:
-        r = ag.random_episode(save)
+        r = ag.random_episode()
     print("random play: {}".format(r))
 
 

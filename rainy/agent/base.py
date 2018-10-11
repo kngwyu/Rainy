@@ -56,16 +56,15 @@ class Agent(ABC):
                 break
         return total_reward, env
 
-    def __random_episode(self) -> Tuple[float, EnvExt]:
+    def random_episode(self) -> float:
         def act(_state) -> Action:
             return self.random_action()
-        return self.__eval_episode(act)
-
-    def random_episode(self) -> float:
-        return self.random_episode_()[0]
+        return self.__eval_episode(act)[0]
 
     def random_and_save(self, fname: str) -> float:
-        res, env = self.__random_episode()
+        def act(_state) -> Action:
+            return self.random_action()
+        res, env = self.__eval_episode(act)
         env.save_history(fname)
         return res
 
