@@ -41,6 +41,7 @@ class Config:
         self.step_log_freq = 1000
         self.eval_freq = 1000
         self.save_freq = 10000
+        self.save_eval_actions = False
 
         self.__env = lambda: ClassicalControl()
         self.__eval_env = None

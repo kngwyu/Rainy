@@ -15,10 +15,8 @@ class Logger(logging.Logger):
         super().__init__('rainy', EXP)
         self._log_dir: Optional[Path] = None
 
-    def set_dir_from_script_path(self, script_path: str) -> None:
-        path = Path(script_path)
-        filename = path.stem
-        log_dir = filename + '-log-'
+    def set_dir_from_prefix(self, prefix: str) -> None:
+        log_dir = prefix + '-log-'
         try:
             repo = git.Repo(script_path, search_parent_directories=True)
             head = repo.head.commit

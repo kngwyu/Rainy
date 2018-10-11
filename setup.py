@@ -6,12 +6,13 @@ if sys.version_info.major != 3:
           'Python {}. The installation will likely fail.'.format(sys.version_info.major))
 
 requirements = [
+    'click>=7.0',
+    'GitPython>=2.0',
     'gym[atari]>=0.10.5',
     'numpy>=1.0',
     'opencv-python>=3.4',
     'torch>=0.4',
     'torchvision>=0.2.1',
-    'GitPython>=2.0'
 ]
 test_requirements = ['pytest>=3.0']
 print(requirements)

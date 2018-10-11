@@ -4,12 +4,13 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+click = ">=7.0"
+GitPython = ">=2.0"
 gym = {version = ">=0.10.5", extras = ["atari"]}
 numpy = ">=1.0"
 opencv-python = ">=3.4"
 torch = ">=0.4"
 torchvision = ">=0.2.1"
-GitPython = ">=2.0"
 
 [dev-packages]
 pytest = ">=3.0"

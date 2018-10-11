@@ -1,10 +1,10 @@
 from .agent import Agent
-from .config import Config
 from pathlib import Path
 from typing import Optional
 
 
 SAVE_FILE_DEFAULT = 'rainy-agent.save'
+ACTION_FILE_DEFAULT = 'actions.json'
 
 
 def __interval(turn: int, freq: Optional[int]) -> bool:
@@ -14,11 +14,16 @@ def __interval(turn: int, freq: Optional[int]) -> bool:
         return False
 
 
-def train_agent(ag: Agent, save_file_name: str = SAVE_FILE_DEFAULT) -> None:
+def train_agent(
+        ag: Agent,
+        save_file_name: str = SAVE_FILE_DEFAULT,
+        action_file_name: str = ACTION_FILE_DEFAULT,
+) -> None:
     max_steps = ag.config.max_steps
     episodes = 0
     rewards_sum = 0.0
     end = False
+    action_file = Path(action_file_name)
     while not end:
         if max_steps and ag.total_steps > max_steps:
             end = True
@@ -33,7 +38,15 @@ def train_agent(ag: Agent, save_file_name: str = SAVE_FILE_DEFAULT) -> None:
                 ))
             rewards_sum = 0
         if end or __interval(episodes, ag.config.eval_freq):
-            ag.logger.exp('eval: {}'.format(ag.eval_episode()))
+            if ag.config.save_eval_actions and ag.logger.log_dir:
+                fname = ag.logger.log_dir.joinpath('{}-{}{}'.format(
+                    action_file.stem,
+                    episodes,
+                    action_file.suffix
+                ))
+                ag.logger.exp('eval: {}'.format(ag.eval_and_save(fname.as_posix())))
+            else:
+                ag.logger.exp('eval: {}'.format(ag.eval_episode()))
         if end or __interval(episodes, ag.config.save_freq):
             ag.save(save_file_name)
 
