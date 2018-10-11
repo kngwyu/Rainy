@@ -33,6 +33,9 @@ class Device():
     def data_parallel(self, module: nn.Module) -> nn.DataParallel:
         return nn.DataParallel(module, device_ids=self.gpu_indices)
 
+    def is_multi_gpu(self) -> bool:
+        return len(self.gpu_indices) > 1
+
     def __use_all_gpu(self):
         self.gpu_indices = list(range(torch.cuda.device_count()))
         self.device = torch.device('cuda:0')
