@@ -1,7 +1,6 @@
-from numpy import ndarray
 from torch import Tensor
 from torch.optim import Optimizer, RMSprop
-from typing import Any, Callable, Iterable, Tuple, Union
+from typing import Any, Callable, Iterable, Optional, Tuple, Union
 from .net import value_net
 from .net.value_net import ValueNet
 from .explore import LinearCooler, Explorer, EpsGreedy
@@ -29,7 +28,7 @@ class Config:
         self.train_start = 1000
 
         # for the cases you can't set seed in constructor, like gym.atari
-        self.seed: Optinal[int] = 0
+        self.seed: Optional[int] = 0
 
         # for DQN-like algorithms
         self.double_q = False

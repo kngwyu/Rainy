@@ -99,7 +99,7 @@ class Agent(ABC):
                 save_dict[idx] = value.state_dict()
             else:
                 save_dict[idx] = value
-        log_dir = self.config.logger.log_dir()
+        log_dir = self.config.logger.log_dir
         if log_dir is None:
             log_dir = Path('.')
         torch.save(save_dict, log_dir.joinpath(filename))

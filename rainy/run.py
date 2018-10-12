@@ -38,8 +38,9 @@ def train_agent(
                 ))
             rewards_sum = 0
         if end or __interval(episodes, ag.config.eval_freq):
-            if ag.config.save_eval_actions and ag.logger.log_dir:
-                fname = ag.logger.log_dir.joinpath('{}-{}{}'.format(
+            log_dir = ag.logger.log_dir
+            if ag.config.save_eval_actions and log_dir:
+                fname = log_dir.joinpath('{}-{}{}'.format(
                     action_file.stem,
                     episodes,
                     action_file.suffix

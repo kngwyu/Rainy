@@ -1,15 +1,15 @@
-os: linux
 sudo: false
 language: python
+
 python:
   - "3.7"
   - "3.6"
 
 install:
-  - pip install pytest
+  - pip install tox
 
 script:
-  - pytest
+  - tox
 
 cache:
   - pip

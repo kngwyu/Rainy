@@ -15,8 +15,8 @@ class Logger(logging.Logger):
         super().__init__('rainy', EXP)
         self._log_dir: Optional[Path] = None
 
-    def set_dir_from_script_path(self, script_path: str) -> None:
-        script_path = Path(script_path)
+    def set_dir_from_script_path(self, script_path_: str) -> None:
+        script_path = Path(script_path_)
         log_dir = script_path.stem + '-log-'
         try:
             repo = git.Repo(script_path, search_parent_directories=True)
@@ -48,6 +48,7 @@ class Logger(logging.Logger):
         handler.setLevel(level)
         self.addHandler(handler)
 
+    @property
     def log_dir(self) -> Optional[Path]:
         return self._log_dir
 
