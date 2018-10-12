@@ -44,9 +44,12 @@ def train_agent(
                     episodes,
                     action_file.suffix
                 ))
-                ag.logger.exp('eval: {}'.format(ag.eval_and_save(fname.as_posix())))
+                ag.logger.exp('episodes: {} eval: {}'.format(
+                    episodes,
+                    ag.eval_and_save(fname.as_posix())
+                ))
             else:
-                ag.logger.exp('eval: {}'.format(ag.eval_episode()))
+                ag.logger.exp('episodes: {} eval: {}'.format(episodes, ag.eval_episode()))
         if end or __interval(episodes, ag.config.save_freq):
             ag.save(save_file_name)
 
