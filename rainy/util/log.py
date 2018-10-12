@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 from typing import Optional
 NORMAL_FORMATTER = logging.Formatter('%(levelname)s %(asctime)s: %(name)s: %(message)s')
-JSON_FORMATTER = logging.Formatter('{"%(levelname)s": %(message)s},')
+JSON_FORMATTER = logging.Formatter('%(levelname)s::%(message)s')
 EXP = 5
 logging.addLevelName(EXP, 'EXP')
 
