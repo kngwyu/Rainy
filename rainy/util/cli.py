@@ -15,11 +15,12 @@ def rainy_cli(ctx: dict, gpu: Tuple[int]) -> None:
 
 @rainy_cli.command()
 @click.pass_context
-def train(ctx: dict) -> None:
+@click.option('--comment', type=str, default=None)
+def train(ctx: dict, comment: Optional[str]) -> None:
     c = ctx.obj['config']
     scr = ctx.obj['script_path']
     if scr:
-        c.logger.set_dir_from_script_path(scr)
+        c.logger.set_dir_from_script_path(scr, comment=comment)
     c.logger.set_stderr()
     ag = ctx.obj['make_agent'](c)
     train_agent(ag)
