@@ -33,7 +33,7 @@ class Agent(ABC):
         pass
 
     @abstractmethod
-    def step(self, state: ndarray) -> Tuple[ndarray, float, bool]:
+    def step(self, state: State) -> Tuple[ndarray, float, bool]:
         pass
 
     def random_action(self) -> Action:
@@ -113,3 +113,4 @@ class Agent(ABC):
                 mem.load_state_dict(saved_item)
             else:
                 setattr(self, member_str, saved_item)
+

@@ -41,7 +41,7 @@ def random(ctx: dict, save: bool, fname: str) -> None:
 
 
 @rainy_cli.command()
-@click.option('--logdir', required=True, type=str)
+@click.argument('logdir', required=True, type=str)
 @click.option('--fname', type=str, default='best-actions.json')
 @click.pass_context
 def eval(ctx: dict, logdir: str, fname: str) -> None:

@@ -30,12 +30,11 @@ def train_agent(
         rewards_sum += ag.episode()
         episodes += 1
         if __interval(episodes, ag.config.episode_log_freq):
-            ag.logger.exp(
-                'episodes: {}, total_steps: {}, rewards: {}'.format(
-                    episodes,
-                    ag.total_steps,
-                    rewards_sum
-                ))
+            ag.logger.exp('train_reward_sum', {
+                'episodes': episodes,
+                'total_steps': ag.total_steps,
+                'rewards': rewards_sum,
+            })
             rewards_sum = 0
         if end or __interval(episodes, ag.config.eval_freq):
             log_dir = ag.logger.log_dir
@@ -45,12 +44,14 @@ def train_agent(
                     episodes,
                     action_file.suffix
                 ))
-                ag.logger.exp('episodes: {} eval: {}'.format(
-                    episodes,
-                    ag.eval_and_save(fname.as_posix())
-                ))
+                rewards = ag.eval_and_save(fname.as_posix())
             else:
-                ag.logger.exp('episodes: {} eval: {}'.format(episodes, ag.eval_episode()))
+                rewards = ag.eval_episode()
+            ag.logger.exp('eval', {
+                'episodes': episodes,
+                'total_steps': ag.total_steps,
+                'rewards': rewards,
+            })
         if end or __interval(episodes, ag.config.save_freq):
             ag.save(save_file_name)
 

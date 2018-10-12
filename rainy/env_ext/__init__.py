@@ -5,7 +5,8 @@ from numpy import ndarray
 import gym
 from gym.spaces import Box
 from torch import Tensor
-from typing import Any, Generic, Tuple, TypeVar, Union
+from typing import Any, Callable, Generic, Tuple, TypeVar, Union
+
 
 Action = TypeVar('Action', int, Tensor)
 State = TypeVar('State')
@@ -53,7 +54,7 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
         """
         Inherited from gym.Env.
         """
-        return self.unwrapped
+        return self._env.unwrapped
 
     @property
     @abstractmethod
@@ -73,7 +74,6 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
         """
         pass
 
-
     def state_to_array(self, state: State) -> ndarray:
         """
         Extended method.
@@ -89,6 +89,9 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
         Save agent's action history to file.
         """
         pass
+
+
+EnvGen = Callable[[], EnvExt]
 
 
 class ClassicalControl(EnvExt):

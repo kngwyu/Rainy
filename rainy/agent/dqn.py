@@ -24,7 +24,7 @@ class DqnAgent(Agent):
         )
 
     def members_to_save(self) -> Tuple[str, ...]:
-        return "net", "target_net", "policy"
+        return "net", "target_net", "policy", "total_steps"
 
     def best_action(self, state: State) -> Action:
         action_values = self.net.action_values(state).detach()
@@ -65,7 +65,10 @@ class DqnAgent(Agent):
         nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
         self.optimizer.step()
         if self.total_steps % self.config.step_log_freq == 0:
-            self.logger.exp('total_steps: {}, loss: {}'.format(self.total_steps, loss))
+            self.logger.exp('loss', {
+                'total_steps': self.total_steps,
+                'loss': loss.item(),
+            })
         if self.total_steps % self.config.sync_freq == 0:
             self.sync_target_net()
 
