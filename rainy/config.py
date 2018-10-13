@@ -1,12 +1,11 @@
 from torch import Tensor
 from torch.optim import Optimizer, RMSprop
 from typing import Any, Callable, Iterable, Optional, Tuple, Union
-from .net import value_net
-from .net.value_net import ValueNet
+from .net import ActorCriticNet, actor_critic, ValuePredictor, value_net, ValueNet
 from .explore import LinearCooler, Explorer, EpsGreedy
 from .replay import ReplayBuffer, UniformReplayBuffer
 from .util import Device, Logger
-from .env_ext import ClassicalControl, EnvExt
+from .env_ext import ClassicalControl, EnvExt, ParallelEnv
 
 Params = Iterable[Union[Tensor, dict]]
 
@@ -34,6 +33,18 @@ class Config:
         self.double_q = False
         self.sync_freq = 200
 
+        # for multi worker algorithms
+        self.num_workers = 8
+
+        # for n-step
+        self.nstep = 5
+
+        # for actor-critic
+        self.entropy_weight = 0.01
+        self.value_loss_weight = 1.0
+        self.use_gae = False
+        self.gae_tau = 1.0
+
         # logger and logging frequency
         self.logger = Logger()
         self.episode_log_freq = 100
@@ -44,12 +55,13 @@ class Config:
 
         self.__env = lambda: ClassicalControl()
         self.__eval_env = None
-        self.__exp: Callable[[ValueNet], Explorer] = \
+        self.__exp: Callable[[ValuePredictor], Explorer] = \
             lambda net: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000), net)
         self.__optim = lambda params: RMSprop(params, 0.001)
         self.__replay: Callable[[int], ReplayBuffer[Any]] = \
             lambda capacity: UniformReplayBuffer(capacity)
         self.__vn: Callable[[Tuple[int, ...], int, Device], ValueNet] = value_net.fc
+        self.__ac: Callable[[Tuple[int, ...], int, Device], ActorCriticNet] = actor_critic.fc
 
     def env(self) -> EnvExt:
         env = self.__env()
@@ -72,10 +84,10 @@ class Config:
         self.state_dims = env.state_dims
         self.__eval_env = env
 
-    def explorer(self, value_net: ValueNet) -> Explorer:
-        return self.__exp(value_net)
+    def explorer(self, value_pred: ValuePredictor) -> Explorer:
+        return self.__exp(value_pred)
 
-    def set_explorer(self, exp: Callable[[ValueNet], Explorer]) -> None:
+    def set_explorer(self, exp: Callable[[ValuePredictor], Explorer]) -> None:
         self.__exp = exp
 
     def optimizer(self, params: Params) -> Optimizer:
@@ -90,11 +102,26 @@ class Config:
     def set_replay_buffer(self, replay: Callable[[int], ReplayBuffer]) -> None:
         self.__replay = replay
 
+    def parallel_env(self) -> ParallelEnv:
+        return self.__parallel_env(self.__env, self.num_workers)
+
+    def set_parallel_env(self, parallel_env: Callable[[Callable[[], EnvExt], int], ParallelEnv]):
+        self.__parallel_env = parallel_env
+
     def value_net(self) -> ValueNet:
         return self.__vn(self.state_dims, self.action_dim, self.device)
 
-    def set_value_net(self, vn: Callable[[Tuple[int, ...], int, Device], ValueNet]) -> None:
-        self.__vn = vn
+    def set_value_net(self, net: Callable[[Tuple[int, ...], int, Device], ValueNet]) -> None:
+        self.__vn = net
+
+    def actor_critic_net(self) -> ActorCriticNet:
+        return self.__ac(self.state_dims, self.action_dim, self.device)
+
+    def set_actor_critic_net(
+            self,
+            net: Callable[[Tuple[int, ...], int, Device], ActorCriticNet]
+    ) -> None:
+        self.__ac = net
 
     def policy_net(self):
         pass

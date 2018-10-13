@@ -4,7 +4,7 @@ from numpy import ndarray
 from pathlib import Path
 import torch
 from torch import nn
-from typing import Callable, Tuple
+from typing import Callable, Iterable, List, Tuple
 from ..config import Config
 from ..env_ext import Action, EnvExt, State
 
@@ -28,12 +28,14 @@ class Agent(ABC):
         """
         pass
 
-    @abstractmethod
     def best_action(self, state: ndarray) -> Action:
         pass
 
     @abstractmethod
     def step(self, state: State) -> Tuple[ndarray, float, bool]:
+        pass
+
+    def nstep(self, states: Iterable[State]) -> Iterable[State]:
         pass
 
     def random_action(self) -> Action:

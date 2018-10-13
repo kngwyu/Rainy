@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
+from .parallel import ParallelEnv, DummyParallelEnv, make_parallel_env
 import numpy as np
 from numpy import ndarray
 import gym
@@ -89,9 +90,6 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
         Save agent's action history to file.
         """
         pass
-
-
-EnvGen = Callable[[], EnvExt]
 
 
 class ClassicalControl(EnvExt):
