@@ -5,7 +5,7 @@ from .net import ActorCriticNet, actor_critic, ValuePredictor, value_net, ValueN
 from .explore import LinearCooler, Explorer, EpsGreedy
 from .replay import ReplayBuffer, UniformReplayBuffer
 from .util import Device, Logger
-from .env_ext import ClassicalControl, EnvExt, ParallelEnv
+from .envs import ClassicalControl, EnvExt, ParallelEnv
 
 Params = Iterable[Union[Tensor, dict]]
 

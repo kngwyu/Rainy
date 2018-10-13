@@ -6,7 +6,7 @@ import torch
 from torch import nn
 from typing import Callable, Iterable, List, Tuple
 from ..config import Config
-from ..env_ext import Action, EnvExt, State
+from ..envs import Action, EnvExt, State
 
 
 class Agent(ABC):

@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 import multiprocessing as mp
-from multiprocessing import Pipe, Process
 from multiprocessing.connection import Connection
 import numpy as np
 from numpy import ndarray
@@ -11,18 +10,6 @@ from . import EnvExt
 
 Action = TypeVar('Action', int, Tensor)
 State = TypeVar('State')
-
-
-def make_parallel_env(env_gen: Callable[[], EnvExt], num_workers: int) -> ParallelEnv:
-    e = env_gen()
-    if not isinstance(e, EnvExt):
-        raise ValueError('Needs EnvExt, but given {}'.format(type(e)))
-    if num_workers < 1:
-        raise ValueError('num_workers must be larger than 0')
-    elif num_workers == 1:
-        return DummyParallelEnv(e, 1)
-    else:
-        return MultiProcEnv(e, env_gen, num_workers)
 
 
 class ParallelEnv(ABC, Generic[Action, State]):
@@ -43,6 +30,18 @@ class ParallelEnv(ABC, Generic[Action, State]):
 
     def states_to_array(self, states: State) -> ndarray:
         pass
+
+
+def make_parallel_env(env_gen: Callable[[], EnvExt], num_workers: int) -> ParallelEnv:
+    e = env_gen()
+    if not isinstance(e, EnvExt):
+        raise ValueError('Needs EnvExt, but given {}'.format(type(e)))
+    if num_workers < 1:
+        raise ValueError('num_workers must be larger than 0')
+    elif num_workers == 1:
+        return DummyParallelEnv(e, 1)
+    else:
+        return MultiProcEnv(e, env_gen, num_workers)
 
 
 class MultiProcEnv(ParallelEnv):
@@ -88,7 +87,7 @@ class _ProcHandler:
         return self.pipe.recv()
 
 
-class _ProcWorker(Process):
+class _ProcWorker(mp.Process):
     CLOSE = 0
     RESET = 1
     SEED = 2

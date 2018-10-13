@@ -5,7 +5,7 @@ from torch import nn
 from typing import Tuple
 from .base import Agent
 from ..config import Config
-from ..env_ext import Action, State
+from ..envs import Action, State
 
 
 class DqnAgent(Agent):

@@ -5,7 +5,7 @@ from torch import nn
 from typing import Iterable, List, Optional, Tuple
 from .base import Agent
 from ..config import Config
-from ..env_ext import Action, ParallelEnv, State
+from ..envs import Action, ParallelEnv, State
 
 
 class A2cAgent(Agent):
