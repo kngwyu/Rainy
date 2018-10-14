@@ -2,7 +2,7 @@ import os
 from rainy import Config
 from rainy.agent import A2cAgent
 import rainy.util.cli as cli
-from rainy.env_ext import DummyParallelEnv
+from rainy.envs import DummyParallelEnv
 
 
 def config() -> Config:

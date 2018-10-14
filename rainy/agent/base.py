@@ -31,10 +31,6 @@ class Agent(ABC):
     def best_action(self, state: ndarray) -> Action:
         pass
 
-    @abstractmethod
-    def step(self, state: State) -> Tuple[ndarray, float, bool]:
-        pass
-
     def nstep(self, states: Iterable[State]) -> Iterable[State]:
         pass
 
@@ -116,3 +112,7 @@ class Agent(ABC):
             else:
                 setattr(self, member_str, saved_item)
 
+
+class NStepAgent(ABC):
+    def nstep(self, states: Iterable[State]) -> Iterable[State]:
+        pass
