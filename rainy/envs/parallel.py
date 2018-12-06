@@ -14,22 +14,19 @@ State = TypeVar('State')
 
 class ParallelEnv(ABC, Generic[Action, State]):
     @abstractmethod
-    def reset(self) -> State:
+    def close(self):
         pass
 
     @abstractmethod
-    def step_async(self, actions: Iterable[Action]) -> List[Tuple[State, float, bool, Any]]:
+    def reset(self) -> List[State]:
         pass
 
     @abstractmethod
-    def step_sync(self, actions: Iterable[Action]) -> List[Tuple[State, float, bool, Any]]:
-        pass
-
     def step(self, actions: Iterable[Action]) -> List[Tuple[State, float, bool, Any]]:
-        return self.step_sync(actions)
-
-    def states_to_array(self, states: State) -> ndarray:
         pass
+
+    def states_to_array(self, states: Iterable[State]) -> ndarray:
+        return np.asarray([s for s in states])
 
 
 def make_parallel_env(env_gen: Callable[[], EnvExt], num_workers: int) -> ParallelEnv:
@@ -54,16 +51,14 @@ class MultiProcEnv(ParallelEnv):
             env.close()
 
     def reset(self) -> List[State]:
-        return [e.reset() for e in self.envs]
+        for env in self.envs():
+            env.reset()
+        return [env.recv() for env in self.envs]
 
-    def step_async(self, actions: Iterable[Action]) -> List[Tuple[State, float, bool, Any]]:
-        pass
-
-    def step_sync(self, actions: Iterable[Action]) -> List[Tuple[State, float, bool, Any]]:
-        pass
-
-    def seed(self, seed: int) -> None:
-        pass
+    def step(self, actions: Iterable[Action]) -> List[Tuple[State, float, bool, Any]]:
+        for env, action in zip(self.envs, actions):
+            env.step(action)
+        return [env.recv() for env in self.envs]
 
 
 class _ProcHandler:
@@ -75,15 +70,16 @@ class _ProcHandler:
     def close(self) -> None:
         self.pipe.send((_ProcWorker.CLOSE, None))
 
-    def reset(self) -> State:
+    def reset(self) -> None:
         self.pipe.send((_ProcWorker.RESET, None))
-        return self.pipe.recv()
 
     def seed(self, seed: int) -> None:
         self.pipe.send((_ProcWorker.SEED, seed))
 
-    def step(self, action: Action) -> State:
+    def step(self, action: Action) -> None:
         self.pipe.send((_ProcWorker.STEP, action))
+
+    def recv(self) -> Any:
         return self.pipe.recv()
 
 
@@ -116,22 +112,13 @@ class DummyParallelEnv(ParallelEnv):
     def __init__(self, gen: Callable[[], EnvExt], num_workers: int) -> None:
         self.envs = [gen() for _ in range(num_workers)]
 
+    def close(self) -> None:
+        for env in self.envs:
+            env.close()
+
     def reset(self) -> List[State]:
         return [e.reset() for e in self.envs]
 
-    def step_sync(self, actions: Iterable[Action]) -> List[Tuple[State, float, bool, Any]]:
-        return [e.reset() for e in self.envs]
+    def step(self, actions: Iterable[Action]) -> List[Tuple[State, float, bool, Any]]:
+        return [e.step() for e in self.envs]
 
-    def step_async(self, actions: Iterable[Action]) -> List[Tuple[State, float, bool, Any]]:
-        pass
-
-    @property
-    def action_dim(self) -> int:
-        return self.envs[0].action_dim
-
-    @property
-    def state_dims(self) -> Tuple[int]:
-        return self.envs[0].state_dims
-
-    def states_to_array(self, states: List[State]) -> ndarray:
-        return np.asarray([e.state_to_array(s) for e, s in zip(self.envs, states)])
