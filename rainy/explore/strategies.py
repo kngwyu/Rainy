@@ -33,7 +33,7 @@ class EpsGreedy(Explorer):
             action_dim = self.value_pred.action_dim
             return np.random.randint(0, action_dim)
         action_values = self.value_pred.action_values(state).detach()
-        return action_values.argmax()
+        return action_values.argmax().item()
 
     def __getstate__(self):
         state = self.__dict__.copy()

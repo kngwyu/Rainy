@@ -61,7 +61,8 @@ class TransposeImage(gym.ObservationWrapper):
             self.observation_space.low[0, 0, 0],
             self.observation_space.high[0, 0, 0],
             [obs_shape[2], obs_shape[0], obs_shape[1]],
-            dtype=self.observation_space.dtype)
+            dtype=self.observation_space.dtype
+        )
 
     def observation(self, observation: Union[ndarray, LazyFrames]):
         t = type(observation)

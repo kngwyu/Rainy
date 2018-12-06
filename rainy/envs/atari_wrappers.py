@@ -145,7 +145,8 @@ class WarpFrame(gym.ObservationWrapper):
             low=0,
             high=255,
             shape=(self.height, self.width, 1),
-            dtype=np.uint8)
+            dtype=np.uint8
+        )
 
     def observation(self, frame):
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
@@ -168,7 +169,11 @@ class FrameStack(gym.Wrapper):
         self.frames = ArrayDeque(capacity=k)
         shp = env.observation_space.shape
         self.observation_space = spaces.Box(
-            low=0, high=255, shape=(shp[0], shp[1], shp[2] * k), dtype=env.observation_space.dtype)
+            low=0,
+            high=255,
+            shape=(shp[0], shp[1], shp[2] * k),
+            dtype=env.observation_space.dtype
+        )
 
     def reset(self):
         ob = self.env.reset()
@@ -193,7 +198,8 @@ class ScaledFloatFrame(gym.ObservationWrapper):
             low=0,
             high=1,
             shape=env.observation_space.shape,
-            dtype=np.float32)
+            dtype=np.float32
+        )
 
     def observation(self, observation):
         # careful! This undoes the memory optimization, use
