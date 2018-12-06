@@ -9,10 +9,9 @@ requirements = [
     'click>=7.0',
     'GitPython>=2.0',
     'gym[atari]>=0.10.5',
-    'numpy>=1.0',
+    'numpy>=1.15.0',
     'opencv-python>=3.4',
     'torch>=0.4',
-    'torchvision>=0.2.1',
 ]
 test_requirements = ['pytest>=3.0']
 print(requirements)

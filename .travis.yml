@@ -6,14 +6,13 @@ python:
   - "3.7-dev"
 
 install:
-  - pip install pipenv --upgrade
-  - pipenv install --dev --skip-lock
+  - pip install tox
 
 script:
-  - pipenv run py.test
+  - tox
 
 cache:
   - pip
 
 notifications:
-email: false
+  email: false
