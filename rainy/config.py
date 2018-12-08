@@ -1,7 +1,7 @@
-from torch import Tensor
+from torch import nn, Tensor
 from torch.optim import Optimizer, RMSprop
 from typing import Any, Callable, Iterable, Optional, Tuple, Union
-from .net import ActorCriticNet, actor_critic, ValuePredictor, value_net, ValueNet
+from .net import ActorCriticNet, actor_critic, ValuePredictor, value, ValueNet
 from .explore import LinearCooler, Explorer, EpsGreedy
 from .replay import ReplayBuffer, UniformReplayBuffer
 from .util import Device, Logger
@@ -60,8 +60,10 @@ class Config:
         self.__optim = lambda params: RMSprop(params, 0.001)
         self.__replay: Callable[[int], ReplayBuffer[Any]] = \
             lambda capacity: UniformReplayBuffer(capacity)
-        self.__vn: Callable[[Tuple[int, ...], int, Device], ValueNet] = value_net.fc
-        self.__ac: Callable[[Tuple[int, ...], int, Device], ActorCriticNet] = actor_critic.fc
+        self.__net = {
+            'value': value.fc,
+            'actor-critic': actor_critic.fc,
+        }
 
     def env(self) -> EnvExt:
         env = self.__env()
@@ -108,23 +110,15 @@ class Config:
     def set_parallel_env(self, parallel_env: Callable[[Callable[[], EnvExt], int], ParallelEnv]):
         self.__parallel_env = parallel_env
 
-    def value_net(self) -> ValueNet:
-        return self.__vn(self.state_dims, self.action_dim, self.device)
+    def net(self, name: str) -> nn.Module:
+        return self.__net[name](self.state_dims, self.action_dim, self.device)
 
-    def set_value_net(self, net: Callable[[Tuple[int, ...], int, Device], ValueNet]) -> None:
-        self.__vn = net
-
-    def actor_critic_net(self) -> ActorCriticNet:
-        return self.__ac(self.state_dims, self.action_dim, self.device)
-
-    def set_actor_critic_net(
+    def set_net_fn(
             self,
-            net: Callable[[Tuple[int, ...], int, Device], ActorCriticNet]
+            name: str,
+            net: Callable[[Tuple[int, ...], int, Device], nn.Module]
     ) -> None:
-        self.__ac = net
-
-    def policy_net(self):
-        pass
+        self.__net[name] = net
 
 
 

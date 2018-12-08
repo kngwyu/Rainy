@@ -31,9 +31,6 @@ class Agent(ABC):
     def best_action(self, state: ndarray) -> Action:
         pass
 
-    def nstep(self, states: Iterable[State]) -> Iterable[State]:
-        pass
-
     def random_action(self) -> Action:
         return np.random.randint(self.env.action_dim)
 
@@ -74,21 +71,6 @@ class Agent(ABC):
         env.save_history(fname)
         return res
 
-    def episode(self) -> float:
-        total_reward = 0.0
-        steps = 0
-        if self.config.seed:
-            self.env.seed(self.config.seed)
-        state = self.env.reset()
-        while True:
-            state, reward, done = self.step(state)
-            steps += 1
-            self.total_steps += 1
-            total_reward += reward
-            if done:
-                break
-        return total_reward
-
     def save(self, filename: str) -> None:
         save_dict = {}
         for idx, member_str in enumerate(self.members_to_save()):
@@ -113,6 +95,27 @@ class Agent(ABC):
                 setattr(self, member_str, saved_item)
 
 
-class NStepAgent(ABC):
+class OneStepAgent(Agent):
+    @abstractmethod
+    def step(self, state: State) -> Tuple[State, float, bool]:
+        pass
+    
+    def episode(self) -> float:
+        total_reward = 0.0
+        steps = 0
+        if self.config.seed:
+            self.env.seed(self.config.seed)
+        state = self.env.reset()
+        while True:
+            state, reward, done = self.step(state)
+            steps += 1
+            self.total_steps += 1
+            total_reward += reward
+            if done:
+                break
+        return total_reward
+                
+class NStepAgent(Agent):
+    @abstractmethod
     def nstep(self, states: Iterable[State]) -> Iterable[State]:
         pass

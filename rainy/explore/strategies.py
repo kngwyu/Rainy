@@ -4,7 +4,7 @@ import numpy as np
 from numpy import ndarray
 from .base import Explorer
 from .cooler import Cooler
-from ..net.value_net import ValuePredictor
+from ..net.value import ValuePredictor
 
 
 class Greedy(Explorer):

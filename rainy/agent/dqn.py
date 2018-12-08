@@ -3,16 +3,16 @@ from numpy import ndarray
 import torch
 from torch import nn
 from typing import Tuple
-from .base import Agent
+from .base import OneStepAgent
 from ..config import Config
 from ..envs import Action, State
 
 
-class DqnAgent(Agent):
+class DqnAgent(OneStepAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.net = config.value_net()
-        self.target_net = config.value_net()
+        self.net = config.net('value')
+        self.target_net = config.net('value')
         self.optimizer = config.optimizer(self.net.parameters())
         self.criterion = nn.MSELoss()
         self.policy = config.explorer(self.net)
@@ -31,7 +31,7 @@ class DqnAgent(Agent):
         # Here supposes action_values is 1×(action_dim) array
         return action_values.argmax()
 
-    def step(self, state: State) -> Tuple[ndarray, float, bool]:
+    def step(self, state: State) -> Tuple[State, float, bool]:
         train_started = self.total_steps > self.config.train_start
         if train_started:
             action = self.policy.select_action(self.env.state_to_array(state))

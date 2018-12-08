@@ -3,16 +3,16 @@ from numpy import ndarray
 import torch
 from torch import nn
 from typing import Iterable, List, Optional, Tuple
-from .base import Agent
+from .base import NStepAgent
 from ..config import Config
 from ..envs import Action, ParallelEnv, State
 
 
-class A2cAgent(Agent):
+class A2cAgent(NStepAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self.penv = config.parallel_env()
-        self.net = config.actor_critic_net()
+        self.net = config.net('actor-critic')
         self.optimizer = config.optimizer(self.net.parameters())
         self.criterion = nn.MSELoss()
         self.episode_rewards: List[float] = []

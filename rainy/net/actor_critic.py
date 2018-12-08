@@ -22,9 +22,11 @@ class ActorCriticNet(nn.Module):
             'body output and action_head input must have a same dimention'
         assert body.output_dim == critic_head.input_dim, \
             'body output and action_head input must have a same dimention'
+        super(ActorCriticNet, self).__init__()
         self.body = body
         self.actor_head = actor_head
         self.critic_head = critic_head
+        self.device = device
         self.to(self.device())
 
     @property
@@ -37,9 +39,6 @@ class ActorCriticNet(nn.Module):
 
 
 class DiscreteActorCriticNet(ActorCriticNet):
-    def __init__(self, *args, **kwargs):
-        super().__init__(args, kwargs)
-
     def forward(self, states: Union[ndarray, Tensor]) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         features = self.body(self.device.tensor(states))
         action_probs = self.actor_head(features)
@@ -51,21 +50,9 @@ class DiscreteActorCriticNet(ActorCriticNet):
         return actions, log_prob, entropy, values
 
 
-def make_ac(
-        body: NetworkBody,
-        action_dim: int,
-        ac_head_type: Type = LinearHead,
-        cr_head_type: Type = LinearHead,
-        ac_type: Type = DiscreteActorCriticNet,
-        init: Initializer = Initializer(scale=1e-3),
-        device: Device = Device(),
-) -> ActorCriticNet:
-    ac_head = init(ac_head_type(body.output_dim, action_dim))
-    cr_head = init(cr_head_type(body.output_dim, 1))
-    return ac_type(body, ac_head, cr_head, device=device)
-
-
 def fc(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> ActorCriticNet:
     body = FcBody(state_dim[0])
-    return make_ac(body, action_dim, device=device)
+    ac_head = LinearHead(body.output_dim, action_dim)
+    cr_head = LinearHead(body.output_dim, 1)
+    return DiscreteActorCriticNet(body, ac_head, cr_head, device=device)
 
