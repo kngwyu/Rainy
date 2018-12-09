@@ -2,8 +2,8 @@ from functools import partial
 import numpy as np
 from numpy import ndarray
 import torch
-from torch import nn
-from typing import List, Optional, Tuple
+from torch import nn, Tensor
+from typing import Iterable, List, Optional, Tuple
 from .base import NStepAgent
 from ..config import Config
 from ..envs import Action, ParallelEnv, State
@@ -21,53 +21,56 @@ class A2cAgent(NStepAgent):
     def members_to_save(self) -> Tuple[str, ...]:
         return ("net",)
 
-    def best_action(self, state: State) -> Action:
-        return self.net(state)[0].detach().item()
+    def eval_action(self, state: State) -> Action:
+        if self.config.eval_deterministic:
+            return self.net.best_action(state).detach().item()
+        else:
+            return self.net(state)[0].detach().item()
 
-    def nstep(self, states: List[State], nstep) -> Tuple[List[State], List[float]]:
-        rollout = []
-        episode_rewards = []
-        for _ in range(nstep):
-            action, log_prob, entropy, value = self.net(self.penv.states_to_array(states))
-            next_states, rewards, is_term, _ = \
-                map(np.asarray, zip(*self.penv.step(action.detach())))
-            self.rewards += rewards
-            for i in range(nstep):
-                if is_term[i]:
-                    episode_rewards.append(self.rewards[i])
-                    self.rewards[i] = 0
-            rewards, is_term = \
-                map(partial(torch.tensor, dtype=torch.float32), (rewards, 1.0 - is_term))
-            rollout.append((action, log_prob, entropy, value, rewards, is_term))
-            states = next_states
+    def _one_step(self, states: Iterable[State], episodic_rewards: list) -> Tuple[ndarray, ndarray]:
+        action, log_prob, entropy, value = self.net(self.penv.states_to_array(states))
+        next_states, rewards, is_term, _ = map(np.asarray, zip(*self.penv.step(action)))
+        self.rewards += rewards
+        for i in range(self.config.num_workers):
+            if is_term[i]:
+                episodic_rewards.append(self.rewards[i])
+                self.rewards[i] = 0
+        rewards, is_term = \
+            map(partial(torch.tensor, dtype=torch.float32), (rewards, 1.0 - is_term))
+        return next_states, (action, log_prob, entropy, value, rewards, is_term)
 
-        pending_value = self.net(self.penv.states_to_array(states))[-1].detach()
-        rollout.append((None, pending_value, None, None, None, None))
-
-        processed_rollout: List[Optional[tuple]] = [None] * nstep
-        returns = pending_value
-        for i in reversed(range(nstep)):
-            action, log_prob, entropy, value, rewards, is_term = rollout[i]
-            value = value.detach()
-            next_value = rollout[i + 1][1].detach()
-            returns = rewards + returns * self.config.discount_factor * is_term
+    def _sum_up(self, reward_sum: Tensor, rollouts: ndarray) -> List[tuple]:
+        res = [None] * self.config.nstep
+        for i in reversed(range(self.config.nstep)):
+            action, log_prob, entropy, value, reward, is_term = rollouts[i]
+            reward_sum = reward + reward_sum * self.config.discount_factor * is_term
             if not self.config.use_gae:
-                advantange = returns - value.detach()
+                advantage = reward_sum - value.detach()
             else:
+                next_value = rollouts[i + 1][3].detach()
                 td_error = rewards + self.config.discount_factor * is_term * next_value - value
-                advantange *= \
+                advantage *= \
                     self.config.gae_tau * self.config.discount_factor * is_term + td_error
-            processed_rollout[i] = (log_prob, value, returns, advantange, entropy)
+            res[i] = (log_prob, entropy, value, reward_sum, advantage)
+        return res
 
-        log_prob, value, returns, advantage, entropy =\
-            map(lambda x: torch.cat(x, dim=0), zip(*processed_rollout))
-        policy_loss = -log_prob * advantage
-        value_loss = 0.5 * (returns - value).pow(2)
+    def nstep(self, states: Iterable[State]) -> Tuple[Iterable[State], Iterable[float]]:
+        rollouts = []
+        episodic_rewards = []
+        for _ in range(self.config.nstep):
+            states, rollout =  self._one_step(states, episodic_rewards)
+            rollouts.append(rollout)
+        next_value = self.net(self.penv.states_to_array(states))[3]
+        rollouts.append((None, None, None, next_value, None, None))
+        log_prob, entropy, value, reward_sum, advantage = \
+            map(lambda x: torch.cat(x, dim=0), zip(*self._sum_up(next_value.detach(), rollouts)))
+        policy_loss = -(log_prob * advantage).mean()
+        value_loss = (reward_sum - value).pow(2).mean()
         entropy_loss = entropy.mean()
 
         self.optimizer.zero_grad()
         (policy_loss - self.config.entropy_weight * entropy_loss +
-         self.config.value_loss_weight * value_loss).mean().backward()
+         self.config.value_loss_weight * value_loss).backward()
         nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
         self.optimizer.step()
-        return states, episode_rewards
+        return states, episodic_rewards

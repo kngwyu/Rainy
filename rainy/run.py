@@ -8,9 +8,9 @@ SAVE_FILE_DEFAULT = 'rainy-agent.save'
 ACTION_FILE_DEFAULT = 'actions.json'
 
 
-def __interval(turn: int, freq: Optional[int]) -> bool:
+def __interval(turn: int, width: int, freq: Optional[int]) -> bool:
     if freq:
-        return turn != 0 and turn % freq == 0
+        return turn != 0 and turn // freq != (turn - width) // freq
     else:
         return False
 
@@ -31,18 +31,17 @@ def train_agent(
         tmp = ag.train_episode()
         episodes += len(tmp)
         rewards += tmp
-        if __interval(episodes, ag.config.episode_log_freq):
+        if __interval(episodes, len(tmp),ag.config.episode_log_freq):
             rewards = np.array(rewards)
-            ag.logger.exp('train_reward_sum', {
+            ag.logger.exp('train_reward', {
                 'episodes': episodes,
                 'total_steps': ag.total_steps,
-                'reward_sum': float(np.sum(rewards)),
                 'reward_mean': float(np.mean(rewards)),
                 'reward_max': float(np.max(rewards)),
                 'reward_min': float(np.min(rewards)),
             })
             rewards = []
-        if end or __interval(episodes, ag.config.eval_freq):
+        if end or __interval(episodes, len(tmp), ag.config.eval_freq):
             log_dir = ag.logger.log_dir
             if ag.config.save_eval_actions and log_dir:
                 fname = log_dir.joinpath('{}-{}{}'.format(
@@ -58,8 +57,9 @@ def train_agent(
                 'total_steps': ag.total_steps,
                 'reward': reward,
             })
-        if end or __interval(episodes, ag.config.save_freq):
+        if end or __interval(episodes, len(tmp), ag.config.save_freq):
             ag.save(save_file_name)
+    ag.close()
 
 
 def eval_agent(

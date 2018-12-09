@@ -35,10 +35,13 @@ class Agent(ABC):
         pass
 
     @abstractmethod
-    def best_action(self, state: State) -> Action:
+    def eval_action(self, state: State) -> Action:
         """Return the best action according to training results.
         """
         pass
+
+    def close(self) -> None:
+        self.env.close()
 
     def num_envs(self) -> int:
         return 1
@@ -76,10 +79,10 @@ class Agent(ABC):
         return res
 
     def eval_episode(self) -> float:
-        return self.__eval_episode(self.best_action)[0]
+        return self.__eval_episode(self.eval_action)[0]
 
     def eval_and_save(self, fname: str) -> float:
-        res, env = self.__eval_episode(self.best_action)
+        res, env = self.__eval_episode(self.eval_action)
         env.save_history(fname)
         return res
 
@@ -129,8 +132,12 @@ class OneStepAgent(Agent):
                 
 class NStepAgent(Agent):
     @abstractmethod
-    def nstep(self, states: List[State], nstep: int) -> Tuple[List[State], List[float]]:
+    def nstep(self, states: Iterable[State]) -> Tuple[Iterable[State], Iterable[float]]:
         pass
+
+    def close(self) -> None:
+        self.env.close()
+        self.penv.close()
 
     def step_len(self) -> int:
         return self.config.nstep
@@ -144,11 +151,11 @@ class NStepAgent(Agent):
         if self.config.seed:
             self.penv.seed(self.config.seed)
         states = self.penv.reset()
-        nstep = self.step_len()
+        step = self.step_len() * self.config.num_workers
         while True:
-            states, rewards = self.nstep(states, nstep)
-            steps += nstep
-            self.total_steps += nstep
+            states, rewards = self.nstep(states)
+            steps += step
+            self.total_steps += step
             if rewards:
                 return rewards
         return []

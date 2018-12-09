@@ -25,6 +25,7 @@ class Config:
         self.max_steps = 10000
         self.replay_size = 10000
         self.train_start = 1000
+        self.eval_deterministic = True
 
         # for the cases you can't set seed in constructor, like gym.atari
         self.seed: Optional[int] = 0

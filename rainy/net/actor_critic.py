@@ -37,17 +37,26 @@ class ActorCriticNet(nn.Module):
     def action_dim(self) -> int:
         return self.actor_head.output_dim
 
+    def best_action(self) -> int:
+        raise NotImplementedError()
+
 
 class DiscreteActorCriticNet(ActorCriticNet):
     def forward(self, states: Union[ndarray, Tensor]) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         features = self.body(self.device.tensor(states))
-        action_probs = self.actor_head(features)
-        values = self.critic_head(features)  # [batch_size, 1]
-        dist = Categorical(logits=action_probs)  # [batch_size, action_dim]
-        actions = dist.sample()  # [batch_size]
-        log_probs = dist.log_prob(actions)  # [batch_size]
+        action_prob = self.actor_head(features)
+        value = self.critic_head(features)  # [batch_size, 1]
+        dist = Categorical(logits=action_prob)  # [batch_size, action_dim]
+        action = dist.sample()  # [batch_size]
+        log_prob = dist.log_prob(action)  # [batch_size]
         entropy = dist.entropy()  # [batch_size]
-        return actions, log_probs, entropy, values.squeeze()
+        return action, log_prob, entropy, value.squeeze()
+
+    def best_action(self, states: Union[ndarray, Tensor]) -> int:
+        features = self.body(self.device.tensor(states))
+        action_probs = self.actor_head(features).detach()
+        dist = Categorical(logits=action_probs)
+        return dist._param.argmax()
 
 
 def fc(state_dim: Tuple[int, ...], action_dim: int, device: Device = Device()) -> ActorCriticNet:

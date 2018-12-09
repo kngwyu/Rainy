@@ -26,7 +26,7 @@ class DqnAgent(OneStepAgent):
     def members_to_save(self) -> Tuple[str, ...]:
         return "net", "target_net", "policy", "total_steps"
 
-    def best_action(self, state: State) -> Action:
+    def eval_action(self, state: State) -> Action:
         action_values = self.net.action_values(state).detach()
         # Here supposes action_values is 1×(action_dim) array
         return action_values.argmax()
