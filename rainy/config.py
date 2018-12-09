@@ -14,7 +14,7 @@ class Config:
     def __init__(self) -> None:
         # action/state dims are initialized lazily
         self.action_dim = 0
-        self.state_dims = (0,)
+        self.state_dim = (0,)
 
         # these parameters are set really small by default,
         # so please change them manually in use
@@ -68,7 +68,7 @@ class Config:
     def env(self) -> EnvExt:
         env = self.__env()
         self.action_dim = env.action_dim
-        self.state_dims = env.state_dims
+        self.state_dim = env.state_dim
         return env
 
     def set_env(self, env: Callable[[], EnvExt]) -> None:
@@ -83,7 +83,7 @@ class Config:
     @eval_env.setter
     def eval_env(self, env: EnvExt) -> None:
         self.action_dim = env.action_dim
-        self.state_dims = env.state_dims
+        self.state_dim = env.state_dim
         self.__eval_env = env
 
     def explorer(self, value_pred: ValuePredictor) -> Explorer:
@@ -111,7 +111,7 @@ class Config:
         self.__parallel_env = parallel_env
 
     def net(self, name: str) -> nn.Module:
-        return self.__net[name](self.state_dims, self.action_dim, self.device)
+        return self.__net[name](self.state_dim, self.action_dim, self.device)
 
     def set_net_fn(
             self,

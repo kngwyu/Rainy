@@ -19,7 +19,7 @@ class ClassicalControl(EnvExt):
         return self._env.action_space.n
 
     @property
-    def state_dims(self) -> Tuple[int]:
+    def state_dim(self) -> Tuple[int]:
         return self._env.observation_space.shape
 
 
@@ -47,7 +47,7 @@ class Atari(EnvExt):
         return self._env.action_space.n
 
     @property
-    def state_dims(self) -> Tuple[int]:
+    def state_dim(self) -> Tuple[int]:
         return self._env.observation_space.shape
 
 

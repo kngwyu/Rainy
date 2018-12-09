@@ -35,7 +35,7 @@ class Agent(ABC):
         pass
 
     @abstractmethod
-    def best_action(self, state: ndarray) -> Action:
+    def best_action(self, state: State) -> Action:
         """Return the best action according to training results.
         """
         pass
@@ -129,10 +129,9 @@ class OneStepAgent(Agent):
                 
 class NStepAgent(Agent):
     @abstractmethod
-    def nstep(self, states: List[State]) -> Tuple[List[State], List[float]]:
+    def nstep(self, states: List[State], nstep: int) -> Tuple[List[State], List[float]]:
         pass
 
-    @abstractmethod
     def step_len(self) -> int:
         return self.config.nstep
 
@@ -147,7 +146,7 @@ class NStepAgent(Agent):
         states = self.env.reset()
         nstep = self.step_len()
         while True:
-            states, rewards = self.step(states)
+            states, rewards = self.nstep(states, nstep)
             steps += nstep
             self.total_steps += nstep
             if rewards:

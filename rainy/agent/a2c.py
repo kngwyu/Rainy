@@ -20,10 +20,13 @@ class A2cAgent(NStepAgent):
     def members_to_save(self) -> Tuple[str, ...]:
         return "net", "target_net", "policy"
 
-    def nstep(self, states: List[State]) -> Tuple[List[State], List[float]]:
+    def best_action(self, state: State) -> Action:
+        return self.net(self.penv.state)
+
+    def nstep(self, states: List[State], nstep) -> Tuple[List[State], List[float]]:
         rollout = []
         episode_rewards = []
-        for _ in range(self.config.nstep):
+        for _ in range(nstep):
             actions, log_probs, entropys, values = self.net(self.penv.states_to_array(states))
             next_states, rewards, is_terms, _ = \
                 map(np.asarray, zip(*self.penv.step(actions.detach().cpu())))
@@ -38,9 +41,9 @@ class A2cAgent(NStepAgent):
         pending_value = self.net(self.penv.states_to_array(states))[-1].detach()
         rollout.append((None, pending_value, None, None, None, None))
 
-        processed_rollout: List[Optional[tuple]] = [None for _ in range(self.config.nstep)]
+        processed_rollout: List[Optional[tuple]] = [None] * nstep
         returns = pending_value
-        for i in reversed(range(self.config.nstep)):
+        for i in reversed(range(nstep)):
             log_probs, values, actions, rewards, is_terms, entropys = rollout[i]
             values = values.detach()
             next_values = rollout[i + 1][1].detach()

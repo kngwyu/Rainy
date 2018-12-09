@@ -15,7 +15,7 @@ class ValuePredictor(ABC):
 
     @property
     @abstractmethod
-    def state_dims(self) -> Tuple[int, ...]:
+    def state_dim(self) -> Tuple[int, ...]:
         pass
 
     @property
@@ -52,7 +52,7 @@ class ValueNet(ValuePredictor, nn.Module):
         return x
 
     @property
-    def state_dims(self) -> Tuple[int, ...]:
+    def state_dim(self) -> Tuple[int, ...]:
         return self.body.input_dim
 
     @property

@@ -70,7 +70,7 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
 
     @property
     @abstractmethod
-    def state_dims(self) -> Tuple[int]:
+    def state_dim(self) -> Tuple[int]:
         """
         Extended method.
         Returns a shape of observation space.

@@ -43,7 +43,7 @@ class DummyEnv(EnvExt):
     def action_dim(self) -> int:
         return 1
 
-    def state_dims(self) -> int:
+    def state_dim(self) -> Tuple[int, int]:
         return (4, 4)
 
     def close(self) -> None:

@@ -30,7 +30,7 @@ class ActorCriticNet(nn.Module):
         self.to(self.device())
 
     @property
-    def state_dims(self) -> Tuple[int, ...]:
+    def state_dim(self) -> Tuple[int, ...]:
         return self.body.input_dim
 
     @property
@@ -50,7 +50,7 @@ class DiscreteActorCriticNet(ActorCriticNet):
         return actions, log_prob, entropy, values
 
 
-def fc(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> ActorCriticNet:
+def fc(state_dim: Tuple[int, ...], action_dim: int, device: Device = Device()) -> ActorCriticNet:
     body = FcBody(state_dim[0])
     ac_head = LinearHead(body.output_dim, action_dim)
     cr_head = LinearHead(body.output_dim, 1)
