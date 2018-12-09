@@ -84,6 +84,8 @@ class _ProcHandler:
         self.pipe.send((_ProcWorker.SEED, seed))
 
     def step(self, action: Action) -> None:
+        if isinstance(action, Tensor):
+            action = action.item()
         self.pipe.send((_ProcWorker.STEP, action))
 
     def recv(self) -> Any:

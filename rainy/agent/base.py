@@ -132,7 +132,7 @@ class OneStepAgent(Agent):
                 
 class NStepAgent(Agent):
     def __init__(self, config: Config) -> None:
-        super(Agent, self).__init__()
+        super().__init__(config)
         self.states = None
 
     @abstractmethod
@@ -152,7 +152,7 @@ class NStepAgent(Agent):
     def train_episode(self) -> List[float]:
         total_reward = 0.0
         steps = 0
-        if not self.states:
+        if self.states is None:
             if self.config.seed:
                 self.penv.seed(self.config.seed)
             states = self.penv.reset()

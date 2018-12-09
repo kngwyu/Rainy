@@ -112,6 +112,8 @@ class Config:
         self.__parallel_env = parallel_env
 
     def net(self, name: str) -> nn.Module:
+        assert self.state_dim[0] != 0
+        assert self.action_dim != 0
         return self.__net[name](self.state_dim, self.action_dim, self.device)
 
     def set_net_fn(
