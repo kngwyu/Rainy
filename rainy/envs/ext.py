@@ -46,6 +46,12 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
         else:
             return self._env.step(action)
 
+    def step_and_reset(self, action: Action) -> Tuple[State, float, bool, Any]:
+        state, reward, done, info = self.step(action)
+        if done:
+            state = self.reset()
+        return state, reward, done, info
+
     @property
     def unwrapped(self) -> gym.Env:
         """

@@ -117,5 +117,12 @@ class OneStepAgent(Agent):
                 
 class NStepAgent(Agent):
     @abstractmethod
-    def nstep(self, states: Iterable[State]) -> Iterable[State]:
+    def nstep(self, states: Iterable[State]) -> List[State]:
         pass
+
+    def episode(self) -> float:
+        total_reward = 0.0
+        steps = 0
+        if self.config.seed:
+            self.penv.seed(self.config.seed)
+        states = self.env.reset()

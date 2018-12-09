@@ -1,6 +1,6 @@
 from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
 from .ext import Action, EnvExt, State
-from .parallel import ParallelEnv, DummyParallelEnv, make_parallel_env
+from .parallel import DummyParallelEnv, make_parallel_env, MultiProcEnv, ParallelEnv
 import numpy as np
 from numpy import ndarray
 import gym

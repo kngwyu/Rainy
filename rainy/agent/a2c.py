@@ -16,12 +16,12 @@ class A2cAgent(NStepAgent):
         self.optimizer = config.optimizer(self.net.parameters())
         self.criterion = nn.MSELoss()
         self.episode_rewards: List[float] = []
-        self.online_rewards = np.zeros(config.num_workers)
+        self.online_rewards = np.zeros(config.num_workers, dtype=np.float32)
 
     def members_to_save(self) -> Tuple[str, ...]:
         return "net", "target_net", "policy"
 
-    def nstep(self, states: Iterable[State]) -> Iterable[State]:
+    def nstep(self, states: Iterable[State]) -> List[State]:
         rollout = []
         for _ in range(self.config.nstep):
             actions, log_probs, entropys, values = self.net(self.penv.states_to_array(states))
@@ -32,6 +32,7 @@ class A2cAgent(NStepAgent):
                 if is_term:
                     self.episode_rewards.append(self.online_rewards)
                     self.online_rewards[i] = 0
+
             rollout.append((log_probs, values, actions, rewards, 1.0 - is_terms, entropys))
             states = next_states
 

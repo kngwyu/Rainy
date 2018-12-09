@@ -42,7 +42,7 @@ def make_parallel_env(env_gen: Callable[[], EnvExt], num_workers: int) -> Parall
 
 
 class MultiProcEnv(ParallelEnv):
-    def __init__(self, e: EnvExt, env_gen: Callable[[], EnvExt], num_workers: int) -> None:
+    def __init__(self, env_gen: Callable[[], EnvExt], num_workers: int) -> None:
         assert num_workers >= 2
         self.envs = [_ProcHandler(env_gen()) for _ in range(num_workers)]
 
@@ -51,7 +51,7 @@ class MultiProcEnv(ParallelEnv):
             env.close()
 
     def reset(self) -> List[State]:
-        for env in self.envs():
+        for env in self.envs:
             env.reset()
         return [env.recv() for env in self.envs]
 
@@ -90,6 +90,7 @@ class _ProcWorker(mp.Process):
     STEP = 3
 
     def __init__(self, env: EnvExt, pipe: Connection) -> None:
+        super(_ProcWorker, self).__init__()
         self.env = env
         self.pipe = pipe
 
@@ -97,9 +98,9 @@ class _ProcWorker(mp.Process):
         while True:
             op, arg = self.pipe.recv()
             if op == self.STEP:
-                self.pipe.send(self.env.step(arg))
+                self.pipe.send(self.env.step_and_reset(arg))
             elif op == self.RESET:
-                self.pipe.send(self.env.reset(arg))
+                self.pipe.send(self.env.reset())
             elif op == self.SEED:
                 self.env.seed(arg)
             elif op == self.CLOSE:
@@ -120,5 +121,5 @@ class DummyParallelEnv(ParallelEnv):
         return [e.reset() for e in self.envs]
 
     def step(self, actions: Iterable[Action]) -> List[Tuple[State, float, bool, Any]]:
-        return [e.step() for e in self.envs]
+        return [e.step_and_reset(a) for (a, e) in zip(actions, self.envs)]
 
