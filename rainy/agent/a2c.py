@@ -2,7 +2,7 @@ import numpy as np
 from numpy import ndarray
 import torch
 from torch import nn
-from typing import Iterable, List, Optional, Tuple
+from typing import List, Optional, Tuple
 from .base import NStepAgent
 from ..config import Config
 from ..envs import Action, ParallelEnv, State
@@ -15,14 +15,14 @@ class A2cAgent(NStepAgent):
         self.net = config.net('actor-critic')
         self.optimizer = config.optimizer(self.net.parameters())
         self.criterion = nn.MSELoss()
-        self.episode_rewards: List[float] = []
-        self.online_rewards = np.zeros(config.num_workers, dtype=np.float32)
+        self.rewards = np.zeros(config.num_workers, dtype=np.float32)
 
     def members_to_save(self) -> Tuple[str, ...]:
         return "net", "target_net", "policy"
 
-    def nstep(self, states: Iterable[State]) -> List[State]:
+    def nstep(self, states: List[State]) -> Tuple[List[State], List[float]]:
         rollout = []
+        episode_rewards = []
         for _ in range(self.config.nstep):
             actions, log_probs, entropys, values = self.net(self.penv.states_to_array(states))
             next_states, rewards, is_terms, _ = \
@@ -30,9 +30,8 @@ class A2cAgent(NStepAgent):
             self.online_rewards += rewards
             for i, is_term in enumerate(is_terms):
                 if is_term:
-                    self.episode_rewards.append(self.online_rewards)
-                    self.online_rewards[i] = 0
-
+                    episode_rewards.append(self.rewards[i])
+                    self.rewards[i] = 0
             rollout.append((log_probs, values, actions, rewards, 1.0 - is_terms, entropys))
             states = next_states
 
@@ -64,4 +63,4 @@ class A2cAgent(NStepAgent):
          self.config.value_loss_weight * value_loss).mean().backward()
         nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
         self.optimizer.step()
-        return states
+        return states, episode_rewards

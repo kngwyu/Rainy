@@ -28,8 +28,20 @@ class Agent(ABC):
         """
         pass
 
-    def best_action(self, state: ndarray) -> Action:
+    @abstractmethod
+    def train_episode(self) -> List[float]:
+        """Train the agent.
+        """
         pass
+
+    @abstractmethod
+    def best_action(self, state: ndarray) -> Action:
+        """Return the best action according to training results.
+        """
+        pass
+
+    def num_envs(self) -> int:
+        return 1
 
     def random_action(self) -> Action:
         return np.random.randint(self.env.action_dim)
@@ -100,7 +112,7 @@ class OneStepAgent(Agent):
     def step(self, state: State) -> Tuple[State, float, bool]:
         pass
     
-    def episode(self) -> float:
+    def train_episode(self) -> List[float]:
         total_reward = 0.0
         steps = 0
         if self.config.seed:
@@ -113,16 +125,31 @@ class OneStepAgent(Agent):
             total_reward += reward
             if done:
                 break
-        return total_reward
+        return [total_reward]
                 
 class NStepAgent(Agent):
     @abstractmethod
-    def nstep(self, states: Iterable[State]) -> List[State]:
+    def nstep(self, states: List[State]) -> Tuple[List[State], List[float]]:
         pass
 
-    def episode(self) -> float:
+    @abstractmethod
+    def step_len(self) -> int:
+        return self.config.nstep
+
+    def num_envs(self) -> int:
+        return
+
+    def train_episode(self) -> List[float]:
         total_reward = 0.0
         steps = 0
         if self.config.seed:
             self.penv.seed(self.config.seed)
         states = self.env.reset()
+        nstep = self.step_len()
+        while True:
+            states, rewards = self.step(states)
+            steps += nstep
+            self.total_steps += nstep
+            if rewards:
+                return rewards
+        return []

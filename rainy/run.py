@@ -1,4 +1,5 @@
 from .agent import Agent
+import numpy as np
 from pathlib import Path
 from typing import Optional
 
@@ -21,21 +22,26 @@ def train_agent(
 ) -> None:
     max_steps = ag.config.max_steps
     episodes = 0
-    rewards_sum = 0.0
+    rewards = []
     end = False
     action_file = Path(action_file_name)
     while not end:
         if max_steps and ag.total_steps > max_steps:
             end = True
-        rewards_sum += ag.episode()
-        episodes += 1
+        tmp = ag.train_episode()
+        episodes += len(tmp)
+        rewards += tmp
         if __interval(episodes, ag.config.episode_log_freq):
+            rewards = np.array(rewards)
             ag.logger.exp('train_reward_sum', {
                 'episodes': episodes,
                 'total_steps': ag.total_steps,
-                'rewards': rewards_sum,
+                'reward_sum': np.sum(rewards),
+                'reward_mean': np.mean(rewards),
+                'reward_max': np.max(rewards),
+                'reward_min': np.min(rewards),
             })
-            rewards_sum = 0
+            rewards = []
         if end or __interval(episodes, ag.config.eval_freq):
             log_dir = ag.logger.log_dir
             if ag.config.save_eval_actions and log_dir:
@@ -44,13 +50,13 @@ def train_agent(
                     episodes,
                     action_file.suffix
                 ))
-                rewards = ag.eval_and_save(fname.as_posix())
+                reward = ag.eval_and_save(fname.as_posix())
             else:
-                rewards = ag.eval_episode()
+                reward = ag.eval_episode()
             ag.logger.exp('eval', {
                 'episodes': episodes,
                 'total_steps': ag.total_steps,
-                'rewards': rewards,
+                'reward': reward,
             })
         if end or __interval(episodes, ag.config.save_freq):
             ag.save(save_file_name)

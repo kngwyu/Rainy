@@ -65,5 +65,6 @@ def test_penv(penv: ParallelEnv) -> None:
             ok[i] |= done
     for i in range(4):
         assert ok[i]
+    assert penv.num_envs() == 4
     penv.close()
 

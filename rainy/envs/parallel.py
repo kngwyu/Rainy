@@ -25,6 +25,10 @@ class ParallelEnv(ABC, Generic[Action, State]):
     def step(self, actions: Iterable[Action]) -> List[Tuple[State, float, bool, Any]]:
         pass
 
+    @abstractmethod
+    def num_envs(self) -> int:
+        pass
+
     def states_to_array(self, states: Iterable[State]) -> ndarray:
         return np.asarray([s for s in states])
 
@@ -59,6 +63,9 @@ class MultiProcEnv(ParallelEnv):
         for env, action in zip(self.envs, actions):
             env.step(action)
         return [env.recv() for env in self.envs]
+
+    def num_envs(self) -> int:
+        return len(self.envs)
 
 
 class _ProcHandler:
@@ -122,4 +129,7 @@ class DummyParallelEnv(ParallelEnv):
 
     def step(self, actions: Iterable[Action]) -> List[Tuple[State, float, bool, Any]]:
         return [e.step_and_reset(a) for (a, e) in zip(actions, self.envs)]
+
+    def num_envs(self) -> int:
+        return len(self.envs)
 
