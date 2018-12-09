@@ -42,12 +42,12 @@ class DiscreteActorCriticNet(ActorCriticNet):
     def forward(self, states: Union[ndarray, Tensor]) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         features = self.body(self.device.tensor(states))
         action_probs = self.actor_head(features)
-        values = self.critic_head(features)  # 1 × batch_size
-        dist = Categorical(logits=action_probs)  # batch_size × action_dim
-        actions = dist.sample()  # 1 × batch_size
-        log_prob = dist.log_prob(actions)  # 1 × batch_size
-        entropy = dist.entropy()  # 1 × batch_size
-        return actions, log_prob, entropy, values
+        values = self.critic_head(features)  # [batch_size, 1]
+        dist = Categorical(logits=action_probs)  # [batch_size, action_dim]
+        actions = dist.sample()  # [batch_size]
+        log_prob = dist.log_prob(actions)  # [batch_size]
+        entropy = dist.entropy()  # [batch_size]
+        return actions, log_prob, entropy, values.squeeze()
 
 
 def fc(state_dim: Tuple[int, ...], action_dim: int, device: Device = Device()) -> ActorCriticNet:

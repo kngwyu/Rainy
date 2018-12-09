@@ -15,8 +15,9 @@ class State(Enum):
     def is_end(self) -> bool:
         return self == State.DEATH or self == State.GOAL
 
-    def to_numpy(self) -> np.array:
-        return np.repeat(self.value, 16).reshape(4, 4)
+    def to_array(self, dim: int = 1) -> np.array:
+        length = 4 ** dim
+        return np.repeat(self.value, length).reshape(*np.repeat(4, dim))
 
 
 class DummyEnv(EnvExt):
@@ -31,14 +32,14 @@ class DummyEnv(EnvExt):
         ]
         self.rewards = [0., 0., 0., -10., 20.]
 
-    def reset(self) -> np.array:
+    def reset(self) -> State:
         self.state = State.START
-        return self.state.to_numpy()
+        return self.state
 
-    def step(self, _action) -> Tuple[np.array, float, bool, None]:
+    def step(self, _action) -> Tuple[State, float, bool, None]:
         prob = np.asarray(self.transition[self.state.value])
         self.state = State(np.random.choice(np.arange(5), 1, p=prob))
-        return self.state.to_numpy(), self.rewards, self.state.is_end(), None
+        return self.state, self.rewards, self.state.is_end(), None
 
     def action_dim(self) -> int:
         return 1
@@ -57,7 +58,7 @@ class DummyEnv(EnvExt):
 def test_penv(penv: ParallelEnv) -> None:
     states = penv.reset()
     for s in states:
-        np.testing.assert_array_almost_equal(s, State.START.to_numpy())
+        assert s == State.START
     ok = [False] * 4
     for _ in range(5):
         _, _, done, _ = map(np.asarray, zip(*penv.step(np.repeat(None, 4))))
