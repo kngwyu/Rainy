@@ -1,3 +1,4 @@
+from functools import partial
 import numpy as np
 from numpy import ndarray
 import torch
@@ -18,24 +19,26 @@ class A2cAgent(NStepAgent):
         self.rewards = np.zeros(config.num_workers, dtype=np.float32)
 
     def members_to_save(self) -> Tuple[str, ...]:
-        return "net", "target_net", "policy"
+        return ("net",)
 
     def best_action(self, state: State) -> Action:
-        return self.net(self.penv.state)
+        return self.net(state)[0].detach().item()
 
     def nstep(self, states: List[State], nstep) -> Tuple[List[State], List[float]]:
         rollout = []
         episode_rewards = []
         for _ in range(nstep):
-            actions, log_probs, entropys, values = self.net(self.penv.states_to_array(states))
-            next_states, rewards, is_terms, _ = \
-                map(np.asarray, zip(*self.penv.step(actions.detach().cpu())))
-            self.online_rewards += rewards
-            for i, is_term in enumerate(is_terms):
-                if is_term:
+            action, log_prob, entropy, value = self.net(self.penv.states_to_array(states))
+            next_states, rewards, is_term, _ = \
+                map(np.asarray, zip(*self.penv.step(action.detach())))
+            self.rewards += rewards
+            for i in range(nstep):
+                if is_term[i]:
                     episode_rewards.append(self.rewards[i])
                     self.rewards[i] = 0
-            rollout.append((log_probs, values, actions, rewards, 1.0 - is_terms, entropys))
+            rewards, is_term = \
+                map(partial(torch.tensor, dtype=torch.float32), (rewards, 1.0 - is_term))
+            rollout.append((action, log_prob, entropy, value, rewards, is_term))
             states = next_states
 
         pending_value = self.net(self.penv.states_to_array(states))[-1].detach()
@@ -44,22 +47,23 @@ class A2cAgent(NStepAgent):
         processed_rollout: List[Optional[tuple]] = [None] * nstep
         returns = pending_value
         for i in reversed(range(nstep)):
-            log_probs, values, actions, rewards, is_terms, entropys = rollout[i]
-            values = values.detach()
-            next_values = rollout[i + 1][1].detach()
-            returns = rewards + self.config.discount_factor * is_terms * returns
+            action, log_prob, entropy, value, rewards, is_term = rollout[i]
+            value = value.detach()
+            next_value = rollout[i + 1][1].detach()
+            returns = rewards + returns * self.config.discount_factor * is_term
             if not self.config.use_gae:
-                advantanges = returns - values.detach()
+                advantange = returns - value.detach()
             else:
-                tde = rewards + self.config.discount_factor * is_terms * next_values - values
-                advantanges *= self.config.gae_tau * self.config.discount_factor * is_terms + tde
-            processed_rollout[i] = (log_probs, values, returns, advantanges, entropys)
+                td_error = rewards + self.config.discount_factor * is_term * next_value - value
+                advantange *= \
+                    self.config.gae_tau * self.config.discount_factor * is_term + td_error
+            processed_rollout[i] = (log_prob, value, returns, advantange, entropy)
 
-        log_probs, values, returns, advantages, entropys =\
+        log_prob, value, returns, advantage, entropy =\
             map(lambda x: torch.cat(x, dim=0), zip(*processed_rollout))
-        policy_loss = -log_probs * advantages
-        value_loss = 0.5 * (returns - values).pow(2)
-        entropy_loss = entropys.mean()
+        policy_loss = -log_prob * advantage
+        value_loss = 0.5 * (returns - value).pow(2)
+        entropy_loss = entropy.mean()
 
         self.optimizer.zero_grad()
         (policy_loss - self.config.entropy_weight * entropy_loss +

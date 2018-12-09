@@ -36,10 +36,10 @@ def train_agent(
             ag.logger.exp('train_reward_sum', {
                 'episodes': episodes,
                 'total_steps': ag.total_steps,
-                'reward_sum': np.sum(rewards),
-                'reward_mean': np.mean(rewards),
-                'reward_max': np.max(rewards),
-                'reward_min': np.min(rewards),
+                'reward_sum': float(np.sum(rewards)),
+                'reward_mean': float(np.mean(rewards)),
+                'reward_max': float(np.max(rewards)),
+                'reward_min': float(np.min(rewards)),
             })
             rewards = []
         if end or __interval(episodes, ag.config.eval_freq):

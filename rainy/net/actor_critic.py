@@ -45,9 +45,9 @@ class DiscreteActorCriticNet(ActorCriticNet):
         values = self.critic_head(features)  # [batch_size, 1]
         dist = Categorical(logits=action_probs)  # [batch_size, action_dim]
         actions = dist.sample()  # [batch_size]
-        log_prob = dist.log_prob(actions)  # [batch_size]
+        log_probs = dist.log_prob(actions)  # [batch_size]
         entropy = dist.entropy()  # [batch_size]
-        return actions, log_prob, entropy, values.squeeze()
+        return actions, log_probs, entropy, values.squeeze()
 
 
 def fc(state_dim: Tuple[int, ...], action_dim: int, device: Device = Device()) -> ActorCriticNet:

@@ -143,7 +143,7 @@ class NStepAgent(Agent):
         steps = 0
         if self.config.seed:
             self.penv.seed(self.config.seed)
-        states = self.env.reset()
+        states = self.penv.reset()
         nstep = self.step_len()
         while True:
             states, rewards = self.nstep(states, nstep)
