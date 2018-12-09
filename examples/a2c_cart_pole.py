@@ -2,14 +2,16 @@ import os
 from rainy import Config
 from rainy.agent import A2cAgent
 import rainy.util.cli as cli
-from rainy.envs import MultiProcEnv
+from rainy.envs import MultiProcEnv, DummyParallelEnv
+from torch.optim import Adam
 
 
 def config() -> Config:
     c = Config()
     c.max_steps = 100000
     c.num_workers = 4
-    c.set_parallel_env(lambda env_gen, num_w: MultiProcEnv(env_gen, num_w))
+    c.set_parallel_env(lambda env_gen, num_w: DummyParallelEnv(env_gen, num_w))
+    c.set_optimizer(lambda params: Adam(params, lr=0.001))
     return c
 
 

@@ -131,6 +131,10 @@ class OneStepAgent(Agent):
         return [total_reward]
                 
 class NStepAgent(Agent):
+    def __init__(self, config: Config) -> None:
+        super(Agent, self).__init__()
+        self.states = None
+
     @abstractmethod
     def nstep(self, states: Iterable[State]) -> Tuple[Iterable[State], Iterable[float]]:
         pass
@@ -148,14 +152,18 @@ class NStepAgent(Agent):
     def train_episode(self) -> List[float]:
         total_reward = 0.0
         steps = 0
-        if self.config.seed:
-            self.penv.seed(self.config.seed)
-        states = self.penv.reset()
+        if not self.states:
+            if self.config.seed:
+                self.penv.seed(self.config.seed)
+            states = self.penv.reset()
+        else:
+            states = self.states
         step = self.step_len() * self.config.num_workers
         while True:
             states, rewards = self.nstep(states)
             steps += step
             self.total_steps += step
             if rewards:
-                return rewards
-        return []
+                break
+        self.states = states
+        return rewards

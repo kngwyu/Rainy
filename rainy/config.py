@@ -37,7 +37,7 @@ class Config:
         # for multi worker algorithms
         self.num_workers = 8
 
-        # for n-step
+        # for n-step algorithms
         self.nstep = 5
 
         # for actor-critic
