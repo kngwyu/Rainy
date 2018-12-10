@@ -3,10 +3,10 @@ import numpy as np
 from numpy import ndarray
 import torch
 from torch import nn, Tensor
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, List, Tuple
 from .base import NStepAgent
 from ..config import Config
-from ..envs import Action, ParallelEnv, State
+from ..envs import Action, State
 
 
 class A2cAgent(NStepAgent):
@@ -57,7 +57,7 @@ class A2cAgent(NStepAgent):
     def nstep(self, states: Iterable[State]) -> Tuple[Iterable[State], Iterable[float]]:
         rollouts, episodic_rewards = [], []
         for _ in range(self.config.nstep):
-            states, rollout =  self._one_step(states, episodic_rewards)
+            states, rollout = self._one_step(states, episodic_rewards)
             rollouts.append(rollout)
         next_value = self.net(self.penv.states_to_array(states))[3]
         rollouts.append((None, None, None, next_value, None, None))
@@ -67,8 +67,8 @@ class A2cAgent(NStepAgent):
         value_loss = 0.5 * (reward_sum - value).pow(2).mean()
         entropy_loss = entropy.mean()
         self.optimizer.zero_grad()
-        (policy_loss + self.config.value_loss_weight * value_loss
-         - self.config.entropy_weight * entropy_loss).backward()
+        (policy_loss + self.config.value_loss_weight * value_loss -
+         self.config.entropy_weight * entropy_loss).backward()
         nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
         self.optimizer.step()
         return states, episodic_rewards

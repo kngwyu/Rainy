@@ -1,12 +1,9 @@
-import numpy as np
 from numpy import ndarray
 from torch import nn, Tensor
 from torch.distributions import Categorical
-import torch.nn.functional as F
-from typing import Tuple, Type, Union
+from typing import Tuple, Union
 from .body import DqnConv, FcBody, NetworkBody
 from .head import LinearHead, NetworkHead
-from .init import Initializer
 from ..util import Device
 
 
@@ -57,6 +54,13 @@ class DiscreteActorCriticNet(ActorCriticNet):
         action_probs = self.actor_head(features).detach()
         dist = Categorical(logits=action_probs)
         return dist._param.argmax()
+
+
+def ac_conv(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> ActorCriticNet:
+    body = DqnConv(state_dim[0])
+    ac_head = LinearHead(body.output_dim, action_dim)
+    cr_head = LinearHead(body.output_dim, 1)
+    return DiscreteActorCriticNet(body, ac_head, cr_head, device=device)
 
 
 def fc(state_dim: Tuple[int, ...], action_dim: int, device: Device = Device()) -> ActorCriticNet:

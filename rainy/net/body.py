@@ -27,10 +27,10 @@ class ConvBody(NetworkBody):
             activator: Activator,
             fc: nn.Linear,
             init: Initializer,
-            conv1: nn.Conv2d, *args
+            *args
     ) -> None:
         super().__init__()
-        self.conv = init.make_list(conv1, *args)
+        self.conv = init.make_list(*args)
         self.fc = init(fc)
         self.init = init
         self.activator = activator
@@ -51,21 +51,34 @@ class ConvBody(NetworkBody):
         return x
 
 
+def calc_cnn_offset(params: List[Tuple[int, int]], img_size: Tuple[int, int]) -> Tuple[int, int]:
+    width, height = img_size
+    for kernel, stride in params:
+        width = (width - (kernel // stride) + 1) // stride
+        height = (height - (kernel // stride) + 1) // stride
+    return width, height
+
+
 class DqnConv(ConvBody):
     """Convolutuion Network used in https://www.nature.com/articles/nature14236
     """
     def __init__(
             self,
-            in_channels: int,
+            dim: Tuple[int, int, int],
+            batch_size: int = 32,
+            params: List[Tuple[int, ...]] = [(8, 4), (4, 2), (3, 1)],
             activator: Activator = F.relu,
             init: Initializer = Initializer()
     ) -> None:
+        channel, width, height = dim
         self._output_dim = 512
-        conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
-        conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)
-        conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)
-        fc = init(nn.Linear(7 * 7 * 64, self._output_dim))
-        super().__init__(activator, fc, init, conv1, conv2, conv3)
+        conv1 = nn.Conv2d(channel, batch_size, *params[0])
+        conv2 = nn.Conv2d(32, 64, *params[1])
+        conv3 = nn.Conv2d(64, 64, *params[2])
+        width, height = calc_cnn_offset(params, (width, height))
+        assert width != 0 and height != 0
+        fc = nn.Linear(64 * width * height, self._output_dim)
+        super().__init__(F.relu, fc, init, conv1, conv2, conv3)
 
 
 class FcBody(nn.Module):

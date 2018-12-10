@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 import numpy as np
-from numpy import ndarray
 from pathlib import Path
 import torch
 from torch import nn
@@ -114,7 +113,7 @@ class OneStepAgent(Agent):
     @abstractmethod
     def step(self, state: State) -> Tuple[State, float, bool]:
         pass
-    
+
     def train_episode(self) -> List[float]:
         total_reward = 0.0
         steps = 0
@@ -129,7 +128,8 @@ class OneStepAgent(Agent):
             if done:
                 break
         return [total_reward]
-                
+
+
 class NStepAgent(Agent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
@@ -150,7 +150,6 @@ class NStepAgent(Agent):
         return
 
     def train_episode(self) -> List[float]:
-        total_reward = 0.0
         steps = 0
         if self.states is None:
             if self.config.seed:

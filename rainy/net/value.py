@@ -60,8 +60,8 @@ class ValueNet(ValuePredictor, nn.Module):
         return self.head.output_dim
 
 
-def dqn_conv(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> ValueNet:
-    body = DqnConv(state_dim[0])
+def dqn_conv(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> ValueNet:
+    body = DqnConv(state_dim)
     head = LinearHead(body.output_dim, action_dim)
     return ValueNet(body, head, device=device)
 
