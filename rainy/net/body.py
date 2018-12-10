@@ -25,19 +25,21 @@ class ConvBody(NetworkBody):
     def __init__(
             self,
             activator: Activator,
-            fc: nn.Linear,
             init: Initializer,
+            input_dim: Tuple[int, int, int],
+            fc: nn.Linear,
             *args
     ) -> None:
         super().__init__()
         self.conv = init.make_list(*args)
+        self._input_dim = input_dim
         self.fc = init(fc)
         self.init = init
         self.activator = activator
 
     @property
     def input_dim(self) -> Tuple[int, ...]:
-        return (self.conv[0].in_channels, self.conv[0].out_channels)
+        return self._input_dim
 
     @property
     def output_dim(self) -> int:
@@ -77,8 +79,8 @@ class DqnConv(ConvBody):
         conv3 = nn.Conv2d(64, 64, *params[2])
         width, height = calc_cnn_offset(params, (width, height))
         assert width != 0 and height != 0
-        fc = nn.Linear(64 * width * height, self._output_dim)
-        super().__init__(F.relu, fc, init, conv1, conv2, conv3)
+        fc = nn.Linear(width * height * 64, self._output_dim)
+        super().__init__(F.relu, init, dim, fc, conv1, conv2, conv3)
 
 
 class FcBody(nn.Module):

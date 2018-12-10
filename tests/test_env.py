@@ -1,4 +1,5 @@
 from enum import Enum
+from functools import reduce
 import numpy as np
 from rainy.envs import DummyParallelEnv, EnvExt, MultiProcEnv, ParallelEnv
 import pytest
@@ -15,9 +16,9 @@ class State(Enum):
     def is_end(self) -> bool:
         return self == State.DEATH or self == State.GOAL
 
-    def to_array(self, dim: int = 1) -> np.array:
-        length = 4 ** dim
-        return np.repeat(self.value, length).reshape(*np.repeat(4, dim))
+    def to_array(self, dim: tuple) -> np.array:
+        length = reduce(lambda x, y: x * y, dim)
+        return np.repeat(self.value, length).reshape(dim)
 
 
 class DummyEnv(EnvExt):

@@ -56,8 +56,8 @@ class DiscreteActorCriticNet(ActorCriticNet):
         return dist._param.argmax()
 
 
-def ac_conv(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> ActorCriticNet:
-    body = DqnConv(state_dim[0])
+def ac_conv(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> ActorCriticNet:
+    body = DqnConv(state_dim)
     ac_head = LinearHead(body.output_dim, action_dim)
     cr_head = LinearHead(body.output_dim, 1)
     return DiscreteActorCriticNet(body, ac_head, cr_head, device=device)

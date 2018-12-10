@@ -17,7 +17,7 @@ def config() -> Config:
         lambda net: EpsGreedy(1.0, LinearCooler(1.0, 0.1, int(1e6)), net)
     )
     c.double_q = True
-    c.set_net_fn('value-net', net.value.dqn_conv)
+    c.set_net_fn('value', net.value.dqn_conv)
     c.replay_size = int(1e6)
     c.batch_size = 32
     c.train_start = 50000
