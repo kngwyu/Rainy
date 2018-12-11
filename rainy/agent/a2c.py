@@ -22,6 +22,9 @@ class A2cAgent(NStepAgent):
         return ("net",)
 
     def eval_action(self, state: State) -> Action:
+        if len(state.shape) == len(self.net.state_dim):
+            # treat as batch_size == 1
+            state = np.stack([state])
         if self.config.eval_deterministic:
             return self.net.best_action(state).detach().item()
         else:
