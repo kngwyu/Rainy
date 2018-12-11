@@ -62,7 +62,7 @@ class A2cAgent(NStepAgent):
         for _ in range(self.config.nstep):
             states, rollout = self._one_step(states, episodic_rewards)
             rollouts.append(rollout)
-        next_value = self.net(self.penv.states_to_array(states))[3]
+        next_value = self.net(self.penv.states_to_array(states)).value
         rollouts.append((None, None, None, next_value, None, None))
         log_prob, entropy, value, reward_sum, advantage = \
             map(partial(torch.cat, dim=0), zip(*self._sum_up(next_value.detach(), rollouts)))

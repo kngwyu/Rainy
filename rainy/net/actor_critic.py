@@ -1,7 +1,7 @@
 from numpy import ndarray
 from torch import nn, Tensor
-from torch.distributions import Categorical
-from typing import Tuple, Union
+from torch.distributions import Categorical, Distribution
+from typing import NamedTuple, Tuple, Union
 from .body import DqnConv, FcBody, NetworkBody
 from .head import LinearHead, NetworkHead
 from ..util import Device
@@ -38,7 +38,27 @@ class ActorCriticNet(nn.Module):
         raise NotImplementedError()
 
 
+class AcOutput(NamedTuple):
+    distrib: Distribution
+    value: Tensor
+
+
 class DiscreteActorCriticNet(ActorCriticNet):
+    def forward(self, states: Union[ndarray, Tensor]) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+        features = self.body(self.device.tensor(states))
+        action_prob = self.actor_head(features)
+        value = self.critic_head(features)  # [batch_size, 1]
+        distrib = Categorical(logits=action_prob)  # [batch_size, action_dim]
+        return AcOutput(distrib, value)
+
+    def best_action(self, states: Union[ndarray, Tensor]) -> int:
+        features = self.body(self.device.tensor(states))
+        action_probs = self.actor_head(features).detach()
+        dist = Categorical(logits=action_probs)
+        return dist._param.argmax()
+
+
+class SoftMaxActorCriticNet(ActorCriticNet):
     def forward(self, states: Union[ndarray, Tensor]) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         features = self.body(self.device.tensor(states))
         action_prob = self.actor_head(features)
