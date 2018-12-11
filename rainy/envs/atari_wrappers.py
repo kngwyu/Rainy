@@ -1,3 +1,8 @@
+"""
+This module provides wrappers of atari environments in openai gym.
+Originaly from openai baselines, but modified for PyTorch.
+"""
+
 import cv2
 import numpy as np
 import gym
