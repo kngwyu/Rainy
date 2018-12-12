@@ -1,5 +1,4 @@
 import numpy as np
-from numpy import ndarray
 import torch
 from torch import nn
 from typing import Tuple
@@ -48,7 +47,7 @@ class DqnAgent(OneStepAgent):
             self.config.batch_size,
             self.env.state_to_array
         )
-        states, actions, rewards, next_states, is_terms = map(np.asarray, zip(*observations))
+        states, actions, rewards, next_states, done = map(np.asarray, zip(*observations))
         q_next = self.target_net(next_states).detach()
         if self.config.double_q:
             # Here supposes action_values is batch_size×(action_dim) array
@@ -56,7 +55,7 @@ class DqnAgent(OneStepAgent):
             q_next = q_next[self.batch_indices, action_values.argmax(dim=-1)]
         else:
             q_next, _ = q_next.max(1)
-        q_next *= self.config.device.tensor(1.0 - is_terms) * self.config.discount_factor
+        q_next *= self.config.device.tensor(1.0 - done) * self.config.discount_factor
         q_next += self.config.device.tensor(rewards)
         q_current = self.net(states)[self.batch_indices, actions]
         loss = self.criterion(q_current, q_next)
