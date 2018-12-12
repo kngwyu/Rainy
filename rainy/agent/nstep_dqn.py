@@ -8,7 +8,7 @@ from ..config import Config
 from ..envs import Action, State
 
 
-class NstepDqnAgent(NStepAgent):
+class NStepDqnAgent(NStepAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self.net = config.net('value')
@@ -18,12 +18,6 @@ class NstepDqnAgent(NStepAgent):
 
         self.criterion = nn.MSELoss()
         self.policy = config.explorer(self.net)
-        self.replay = config.replay_buffer()
-        self.batch_indices = torch.arange(
-            config.batch_size,
-            device=self.config.device(),
-            dtype=torch.long
-        )
 
     def members_to_save(self) -> Tuple[str, ...]:
         return "net", "target_net", "policy", "total_steps"

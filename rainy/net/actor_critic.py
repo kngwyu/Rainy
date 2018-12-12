@@ -38,7 +38,8 @@ class ActorCriticNet(nn.Module):
         raise NotImplementedError()
 
     def value(self, states: Union[ndarray, Tensor]) -> Tensor:
-        raise NotImplementedError()
+        features = self.body(self.device.tensor(states))
+        return self.critic_head(features)
 
 
 class AcOutput(NamedTuple):
@@ -47,20 +48,14 @@ class AcOutput(NamedTuple):
 
 
 class SoftmaxActorCriticNet(ActorCriticNet):
-    def forward(self, states: Union[ndarray, Tensor]) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    def forward(self, states: Union[ndarray, Tensor]) -> AcOutput:
         features = self.body(self.device.tensor(states))
-        action_prob = self.actor_head(features)
-        value = self.critic_head(features)  # [batch_size, 1]
-        policy = softmax(action_prob)  # [batch_size, action_dim]
-        return AcOutput(policy, value.squeeze())
+        policy, value = self.actor_head(features), self.critic_head(features)
+        return AcOutput(softmax(policy), value.squeeze())
 
     def policy(self, states: Union[ndarray, Tensor]) -> Policy:
         features = self.body(self.device.tensor(states))
         return softmax(self.actor_head(features))
-
-    def value(self, states: Union[ndarray, Tensor]) -> Tensor:
-        features = self.body(self.device.tensor(states))
-        return self.critic_head(features)
 
 
 def ac_conv(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> ActorCriticNet:

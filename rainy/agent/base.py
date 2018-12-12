@@ -140,6 +140,7 @@ class NStepAgent(Agent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self.states = None
+        self.rewards = np.zeros(config.num_workers, dtype=np.float32)
 
     @abstractmethod
     def nstep(self, states: Iterable[State]) -> Tuple[Iterable[State], Iterable[float]]:

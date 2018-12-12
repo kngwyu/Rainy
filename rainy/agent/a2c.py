@@ -16,7 +16,6 @@ class A2cAgent(NStepAgent):
         self.net = config.net('actor-critic')
         self.optimizer = config.optimizer(self.net.parameters())
         self.criterion = nn.MSELoss()
-        self.rewards = np.zeros(config.num_workers, dtype=np.float32)
 
     def members_to_save(self) -> Tuple[str, ...]:
         return ("net",)
