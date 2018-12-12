@@ -31,7 +31,7 @@ class A2cAgent(NStepAgent):
             return self.net(state)[0].detach().item()
 
     def _one_step(self, states: Iterable[State], episodic_rewards: list) -> Tuple[ndarray, ndarray]:
-        action, log_prob, entropy, value = self.net(self.penv.states_to_array(states))
+        ac_out = self.net(self.penv.states_to_array(states))
         next_states, rewards, is_term, _ = map(np.asarray, zip(*self.penv.step(action.detach())))
         self.rewards += rewards
         for i in range(self.config.num_workers):
@@ -39,13 +39,13 @@ class A2cAgent(NStepAgent):
                 episodic_rewards.append(self.rewards[i])
                 self.rewards[i] = 0
         rewards, is_term = map(lambda x: self.config.device.tensor(x), (rewards, 1.0 - is_term))
-        return next_states, (action, log_prob, entropy, value, rewards, is_term)
+        return next_states, (policy, value, rewards, is_term)
 
     def _sum_up(self, reward_sum: Tensor, rollouts: ndarray) -> List[tuple]:
         res = [None] * self.config.nstep
         advantage = self.config.device.tensor(np.zeros(self.config.num_workers))
         for i in reversed(range(self.config.nstep)):
-            action, log_prob, entropy, value, reward, is_term = rollouts[i]
+            policy, value, reward, is_term = rollouts[i]
             reward_sum = reward + reward_sum * self.config.discount_factor * is_term
             if not self.config.use_gae:
                 advantage = reward_sum - value.detach()
@@ -54,7 +54,7 @@ class A2cAgent(NStepAgent):
                 td_error = reward + self.config.discount_factor * is_term * next_value - value
                 advantage *= \
                     self.config.gae_tau * self.config.discount_factor * is_term + td_error
-            res[i] = (log_prob, entropy, value, reward_sum.detach(), advantage.detach())
+            res[i] = (policy, value, reward_sum.detach(), advantage.detach())
         return res
 
     def nstep(self, states: Iterable[State]) -> Tuple[Iterable[State], Iterable[float]]:
@@ -64,7 +64,7 @@ class A2cAgent(NStepAgent):
             rollouts.append(rollout)
         next_value = self.net(self.penv.states_to_array(states)).value
         rollouts.append((None, None, None, next_value, None, None))
-        log_prob, entropy, value, reward_sum, advantage = \
+        policy, value, reward_sum, advantage = \
             map(partial(torch.cat, dim=0), zip(*self._sum_up(next_value.detach(), rollouts)))
         policy_loss = -(log_prob * advantage).mean()
         value_loss = 0.5 * (reward_sum - value).pow(2).mean()
