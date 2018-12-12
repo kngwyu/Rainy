@@ -1,9 +1,9 @@
 from numpy import ndarray
 from torch import nn, Tensor
-from torch.distributions import Categorical, Distribution
 from typing import NamedTuple, Tuple, Union
 from .body import DqnConv, FcBody, NetworkBody
 from .head import LinearHead, NetworkHead
+from .policy import Policy, softmax
 from ..util import Device
 
 
@@ -34,12 +34,15 @@ class ActorCriticNet(nn.Module):
     def action_dim(self) -> int:
         return self.actor_head.output_dim
 
-    def best_action(self) -> int:
+    def policy(self, states: Union[ndarray, Tensor]) -> Policy:
+        raise NotImplementedError()
+
+    def value(self, states: Union[ndarray, Tensor]) -> Tensor:
         raise NotImplementedError()
 
 
 class AcOutput(NamedTuple):
-    policy: Distribution
+    policy: Policy
     value: Tensor
 
 
@@ -48,14 +51,16 @@ class SoftmaxActorCriticNet(ActorCriticNet):
         features = self.body(self.device.tensor(states))
         action_prob = self.actor_head(features)
         value = self.critic_head(features)  # [batch_size, 1]
-        policy = Categorical(logits=action_prob)  # [batch_size, action_dim]
-        return AcOutput(distrib, value)
+        policy = softmax(action_prob)  # [batch_size, action_dim]
+        return AcOutput(policy, value.squeeze())
 
-    def best_action(self, states: Union[ndarray, Tensor]) -> int:
+    def policy(self, states: Union[ndarray, Tensor]) -> Policy:
         features = self.body(self.device.tensor(states))
-        action_probs = self.actor_head(features).detach()
-        dist = Categorical(logits=action_probs)
-        return dist._param.argmax()
+        return softmax(self.actor_head(features))
+
+    def value(self, states: Union[ndarray, Tensor]) -> Tensor:
+        features = self.body(self.device.tensor(states))
+        return self.critic_head(features)
 
 
 def ac_conv(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> ActorCriticNet:

@@ -48,7 +48,11 @@ class Agent(ABC):
     def random_action(self) -> Action:
         return np.random.randint(self.env.action_dim)
 
-    def __eval_episode(self, select_action: Callable[[State], Action]) -> Tuple[float, EnvExt]:
+    def __eval_episode(
+            self,
+            select_action: Callable[[State], Action],
+            render: bool
+    ) -> Tuple[float, EnvExt]:
         total_reward = 0.0
         steps = 0
         env = self.config.eval_env
@@ -56,6 +60,8 @@ class Agent(ABC):
             env.seed(self.config.seed)
         state = env.reset()
         while True:
+            if render:
+                env.render()
             state = env.state_to_array(state)
             action = select_action(state)
             state, reward, done, _ = env.step(action)
@@ -68,20 +74,20 @@ class Agent(ABC):
     def random_episode(self) -> float:
         def act(_state) -> Action:
             return self.random_action()
-        return self.__eval_episode(act)[0]
+        return self.__eval_episode(act, False)[0]
 
     def random_and_save(self, fname: str) -> float:
         def act(_state) -> Action:
             return self.random_action()
-        res, env = self.__eval_episode(act)
+        res, env = self.__eval_episode(act, False)
         env.save_history(fname)
         return res
 
-    def eval_episode(self) -> float:
-        return self.__eval_episode(self.eval_action)[0]
+    def eval_episode(self, render: bool = False) -> float:
+        return self.__eval_episode(self.eval_action, render=render)[0]
 
-    def eval_and_save(self, fname: str) -> float:
-        res, env = self.__eval_episode(self.eval_action)
+    def eval_and_save(self, fname: str, render: bool = False) -> float:
+        res, env = self.__eval_episode(self.eval_action, render=render)
         env.save_history(fname)
         return res
 

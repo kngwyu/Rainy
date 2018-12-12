@@ -19,12 +19,11 @@ def test_acnet(net: actor_critic.ActorCriticNet, state_dim: tuple, batch_size: i
     assert net.action_dim == ACTION_DIM
     env = DummyEnv()
     states = np.stack([env.step(None)[0].to_array(state_dim) for _ in range(batch_size)])
-    print(states.shape)
-    actions, log_prob, entropy, values = map(torch.detach, net(states))
+    policy, values = net(states)
     batch_size = torch.Size([batch_size])
-    assert actions.shape == batch_size
-    assert log_prob.shape == batch_size
-    assert entropy.shape == batch_size
+    assert policy.action().shape == batch_size
+    assert policy.log_prob().shape == batch_size
+    assert policy.entropy().shape == batch_size
     assert values.shape == batch_size
 
 

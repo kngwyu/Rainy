@@ -27,7 +27,6 @@ def train_agent(
             'reward_max': float(np.max(rewards)),
             'reward_min': float(np.min(rewards)),
         })
-        rewards = []
 
     def log_eval(episodes: int):
         log_dir = ag.logger.log_dir
@@ -64,6 +63,7 @@ def train_agent(
         if interval(episodes, len(tmp), ag.config.episode_log_freq):
             tmp_eps = truncate_episode(episodes, ag.config.episode_log_freq)
             log_episode(tmp_eps, np.array(rewards[:tmp_eps]))
+            rewards = rewards[tmp_eps:]
         if end or interval(episodes, len(tmp), ag.config.eval_freq):
             log_eval(truncate_episode(episodes, ag.config.eval_freq))
         if end or interval(episodes, len(tmp), ag.config.save_freq):
@@ -75,14 +75,17 @@ def eval_agent(
         ag: Agent,
         log_dir: str,
         load_file_name: str = SAVE_FILE_DEFAULT,
+        render: bool = False,
         action_file: Optional[str] = None
 ) -> None:
     path = Path(log_dir)
     ag.load(path.joinpath(load_file_name).as_posix())
     if action_file:
-        res = ag.eval_and_save(path.joinpath(action_file).as_posix())
+        res = ag.eval_and_save(path.joinpath(action_file).as_posix(), render=render)
     else:
-        res = ag.eval_episode()
-    ag.close()
+        res = ag.eval_episode(render=render)
     print('reward: {}'.format(res))
+    if render:
+        input('Press any key to exit:')
+    ag.close()
 

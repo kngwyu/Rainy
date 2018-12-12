@@ -28,7 +28,7 @@ def train(ctx: dict, comment: Optional[str]) -> None:
 
 
 @rainy_cli.command()
-@click.option('--save', default=False)
+@click.option('--save', is_flag=True)
 @click.option('--fname', type=str, default='random-actions.json')
 @click.pass_context
 def random(ctx: dict, save: bool, fname: str) -> None:
@@ -43,12 +43,13 @@ def random(ctx: dict, save: bool, fname: str) -> None:
 
 @rainy_cli.command()
 @click.argument('logdir', required=True, type=str)
+@click.option('--render', is_flag=True)
 @click.option('--fname', type=str, default='best-actions.json')
 @click.pass_context
-def eval(ctx: dict, logdir: str, fname: str) -> None:
+def eval(ctx: dict, logdir: str, render: bool, fname: str) -> None:
     c = ctx.obj['config']
     ag = ctx.obj['make_agent'](c)
-    eval_agent(ag, logdir, action_file=fname)
+    eval_agent(ag, logdir, render=render, action_file=fname)
 
 
 def run_cli(
