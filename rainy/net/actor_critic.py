@@ -39,35 +39,17 @@ class ActorCriticNet(nn.Module):
 
 
 class AcOutput(NamedTuple):
-    distrib: Distribution
+    policy: Distribution
     value: Tensor
 
 
-class DiscreteActorCriticNet(ActorCriticNet):
+class SoftmaxActorCriticNet(ActorCriticNet):
     def forward(self, states: Union[ndarray, Tensor]) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
         features = self.body(self.device.tensor(states))
         action_prob = self.actor_head(features)
         value = self.critic_head(features)  # [batch_size, 1]
-        distrib = Categorical(logits=action_prob)  # [batch_size, action_dim]
+        policy = Categorical(logits=action_prob)  # [batch_size, action_dim]
         return AcOutput(distrib, value)
-
-    def best_action(self, states: Union[ndarray, Tensor]) -> int:
-        features = self.body(self.device.tensor(states))
-        action_probs = self.actor_head(features).detach()
-        dist = Categorical(logits=action_probs)
-        return dist._param.argmax()
-
-
-class SoftMaxActorCriticNet(ActorCriticNet):
-    def forward(self, states: Union[ndarray, Tensor]) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-        features = self.body(self.device.tensor(states))
-        action_prob = self.actor_head(features)
-        value = self.critic_head(features)  # [batch_size, 1]
-        dist = Categorical(logits=action_prob)  # [batch_size, action_dim]
-        action = dist.sample()  # [batch_size]
-        log_prob = dist.log_prob(action)  # [batch_size]
-        entropy = dist.entropy()  # [batch_size]
-        return action, log_prob, entropy, value.squeeze()
 
     def best_action(self, states: Union[ndarray, Tensor]) -> int:
         features = self.body(self.device.tensor(states))
@@ -80,12 +62,12 @@ def ac_conv(state_dim: Tuple[int, int, int], action_dim: int, device: Device) ->
     body = DqnConv(state_dim)
     ac_head = LinearHead(body.output_dim, action_dim)
     cr_head = LinearHead(body.output_dim, 1)
-    return DiscreteActorCriticNet(body, ac_head, cr_head, device=device)
+    return SoftmaxActorCriticNet(body, ac_head, cr_head, device=device)
 
 
 def fc(state_dim: Tuple[int, ...], action_dim: int, device: Device = Device()) -> ActorCriticNet:
     body = FcBody(state_dim[0])
     ac_head = LinearHead(body.output_dim, action_dim)
     cr_head = LinearHead(body.output_dim, 1)
-    return DiscreteActorCriticNet(body, ac_head, cr_head, device=device)
+    return SoftmaxActorCriticNet(body, ac_head, cr_head, device=device)
 
