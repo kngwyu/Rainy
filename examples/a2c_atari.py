@@ -1,3 +1,6 @@
+"""Train A2C agent in ALE game registerd in gym.
+Some hyper parametes are from https://github.com/openai/baselines/blob/master/baselines/a2c/a2c.py
+"""
 import os
 from rainy import Config, net
 from rainy.agent import A2cAgent
@@ -11,15 +14,16 @@ def config() -> Config:
     c = Config()
     c.set_env(lambda: Atari('Breakout'))
     c.set_optimizer(
-        lambda params: RMSprop(params, lr=1e-4, alpha=0.99, eps=1e-5)
+        lambda params: RMSprop(params, lr=7e-4, alpha=0.99, eps=1e-5)
     )
     c.set_net_fn('actor-critic', net.actor_critic.ac_conv)
     c.num_workers = 16
     c.set_parallel_env(lambda env_gen, num_w: MultiProcEnv(env_gen, num_w))
-    c.grad_clip = 5.0
+    c.grad_clip = 0.5
     c.gae_tau = 1.0
+    c.value_loss_weight = 0.5
     c.use_gae = False
-    c.max_steps = int(2e7)
+    c.max_steps = int(8e7)
     c.eval_env = Atari('Breakout', episode_life=False)
     c.eval_freq = None
     return c

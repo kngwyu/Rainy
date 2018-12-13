@@ -62,12 +62,12 @@ class A2cAgent(NStepAgent):
         for _ in range(self.config.nstep):
             states, rollout = self._one_step(states, episodic_rewards)
             rollouts.append(rollout)
-        next_value = self.net(self.penv.states_to_array(states)).value
+        next_value = self.net(self.penv.states_to_array(states)).value.detach()
         rollouts.append((None, next_value, None, None))
         log_prob, entropy, value, return_, advantage = \
-            map(partial(torch.cat, dim=0), zip(*self._calc_returns(next_value.detach(), rollouts)))
+            map(partial(torch.cat, dim=0), zip(*self._calc_returns(next_value, rollouts)))
         policy_loss = -(log_prob * advantage).mean()
-        value_loss = 0.5 * (return_ - value).pow(2).mean()
+        value_loss = (return_ - value).pow(2).mean()
         entropy_loss = entropy.mean()
         self.optimizer.zero_grad()
         (policy_loss + self.config.value_loss_weight * value_loss -
