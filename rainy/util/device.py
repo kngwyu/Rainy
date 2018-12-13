@@ -16,6 +16,8 @@ class Device():
                 self.__use_all_gpu()
             else:
                 self.__use_cpu()
+        elif len(gpu_indices) == 0:
+            self.__use_cpu()
         else:
             self.gpu_indices = [id for id in gpu_indices]
             self.device = torch.device('cuda:%d' % self.gpu_indices[0])

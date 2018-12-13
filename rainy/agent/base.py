@@ -95,7 +95,9 @@ class Agent(ABC):
         save_dict = {}
         for idx, member_str in enumerate(self.members_to_save()):
             value = getattr(self, member_str)
-            if isinstance(value, nn.Module):
+            if isinstance(value, nn.DataParallel):
+                save_dict[idx] = value.module.state_dict()
+            elif isinstance(value, nn.Module):
                 save_dict[idx] = value.state_dict()
             else:
                 save_dict[idx] = value
@@ -105,7 +107,7 @@ class Agent(ABC):
         torch.save(save_dict, log_dir.joinpath(filename))
 
     def load(self, filename: str) -> None:
-        saved_dict = torch.load(filename)
+        saved_dict = torch.load(filename, map_location=self.config.device())
         for idx, member_str in enumerate(self.members_to_save()):
             saved_item = saved_dict[idx]
             mem = getattr(self, member_str)

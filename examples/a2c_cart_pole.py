@@ -1,6 +1,7 @@
 import os
 from rainy import Config
 from rainy.agent import A2cAgent
+from rainy.util import Device
 import rainy.util.cli as cli
 from rainy.envs import MultiProcEnv
 from torch.optim import Adam
