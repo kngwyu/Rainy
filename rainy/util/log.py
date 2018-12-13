@@ -20,14 +20,13 @@ class Logger(logging.Logger):
 
     def set_dir_from_script_path(self, script_path_: str, comment: Optional[str] = None) -> None:
         script_path = Path(script_path_)
-        log_dir = script_path.stem + '-log-'
+        log_dir = script_path.stem + '-' + self.exp_start.strftime("%y%m%d-%H%M%S")
         try:
             repo = git.Repo(script_path, search_parent_directories=True)
             head = repo.head.commit
-            log_dir += head.hexsha[:8] + '-'
+            log_dir += '-' + head.hexsha[:8]
         finally:
             pass
-        log_dir += self.exp_start.strftime("%y%m%d-%H%M%S")
         log_dir_path = Path(log_dir)
         if not log_dir_path.exists():
             log_dir_path.mkdir()
