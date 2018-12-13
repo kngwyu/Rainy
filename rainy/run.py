@@ -46,13 +46,10 @@ def train_agent(
             })
 
     def interval(turn: int, width: int, freq: Optional[int]) -> bool:
-        if freq:
-            return turn != 0 and turn // freq != (turn - width) // freq
-        else:
-            return False
+        return freq and turn != 0 and turn // freq != (turn - width) // freq
 
-    def truncate_episode(episodes: int, freq: int) -> int:
-        return episodes - episodes % freq
+    def truncate_episode(episodes: int, freq: Optional[int]) -> int:
+        return episodes - episodes % freq if freq else episodes
 
     while not end:
         if max_steps and ag.total_steps > max_steps:
@@ -86,6 +83,6 @@ def eval_agent(
         res = ag.eval_episode(render=render)
     print('reward: {}'.format(res))
     if render:
-        input('Press any key to exit:')
+        input('--Press Enter to exit--')
     ag.close()
 
