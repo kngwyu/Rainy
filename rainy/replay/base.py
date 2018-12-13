@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Generic, List, NamedTuple, TypeVar
+from typing import Generic, List, TypeVar
 
 
-ReplayFeed = TypeVar('ReplayFeed', bound=NamedTuple)
+ReplayFeed = TypeVar('ReplayFeed')
 
 
 class ReplayBuffer(ABC, Generic[ReplayFeed]):

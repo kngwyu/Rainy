@@ -33,7 +33,7 @@ def test_acnet(net: actor_critic.ActorCriticNet, state_dim: tuple, batch_size: i
     ((17, 48, 24), 64, [(8, 1), (4, 1), (3, 1)]),
 ])
 def test_dqnconv(input_dim: Tuple[int, int, int], batch_size: int, params: Optional[list]) -> None:
-    dqn_conv = DqnConv(input_dim, params=params) if params else DqnConv(input_dim)
+    dqn_conv = DqnConv(input_dim, kernel_and_strides=params) if params else DqnConv(input_dim)
     x = torch.ones((batch_size, *input_dim))
     for conv in dqn_conv.conv:
         x = conv.forward(x)

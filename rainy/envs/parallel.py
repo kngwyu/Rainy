@@ -26,6 +26,10 @@ class ParallelEnv(ABC, Generic[Action, State]):
         pass
 
     @abstractmethod
+    def seed(self, seed: int) -> None:
+        pass
+
+    @abstractmethod
     def num_envs(self) -> int:
         pass
 
@@ -42,7 +46,7 @@ def make_parallel_env(env_gen: Callable[[], EnvExt], num_workers: int) -> Parall
     elif num_workers == 1:
         return DummyParallelEnv(e, 1)
     else:
-        return MultiProcEnv(e, env_gen, num_workers)
+        return MultiProcEnv(env_gen, num_workers)
 
 
 class MultiProcEnv(ParallelEnv):
@@ -63,6 +67,10 @@ class MultiProcEnv(ParallelEnv):
         for env, action in zip(self.envs, actions):
             env.step(action)
         return [env.recv() for env in self.envs]
+
+    def seed(self, seed: int) -> None:
+        for env in self.envs:
+            env.seed(seed)
 
     def num_envs(self) -> int:
         return len(self.envs)
@@ -131,6 +139,10 @@ class DummyParallelEnv(ParallelEnv):
 
     def step(self, actions: Iterable[Action]) -> List[Tuple[State, float, bool, Any]]:
         return [e.step_and_reset(a) for (a, e) in zip(actions, self.envs)]
+
+    def seed(self, seed: int) -> None:
+        for env in self.envs:
+            env.seed(seed)
 
     def num_envs(self) -> int:
         return len(self.envs)

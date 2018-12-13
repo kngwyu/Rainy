@@ -1,6 +1,6 @@
 from torch import nn, Tensor
 from torch.optim import Optimizer, RMSprop
-from typing import Any, Callable, Iterable, Optional, Tuple, Union
+from typing import Callable, Dict, Iterable, Optional, Tuple, Union
 from .net import actor_critic, ValuePredictor, value
 from .explore import LinearCooler, Explorer, EpsGreedy
 from .replay import DqnReplayFeed, ReplayBuffer, UniformReplayBuffer
@@ -8,6 +8,7 @@ from .util import Device, Logger
 from .envs import ClassicalControl, EnvExt, ParallelEnv
 
 Params = Iterable[Union[Tensor, dict]]
+NetFn = Callable[[Tuple[int, ...], int, Device], nn.Module]
 
 
 class Config:
@@ -55,13 +56,13 @@ class Config:
         self.save_eval_actions = False
 
         self.__env = lambda: ClassicalControl()
-        self.__eval_env = None
+        self.__eval_env: Optional[EnvExt] = None
         self.__exp: Callable[[ValuePredictor], Explorer] = \
             lambda net: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000), net)
         self.__optim = lambda params: RMSprop(params, 0.001)
-        self.__replay: Callable[[int], ReplayBuffer[Any]] = \
+        self.__replay: Callable[[int], ReplayBuffer] = \
             lambda capacity: UniformReplayBuffer(DqnReplayFeed, capacity=capacity)
-        self.__net = {
+        self.__net: Dict[str, NetFn] = {
             'value': value.fc,
             'actor-critic': actor_critic.fc,
         }
@@ -116,11 +117,7 @@ class Config:
         assert self.action_dim != 0
         return self.__net[name](self.state_dim, self.action_dim, self.device)
 
-    def set_net_fn(
-            self,
-            name: str,
-            net: Callable[[Tuple[int, ...], int, Device], nn.Module]
-    ) -> None:
+    def set_net_fn(self, name: str, net: NetFn) -> None:
         self.__net[name] = net
 
 

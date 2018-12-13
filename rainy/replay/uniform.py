@@ -4,6 +4,7 @@ from .array_deque import ArrayDeque
 from .base import ReplayFeed, ReplayBuffer
 from ..envs import State
 from ..util import sample_indices
+from ..util.meta import GenericNamedMeta
 
 
 class UniformReplayBuffer(ReplayBuffer, Generic[ReplayFeed]):
@@ -25,7 +26,7 @@ class UniformReplayBuffer(ReplayBuffer, Generic[ReplayFeed]):
         return len(self.buf)
 
 
-class DqnReplayFeed(NamedTuple):
+class DqnReplayFeed(Generic[State], NamedTuple, metaclass=GenericNamedMeta):
     state: State
     action: int
     reward: float

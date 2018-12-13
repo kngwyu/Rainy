@@ -143,6 +143,7 @@ class NStepAgent(Agent):
         super().__init__(config)
         self.states = None
         self.rewards = np.zeros(config.num_workers, dtype=np.float32)
+        self.penv = config.parallel_env()
 
     @abstractmethod
     def nstep(self, states: Iterable[State]) -> Tuple[Iterable[State], Iterable[float]]:
@@ -154,9 +155,6 @@ class NStepAgent(Agent):
 
     def step_len(self) -> int:
         return self.config.nstep
-
-    def num_envs(self) -> int:
-        return
 
     def train_episode(self) -> List[float]:
         steps = 0

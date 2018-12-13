@@ -1,7 +1,7 @@
 from .agent import Agent
 import numpy as np
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 
 SAVE_FILE_DEFAULT = 'rainy-agent.save'
@@ -15,7 +15,7 @@ def train_agent(
 ) -> None:
     max_steps = ag.config.max_steps
     episodes = 0
-    rewards = []
+    rewards: List[float] = []
     end = False
     action_file = Path(action_file_name)
 
@@ -46,7 +46,7 @@ def train_agent(
             })
 
     def interval(turn: int, width: int, freq: Optional[int]) -> bool:
-        return freq and turn != 0 and turn // freq != (turn - width) // freq
+        return freq and turn != 0 and turn // freq != (turn - width) // freq  # type: ignore
 
     def truncate_episode(episodes: int, freq: Optional[int]) -> int:
         return episodes - episodes % freq if freq else episodes

@@ -69,5 +69,5 @@ class TransposeImage(gym.ObservationWrapper):
         if t is LazyFrames:
             img = np.concatenate(observation._frames, axis=2).transpose(2, 0, 1)
         else:
-            img = observation.transpose(2, 0, 1)
+            img = observation.transpose(2, 0, 1)  # type: ignore
         return self.scaler(img)

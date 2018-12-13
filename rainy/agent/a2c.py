@@ -7,12 +7,12 @@ from typing import Iterable, List, Tuple
 from .base import NStepAgent
 from ..config import Config
 from ..envs import Action, State
+from ..net import Policy
 
 
 class A2cAgent(NStepAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.penv = config.parallel_env()
         self.net = config.net('actor-critic')
         self.optimizer = config.optimizer(self.net.parameters())
         self.criterion = nn.MSELoss()
@@ -20,7 +20,8 @@ class A2cAgent(NStepAgent):
     def members_to_save(self) -> Tuple[str, ...]:
         return ("net",)
 
-    def eval_action(self, state: State) -> Action:
+    def eval_action(self, state_: State) -> Action:
+        state = self.env.state_to_array(state_)
         if len(state.shape) == len(self.net.state_dim):
             # treat as batch_size == 1
             state = np.stack([state])
@@ -30,7 +31,11 @@ class A2cAgent(NStepAgent):
         else:
             return policy.action()
 
-    def _one_step(self, states: Iterable[State], episodic_rewards: list) -> Tuple[ndarray, tuple]:
+    def _one_step(
+            self,
+            states: Iterable[State],
+            episodic_rewards: List[float],
+    ) -> Tuple[ndarray, Tuple[Policy, Tensor, ndarray, ndarray]]:
         policy, value = self.net(self.penv.states_to_array(states))
         next_states, rewards, done, _ = map(np.asarray, zip(*self.penv.step(policy.action())))
         self.rewards += rewards
@@ -42,7 +47,7 @@ class A2cAgent(NStepAgent):
         return next_states, (policy, value, rewards, done)
 
     def _calc_returns(self, return_: Tensor, rollouts: ndarray) -> List[tuple]:
-        res = [None] * self.config.nstep
+        res: List[tuple] = [None] * self.config.nstep
         advantage = torch.zeros(self.config.num_workers, device=self.config.device())
         for i in reversed(range(self.config.nstep)):
             policy, value, reward, done = rollouts[i]
@@ -58,7 +63,8 @@ class A2cAgent(NStepAgent):
         return res
 
     def nstep(self, states: Iterable[State]) -> Tuple[Iterable[State], Iterable[float]]:
-        rollouts, episodic_rewards = [], []
+        rollouts = []
+        episodic_rewards: List[float] = []
         for _ in range(self.config.nstep):
             states, rollout = self._one_step(states, episodic_rewards)
             rollouts.append(rollout)
@@ -70,8 +76,9 @@ class A2cAgent(NStepAgent):
         value_loss = (return_ - value).pow(2).mean()
         entropy_loss = entropy.mean()
         self.optimizer.zero_grad()
-        (policy_loss + self.config.value_loss_weight * value_loss -
-         self.config.entropy_weight * entropy_loss).backward()
+        (policy_loss
+         + self.config.value_loss_weight * value_loss
+         - self.config.entropy_weight * entropy_loss).backward()
         nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
         self.optimizer.step()
         return states, episodic_rewards

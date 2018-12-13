@@ -42,7 +42,7 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
         Inherited from gym.Env.
         """
         if type(action) == Tensor:
-            return self._env.step(action.item())
+            return self._env.step(action.item())  # type: ignore
         else:
             return self._env.step(action)
 
