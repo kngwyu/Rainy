@@ -1,9 +1,9 @@
 from torch import nn, Tensor
 from torch.optim import Optimizer, RMSprop
 from typing import Any, Callable, Iterable, Optional, Tuple, Union
-from .net import ActorCriticNet, actor_critic, ValuePredictor, value, ValueNet
+from .net import actor_critic, ValuePredictor, value
 from .explore import LinearCooler, Explorer, EpsGreedy
-from .replay import ReplayBuffer, UniformReplayBuffer
+from .replay import DqnReplayFeed, ReplayBuffer, UniformReplayBuffer
 from .util import Device, Logger
 from .envs import ClassicalControl, EnvExt, ParallelEnv
 
@@ -60,7 +60,7 @@ class Config:
             lambda net: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000), net)
         self.__optim = lambda params: RMSprop(params, 0.001)
         self.__replay: Callable[[int], ReplayBuffer[Any]] = \
-            lambda capacity: UniformReplayBuffer(capacity)
+            lambda capacity: UniformReplayBuffer(DqnReplayFeed, capacity=capacity)
         self.__net = {
             'value': value.fc,
             'actor-critic': actor_critic.fc,

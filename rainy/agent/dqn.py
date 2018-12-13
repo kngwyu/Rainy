@@ -5,6 +5,7 @@ from typing import Tuple
 from .base import OneStepAgent
 from ..config import Config
 from ..envs import Action, State
+from ..replay import DqnReplayFeed
 
 
 class DqnAgent(OneStepAgent):
@@ -16,6 +17,7 @@ class DqnAgent(OneStepAgent):
         self.criterion = nn.MSELoss()
         self.policy = config.explorer(self.net)
         self.replay = config.replay_buffer()
+        assert self.replay.feed == DqnReplayFeed
         self.batch_indices = torch.arange(
             config.batch_size,
             device=self.config.device(),
@@ -43,11 +45,9 @@ class DqnAgent(OneStepAgent):
         return next_state, reward, done
 
     def _train(self) -> None:
-        observations = self.replay.sample_with_state_wrapper(
-            self.config.batch_size,
-            self.env.state_to_array
-        )
-        states, actions, rewards, next_states, done = map(np.asarray, zip(*observations))
+        obs = self.replay.sample(self.config.batch_size)
+        obs = [ob.to_ndarray(self.env.state_to_array) for ob in obs]
+        states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
         q_next = self.target_net(next_states).detach()
         if self.config.double_q:
             # Here supposes action_values is batch_size×(action_dim) array

@@ -1,31 +1,20 @@
 from abc import ABC, abstractmethod
-from numpy import ndarray
-from typing import Callable, Generic, List, Tuple, TypeVar
+from typing import Generic, List, NamedTuple, TypeVar
 
-State = TypeVar('State')
 
-class ReplayBuffer(ABC, Generic[State]):
+ReplayFeed = TypeVar('ReplayFeed', bound=NamedTuple)
+
+
+class ReplayBuffer(ABC, Generic[ReplayFeed]):
+    def __init__(self, feed: ReplayFeed) -> None:
+        self.feed = feed
+
     @abstractmethod
-    def append(
-            self,
-            state: State,
-            action: int,
-            reward: float,
-            next_state: State,
-            is_terminal: bool,
-    ) -> None:
+    def append(self, *args) -> None:
         pass
 
     @abstractmethod
-    def sample(self, batch_size: int) -> List[Tuple[State, int, float, State, bool]]:
-        pass
-
-    @abstractmethod
-    def sample_with_state_wrapper(
-            self,
-            batch_size: int,
-            wrap_state: Callable[[State], ndarray],
-    ) -> List[Tuple[ndarray, int, float, ndarray, bool]]:
+    def sample(self, batch_size: int) -> List[ReplayFeed]:
         pass
 
     @abstractmethod
