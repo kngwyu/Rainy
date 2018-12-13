@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Callable, Union, Iterable
+from typing import Callable, Iterable, Optional, Union
 from torch import nn, Tensor
 
 # function to init Tensor
@@ -27,11 +27,19 @@ class Initializer:
     """
     def __init__(
             self,
+            nonlinearity: Optional[str] = None,
             weight_init: InitFn = orthogonal(),
             bias_init: InitFn = zero(),
             scale: float = 1.,
     ) -> None:
-        self.weight_init = weight_init
+        """If nonlinearity is specified, use orthogonal with
+           with calucurated gain by torch.init.calculate_gain.
+        """
+        if nonlinearity:
+            gain = nn.init.calculate_gain(nonlinearity)
+            self.weight_init = orthogonal(gain)
+        else:
+            self.weight_init = weight_init
         self.bias_init = bias_init
         self.scale = scale
 

@@ -62,24 +62,28 @@ def calc_cnn_offset(params: List[Tuple[int, int]], img_size: Tuple[int, int]) ->
 
 
 class DqnConv(ConvBody):
-    """Convolutuion Network used in https://www.nature.com/articles/nature14236
+    """Convolutuion Network used in https://www.nature.com/articles/nature14236,
+       but parameterized to use in A2C or else.
     """
     def __init__(
             self,
             dim: Tuple[int, int, int],
             batch_size: int = 32,
             params: List[Tuple[int, ...]] = [(8, 4), (4, 2), (3, 1)],
+            hidden_channels: Tuple[int] = (64, 64),
+            output_dim: int = 512,
             activator: Activator = F.relu,
-            init: Initializer = Initializer()
+            init: Initializer = Initializer(nonlinearity='relu')
     ) -> None:
-        channel, width, height = dim
-        self._output_dim = 512
-        conv1 = nn.Conv2d(channel, batch_size, *params[0])
-        conv2 = nn.Conv2d(32, 64, *params[1])
-        conv3 = nn.Conv2d(64, 64, *params[2])
+        in_channel, width, height = dim
+        hidden1, hidden2 = hidden_channels
+        conv1 = nn.Conv2d(in_channel, batch_size, *params[0])
+        conv2 = nn.Conv2d(batch_size, hidden1, *params[1])
+        conv3 = nn.Conv2d(hidden1, hidden2, *params[2])
         width, height = calc_cnn_offset(params, (width, height))
         assert width != 0 and height != 0
-        fc = nn.Linear(width * height * 64, self._output_dim)
+        fc = nn.Linear(width * height * hidden2, output_dim)
+        self._output_dim = output_dim
         super().__init__(F.relu, init, dim, fc, conv1, conv2, conv3)
 
 
