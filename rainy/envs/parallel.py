@@ -5,11 +5,9 @@ import numpy as np
 from numpy import ndarray
 from torch import Tensor
 from typing import Any, Callable, Generic, Iterable, List, Tuple, TypeVar
+from ..replay import ArrayDeque
 
-from . import EnvExt
-
-Action = TypeVar('Action', int, Tensor)
-State = TypeVar('State')
+from . import Action, EnvExt, State
 
 
 class ParallelEnv(ABC, Generic[Action, State]):
@@ -147,3 +145,37 @@ class DummyParallelEnv(ParallelEnv):
     def num_envs(self) -> int:
         return len(self.envs)
 
+
+class ParallelEnvWrapper(ParallelEnv):
+    def __init__(env: ParallelEnv):
+        self.env = env
+
+    def close(self):
+        self.env.close()
+
+    def reset(self) -> List[State]:
+        return self.env.reset()
+
+    def step(self, actions: Iterable[Action]) -> List[Tuple[State, float, bool, Any]]:
+        return self.env.step(actions)
+
+    def seed(self, seed: int) -> None:
+        self.env.step(actions)
+
+    def num_envs(self) -> int:
+        return self.num_envs()
+
+    def states_to_array(self, states: Iterable[State]) -> ndarray:
+        return self.penv.states_to_array()
+
+
+class FrameStackParallel(ParallelEnvWrapper):
+    def __init__(self, penv: ParallelEnv, nstack: int = 4) -> None:
+        self.venv = venv
+        self.stack = ArrayDeque(capacity=nstack)
+
+    def step(self, actions: Iterable[Action]) -> List[Tuple[State, float, bool, Any]]:
+        return self.env.step(actions)
+
+    def reset(self) -> List[State]:
+        return self.env.reset()
