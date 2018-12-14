@@ -5,7 +5,7 @@ import numpy as np
 from numpy import ndarray
 from torch import Tensor
 from typing import Any, Callable, Generic, Iterable, List, Tuple
-from ..util.meta import NdArray
+from ..util.meta import Array
 from . import Action, EnvExt, State
 
 
@@ -15,14 +15,14 @@ class ParallelEnv(ABC, Generic[Action, State]):
         pass
 
     @abstractmethod
-    def reset(self) -> List[State]:
+    def reset(self) -> Array[State]:
         pass
 
     @abstractmethod
     def step(
             self,
             actions: Iterable[Action]
-    ) -> Tuple[NdArray[State], NdArray[float], NdArray[bool], NdArray[Any]]:
+    ) -> Tuple[Array[State], Array[float], Array[bool], Array[Any]]:
         pass
 
     @abstractmethod
@@ -70,15 +70,15 @@ class MultiProcEnv(ParallelEnv):
         for env in self.envs:
             env.close()
 
-    def reset(self) -> List[State]:
+    def reset(self) -> Array[State]:
         for env in self.envs:
             env.reset()
-        return [env.recv() for env in self.envs]
+        return np.array([env.recv() for env in self.envs])
 
     def step(
             self,
             actions: Iterable[Action]
-    ) -> Tuple[NdArray[State], NdArray[float], NdArray[bool], NdArray[Any]]:
+    ) -> Tuple[Array[State], Array[float], Array[bool], Array[Any]]:
         for env, action in zip(self.envs, actions):
             env.step(action)
         res = [env.recv() for env in self.envs]
@@ -161,13 +161,13 @@ class DummyParallelEnv(ParallelEnv):
         for env in self.envs:
             env.close()
 
-    def reset(self) -> List[State]:
-        return [e.reset() for e in self.envs]
+    def reset(self) -> Array[State]:
+        return np.array([e.reset() for e in self.envs])
 
     def step(
             self,
             actions: Iterable[Action]
-    ) -> Tuple[NdArray[State], NdArray[float], NdArray[bool], NdArray[Any]]:
+    ) -> Tuple[Array[State], Array[float], Array[bool], Array[Any]]:
         res = [e.step_and_reset(a) for (a, e) in zip(actions, self.envs)]
         return tuple(map(np.array, zip(*res)))  # type: ignore
 
@@ -197,13 +197,13 @@ class ParallelEnvWrapper(ParallelEnv):
     def close(self) -> None:
         self.penv.close()
 
-    def reset(self) -> List[State]:
+    def reset(self) -> Array[State]:
         return self.penv.reset()
 
     def step(
             self,
             actions: Iterable[Action]
-    ) -> Tuple[NdArray[State], NdArray[float], NdArray[bool], NdArray[Any]]:
+    ) -> Tuple[Array[State], Array[float], Array[bool], Array[Any]]:
         return self.penv.step(actions)
 
     def seed(self, seed: int) -> None:
@@ -233,7 +233,7 @@ class FrameStackParallel(ParallelEnvWrapper):
     def step(
             self,
             actions: Iterable[Action]
-    ) -> Tuple[ndarray, NdArray[float], NdArray[bool], NdArray[Any]]:
+    ) -> Tuple[ndarray, Array[float], Array[bool], Array[Any]]:
         state, reward, done, info = self.penv.step(actions)
         self.obs = np.roll(self.obs, shift=-1, axis=1)
         for (i, is_terminal) in enumerate(done):
@@ -242,7 +242,7 @@ class FrameStackParallel(ParallelEnvWrapper):
         self.obs[:, -1] = self.states_to_array(state)
         return (self.obs, reward, done, info)
 
-    def reset(self) -> NdArray[State]:
+    def reset(self) -> Array[State]:
         state = self.penv.reset()
         state_array = self.states_to_array(state)
         self.obs.fill(0)

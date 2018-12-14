@@ -15,7 +15,7 @@ class Config:
     def __init__(self) -> None:
         # action/state dims are initialized lazily
         self.action_dim = 0
-        self.state_dim = (0,)
+        self.state_dim: Tuple[int, ...] = (0,)
 
         # these parameters are set really small by default,
         # so please change them manually in use
