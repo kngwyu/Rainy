@@ -1,5 +1,5 @@
 try:
-    from typing import GenericMeta
+    from typing import GenericMeta, NamedTupleMeta
 
     class GenericNamedMeta(GenericMeta, NamedTupleMeta):
         pass
