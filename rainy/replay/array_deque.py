@@ -1,10 +1,11 @@
 """Implementation of deque using 2 lists
 """
+from collections.abc import Sequence
 from typing import Any, List, Optional
 from ..util.sample import sample_indices
 
 
-class ArrayDeque:
+class ArrayDeque(Sequence):
     def __init__(self, capacity: Optional[int] = None) -> None:
         self.front: List[Any] = []
         self.back: List[Any] = []
@@ -13,7 +14,7 @@ class ArrayDeque:
     def __len__(self):
         return len(self.front) + len(self.back)
 
-    def __getitem__(self, i: int) -> Any:
+    def __getitem__(self, i: int) -> Any:  # type: ignore
         front_len = len(self.front)
         if i < front_len:
             return self.front[~i]
@@ -41,7 +42,7 @@ class ArrayDeque:
         if not self.back:
             n = len(self)
             if n >= 2:
-                self.balance()
+                self._balance()
             elif n >= 1:
                 return self.front.pop()
             else:
@@ -49,7 +50,7 @@ class ArrayDeque:
         return self.back.pop()
 
     def pop_front(self) -> Any:
-        self.balance()
+        self._balance()
         if not self.front:
             raise IndexError('[ArrayDeque::pop_front] Empty')
         return self.front.pop()
@@ -58,7 +59,7 @@ class ArrayDeque:
         self.front.clear()
         self.back.clear()
 
-    def balance(self) -> None:
+    def _balance(self) -> None:
         front_len = len(self.front)
         back_len = len(self.back)
         if 3 * front_len < back_len:
@@ -79,3 +80,6 @@ class ArrayDeque:
             raise ValueError('[ArrayDeque::sample] n < k')
         return [self.front[i] if i < front_len else self.back[i - front_len]
                 for i in sample_indices(n, k)]
+
+    def __repr__(self):
+        return "RandomAccessQueue({})".format(str(list(self)))

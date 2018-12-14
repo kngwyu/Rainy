@@ -3,7 +3,7 @@ from collections import deque
 import random
 
 
-def test_deque_push_back():
+def test_deque_push_back() -> None:
     deq = ArrayDeque(capacity=10)
     for i in range(14):
         deq.push_back(i)
@@ -12,7 +12,7 @@ def test_deque_push_back():
         assert deq[i - 4] == i
 
 
-def test_deque_push_front():
+def test_deque_push_front() -> None:
     deq = ArrayDeque(capacity=10)
     for i in range(14):
         deq.push_front(i)
@@ -21,7 +21,7 @@ def test_deque_push_front():
         assert deq[13 - i] == i
 
 
-def test_deque_stress():
+def test_deque_stress() -> None:
     mydeq = ArrayDeque()
     deq = deque()
     N = 10000
@@ -45,7 +45,7 @@ def test_deque_stress():
             assert deq.popleft() == mydeq.pop_front()
 
 
-def test_deque_sample():
+def test_deque_sample() -> None:
     deq = ArrayDeque()
     N = 10000
     for i in range(N):
@@ -54,3 +54,15 @@ def test_deque_sample():
     samples = deq.sample(K)
     samples = list(set(samples))
     assert len(samples) == K
+
+
+def test_deque_sequence() -> None:
+    deq = ArrayDeque(capacity=10)
+    for i in range(14):
+        deq.push_back(i)
+    assert 12 in deq
+    assert 18 not in deq
+    assert min(deq) == 4
+    assert len(deq) == 10
+    assert deq.count(4) == 1
+
