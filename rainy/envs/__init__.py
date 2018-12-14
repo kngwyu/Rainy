@@ -28,14 +28,14 @@ class Atari(EnvExt):
             self,
             name: str,
             clip_rewards: bool = True,
-            episode_life: bool = True,
+            episodic_life: bool = True,
             frame_stack: bool = True,
     ) -> None:
         name += 'NoFrameskip-v4'
         env = make_atari(name)
         env = wrap_deepmind(
             env,
-            episode_life=episode_life,
+            episodic_life=episodic_life,
             clip_rewards=clip_rewards,
             frame_stack=frame_stack
         )
@@ -54,7 +54,7 @@ class Atari(EnvExt):
 # based on https://github.com/ikostrikov/pytorch-a2c-ppo-acktr/blob/master/envs.py
 class TransposeImage(gym.ObservationWrapper):
     def __init__(self, env: gym.Env = None) -> None:
-        super(TransposeImage, self).__init__(env)
+        super().__init__(env)
         obs_shape = self.observation_space.shape
         self.scaler = np.vectorize(lambda x: x / 255.0)
         self.observation_space: gym.Box = Box(

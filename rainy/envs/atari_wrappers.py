@@ -79,8 +79,8 @@ class EpisodicLifeEnv(gym.Wrapper):
         # then update lives to handle bonus lives
         lives = self.env.unwrapped.ale.lives()
         if lives < self.lives and lives > 0:
-            # for Qbert sometimes we stay in lives == 0 condtion for a few frames
-            # so its important to keep lives > 0, so that we only reset once
+            # for Qbert sometimes we stay in lives == 0 condition for a few frames
+            # so it's important to keep lives > 0, so that we only reset once
             # the environment advertises done.
             done = True
         self.lives = lives
@@ -141,22 +141,26 @@ class ClipRewardEnv(gym.RewardWrapper):
 
 
 class WarpFrame(gym.ObservationWrapper):
-    def __init__(self, env):
+    def __init__(self, env, width=84, height=84, grayscale=True):
         """Warp frames to 84x84 as done in the Nature paper and later work."""
         gym.ObservationWrapper.__init__(self, env)
-        self.width = 84
-        self.height = 84
+        self.width = width
+        self.height = height
+        self.grayscale = grayscale
         self.observation_space = spaces.Box(
             low=0,
             high=255,
-            shape=(self.height, self.width, 1),
+            shape=(self.height, self.width, 1 if grayscale else 3),
             dtype=np.uint8
         )
 
     def observation(self, frame):
-        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        if self.grayscale:
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
         frame = cv2.resize(frame, (self.width, self.height), interpolation=cv2.INTER_AREA)
-        return frame[:, :, None]
+        if self.grayscale:
+            frame = np.expand_dims(frame, -1)
+        return frame
 
 
 class FrameStack(gym.Wrapper):
@@ -176,7 +180,7 @@ class FrameStack(gym.Wrapper):
         self.observation_space = spaces.Box(
             low=0,
             high=255,
-            shape=(shp[0], shp[1], shp[2] * k),
+            shape=(shp[:-1] + (shp[-1] * k,)),
             dtype=env.observation_space.dtype
         )
 
@@ -212,7 +216,7 @@ class ScaledFloatFrame(gym.ObservationWrapper):
         return np.array(observation).astype(np.float32) / 255.0
 
 
-class LazyFrames(object):
+class LazyFrames:
     def __init__(self, frames):
         """This object ensures that common frames between the observations are only stored once.
         It exists purely to optimize memory usage which can be huge for DQN's 1M frames replay
@@ -226,7 +230,7 @@ class LazyFrames(object):
 
     def _force(self):
         if self._out is None:
-            self._out = np.concatenate(self._frames, axis=2)
+            self._out = np.concatenate(self._frames, axis=-1)
             self._frames = None
         return self._out
 
@@ -243,7 +247,7 @@ class LazyFrames(object):
         return self._force()[i]
 
 
-def make_atari(env_id):
+def make_atari(env_id: str) -> gym.Env:
     env = gym.make(env_id)
     assert 'NoFrameskip' in env.spec.id
     env = NoopResetEnv(env, noop_max=30)
@@ -251,10 +255,16 @@ def make_atari(env_id):
     return env
 
 
-def wrap_deepmind(env, episode_life=True, clip_rewards=True, frame_stack=False, scale=False):
+def wrap_deepmind(
+        env: gym.Env,
+        episodic_life: bool = True,
+        clip_rewards: bool = True,
+        frame_stack: bool = False,
+        scale: bool = False
+) -> gym.Env:
     """Configure environment for DeepMind-style Atari.
     """
-    if episode_life:
+    if episodic_life:
         env = EpisodicLifeEnv(env)
     if 'FIRE' in env.unwrapped.get_action_meanings():
         env = FireResetEnv(env)

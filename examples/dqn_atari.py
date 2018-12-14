@@ -23,7 +23,7 @@ def config() -> Config:
     c.train_start = 50000
     c.sync_freq = 10000
     c.max_steps = int(2e7)
-    c.eval_env = Atari('Breakout', episode_life=False)
+    c.eval_env = Atari('Breakout', episodic_life=False)
     c.eval_freq = None
     return c
 
