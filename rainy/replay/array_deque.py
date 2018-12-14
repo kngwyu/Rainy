@@ -6,10 +6,12 @@ from ..util.sample import sample_indices
 
 
 class ArrayDeque(Sequence):
-    def __init__(self, capacity: Optional[int] = None) -> None:
-        self.front: List[Any] = []
-        self.back: List[Any] = []
+    def __init__(self, capacity: Optional[int] = None, init_list: List[Any] = []) -> None:
         self.capacity = capacity
+        self.front: List[Any] = []
+        if capacity:
+            init_list = init_list[-capacity:]
+        self.back: List[Any] = init_list
 
     def __len__(self):
         return len(self.front) + len(self.back)
@@ -82,4 +84,4 @@ class ArrayDeque(Sequence):
                 for i in sample_indices(n, k)]
 
     def __repr__(self):
-        return "RandomAccessQueue({})".format(str(list(self)))
+        return "ArrayDeque({})".format(str(list(self)))

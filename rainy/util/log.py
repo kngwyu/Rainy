@@ -68,4 +68,4 @@ class Logger(logging.Logger):
             delta = datetime.now() - self.exp_start
             msg['elapsed-time'] = delta.total_seconds()
             msg['name'] = name
-            self.log(EXP, json.dumps(msg), args, **kwargs)
+            self._log(EXP, json.dumps(msg), args, **kwargs)  # type: ignore

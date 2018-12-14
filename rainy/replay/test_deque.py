@@ -66,3 +66,11 @@ def test_deque_sequence() -> None:
     assert len(deq) == 10
     assert deq.count(4) == 1
 
+
+def test_deque_init_list() -> None:
+    deq = ArrayDeque(capacity=10, init_list=[1, 2, 3])
+    assert list(deq) == [1, 2, 3]
+    deq = ArrayDeque(capacity=5, init_list=[1, 2, 3, 4, 5, 6, 7])
+    assert list(deq) == [3, 4, 5, 6, 7]
+
+

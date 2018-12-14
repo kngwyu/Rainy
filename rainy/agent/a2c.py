@@ -37,7 +37,7 @@ class A2cAgent(NStepAgent):
             episodic_rewards: List[float],
     ) -> Tuple[ndarray, Tuple[Policy, Tensor, ndarray, ndarray]]:
         policy, value = self.net(self.penv.states_to_array(states))
-        next_states, rewards, done, _ = map(np.asarray, zip(*self.penv.step(policy.action())))
+        next_states, rewards, done, _ = self.penv.step(policy.action())
         self.rewards += rewards
         for i in range(self.config.num_workers):
             if done[i]:

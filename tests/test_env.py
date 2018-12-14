@@ -1,7 +1,8 @@
 from enum import Enum
 from functools import reduce
 import numpy as np
-from rainy.envs import DummyParallelEnv, EnvExt, MultiProcEnv, ParallelEnv
+from numpy.testing import assert_array_almost_equal
+from rainy.envs import DummyParallelEnv, EnvExt, MultiProcEnv, ParallelEnv, FrameStackParallel
 import pytest
 from typing import Tuple
 
@@ -18,11 +19,11 @@ class State(Enum):
 
     def to_array(self, dim: tuple) -> np.array:
         length = reduce(lambda x, y: x * y, dim)
-        return np.repeat(self.value, length).reshape(dim)
+        return np.repeat(float(self.value) + 1.0, length).reshape(dim)
 
 
 class DummyEnv(EnvExt):
-    def __init__(self) -> None:
+    def __init__(self, array_dim: Tuple[int, ...] = (16, 16)) -> None:
         self.state = State.START
         self.transition = [
             [0.0, 0.7, 0.3, 0.0, 0.0],
@@ -32,6 +33,7 @@ class DummyEnv(EnvExt):
             [0.0, 0.0, 0.0, 0.0, 1.0],
         ]
         self.rewards = [0., 0., 0., -10., 20.]
+        self.array_dim = array_dim
 
     def reset(self) -> State:
         self.state = State.START
@@ -42,14 +44,31 @@ class DummyEnv(EnvExt):
         self.state = State(np.random.choice(np.arange(5), 1, p=prob))
         return self.state, self.rewards, self.state.is_end(), None
 
+    @property
     def action_dim(self) -> int:
         return 1
 
+    @property
     def state_dim(self) -> Tuple[int, int]:
-        return (4, 4)
+        return self.array_dim
 
     def close(self) -> None:
         pass
+
+    def state_to_array(self, state: State) -> np.ndarray:
+        return state.to_array(self.array_dim)
+
+
+class DummyEnvDeterministic(DummyEnv):
+    def __init__(self, array_dim: Tuple[int, ...] = (16, 16)) -> None:
+        super().__init__(array_dim)
+        self.transition = [
+            [0.0, 1.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0, 1.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 1.0],
+        ]
 
 
 @pytest.mark.parametrize('penv', [
@@ -62,7 +81,7 @@ def test_penv(penv: ParallelEnv) -> None:
         assert s == State.START
     ok = [False] * 4
     for _ in range(5):
-        _, _, done, _ = map(np.asarray, zip(*penv.step(np.repeat(None, 4))))
+        _, _, done, _ = penv.step(np.repeat(None, 4))
         for i, done in enumerate(done):
             ok[i] |= done
     for i in range(4):
@@ -70,3 +89,21 @@ def test_penv(penv: ParallelEnv) -> None:
     assert penv.num_envs() == 4
     penv.close()
 
+
+@pytest.mark.parametrize('penv, nstack', [
+    (DummyParallelEnv(lambda: DummyEnvDeterministic(), 6), 4),
+    (MultiProcEnv(lambda: DummyEnvDeterministic(), 6), 4),
+    (DummyParallelEnv(lambda: DummyEnvDeterministic(), 6), 8)
+])
+def test_frame_stack(penv: ParallelEnv, nstack: int) -> None:
+    penv = FrameStackParallel(penv, nstack=nstack)
+    init = np.array(penv.reset())
+    assert init.shape == (6, nstack, 16, 16)
+    assert penv.state_dim == (nstack, 16, 16)
+    for i in range(3):
+        obs, *_ = penv.step([None] * penv.num_envs())
+        if i < 2:
+            assert_array_almost_equal(obs[:, -2 - i], init[:, -1])
+    assert_array_almost_equal(obs[:, -2], np.zeros((6, 16, 16)))
+    assert_array_almost_equal(obs[:, -1], np.ones((6, 16, 16)))
+    penv.close()

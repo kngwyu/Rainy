@@ -5,7 +5,7 @@ from .net import actor_critic, ValuePredictor, value
 from .explore import LinearCooler, Explorer, EpsGreedy
 from .replay import DqnReplayFeed, ReplayBuffer, UniformReplayBuffer
 from .util import Device, Logger
-from .envs import ClassicalControl, EnvExt, ParallelEnv
+from .envs import ClassicalControl, DummyParallelEnv, EnvExt, ParallelEnv
 
 Params = Iterable[Union[Tensor, dict]]
 NetFn = Callable[[Tuple[int, ...], int, Device], nn.Module]
@@ -66,11 +66,13 @@ class Config:
             'value': value.fc,
             'actor-critic': actor_critic.fc,
         }
+        self.__paralle_env = lambda env_gen, num_w: DummyParallelEnv(env_gen, num_w)
 
     def env(self) -> EnvExt:
         env = self.__env()
-        self.action_dim = env.action_dim
-        self.state_dim = env.state_dim
+        if self.state_dim == (0,):
+            self.action_dim = env.action_dim
+            self.state_dim = env.state_dim
         return env
 
     def set_env(self, env: Callable[[], EnvExt]) -> None:
@@ -107,7 +109,10 @@ class Config:
         self.__replay = replay
 
     def parallel_env(self) -> ParallelEnv:
-        return self.__parallel_env(self.__env, self.num_workers)
+        penv = self.__parallel_env(self.__env, self.num_workers)
+        self.action_dim = penv.action_dim
+        self.state_dim = penv.state_dim
+        return penv
 
     def set_parallel_env(self, parallel_env: Callable[[Callable[[], EnvExt], int], ParallelEnv]):
         self.__parallel_env = parallel_env

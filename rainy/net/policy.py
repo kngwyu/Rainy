@@ -3,7 +3,7 @@ from torch.distributions import Categorical, Distribution
 
 
 class Policy:
-    def __init__(self, dist: Distribution):
+    def __init__(self, dist: Distribution) -> None:
         self.dist = dist
         self._action = None
 
@@ -26,5 +26,3 @@ class Policy:
 
 def softmax(params: Tensor):
     return Policy(Categorical(logits=params))
-
-

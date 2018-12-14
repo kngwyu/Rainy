@@ -6,19 +6,19 @@ from rainy import Config, net
 from rainy.agent import A2cAgent
 from rainy.envs import Atari
 import rainy.util.cli as cli
-from rainy.envs import MultiProcEnv
+from rainy.envs import FrameStackParallel, MultiProcEnv
 from torch.optim import RMSprop
 
 
 def config() -> Config:
     c = Config()
-    c.set_env(lambda: Atari('Breakout'))
+    c.set_env(lambda: Atari('Breakout', frame_stack=False, frame_stack_parallel=True))
     c.set_optimizer(
         lambda params: RMSprop(params, lr=7e-4, alpha=0.99, eps=1e-5)
     )
     c.set_net_fn('actor-critic', net.actor_critic.ac_conv)
     c.num_workers = 16
-    c.set_parallel_env(lambda env_gen, num_w: MultiProcEnv(env_gen, num_w))
+    c.set_parallel_env(lambda env_gen, num_w: FrameStackParallel(MultiProcEnv(env_gen, num_w)))
     c.grad_clip = 0.5
     c.gae_tau = 1.0
     c.value_loss_weight = 0.5
