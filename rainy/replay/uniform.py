@@ -26,7 +26,7 @@ class UniformReplayBuffer(ReplayBuffer, Generic[ReplayFeed]):
         return len(self.buf)
 
 
-class DqnReplayFeed(Generic[State], NamedTuple, metaclass=GenericNamedMeta):
+class DqnReplayFeed(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
     state: State
     action: int
     reward: float
