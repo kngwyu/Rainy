@@ -3,6 +3,7 @@ from torch import nn, Tensor
 from typing import NamedTuple, Tuple, Union
 from .body import DqnConv, FcBody, NetworkBody
 from .head import LinearHead, NetworkHead
+from .init import Initializer, orthogonal
 from .policy import Policy, softmax
 from ..util import Device
 
@@ -63,7 +64,7 @@ def ac_conv(state_dim: Tuple[int, int, int], action_dim: int, device: Device) ->
        in A3C paper(http://proceedings.mlr.press/v48/mniha16.pdf)
     """
     body = DqnConv(state_dim, hidden_channels=(32, 64, 32), output_dim=256)
-    ac_head = LinearHead(body.output_dim, action_dim)
+    ac_head = LinearHead(body.output_dim, action_dim, Initializer(weight_init=orthogonal(0.01)))
     cr_head = LinearHead(body.output_dim, 1)
     return SoftmaxActorCriticNet(body, ac_head, cr_head, device=device)
 
@@ -72,7 +73,6 @@ def fc(state_dim: Tuple[int, ...], action_dim: int, device: Device = Device()) -
     """FC body + Softmax head ActorCritic network
     """
     body = FcBody(state_dim[0])
-    ac_head = LinearHead(body.output_dim, action_dim)
+    ac_head = LinearHead(body.output_dim, action_dim, Initializer(weight_init=orthogonal(0.01)))
     cr_head = LinearHead(body.output_dim, 1)
     return SoftmaxActorCriticNet(body, ac_head, cr_head, device=device)
-
