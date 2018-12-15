@@ -106,4 +106,5 @@ def test_frame_stack(penv: ParallelEnv, nstack: int) -> None:
             assert_array_almost_equal(obs[:, -2 - i], init[:, -1])
     assert_array_almost_equal(obs[:, -2], np.zeros((6, 16, 16)))
     assert_array_almost_equal(obs[:, -1], np.ones((6, 16, 16)))
+    assert_array_almost_equal(penv.reset(), obs)
     penv.close()

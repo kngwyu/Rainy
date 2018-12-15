@@ -20,13 +20,13 @@ def config() -> Config:
     c.nworkers = 16
     c.set_parallel_env(lambda env_gen, num_w: FrameStackParallel(MultiProcEnv(env_gen, num_w)))
     c.grad_clip = 0.5
-    c.gae_tau = 1.0
     c.value_loss_weight = 0.5
     c.use_gae = False
     c.max_steps = int(8e7)
     c.eval_env = Atari('Breakout', episodic_life=False)
     c.eval_freq = None
     c.episode_log_freq = 1000
+    c.seed = 1
     return c
 
 

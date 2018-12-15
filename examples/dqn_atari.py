@@ -25,6 +25,7 @@ def config() -> Config:
     c.max_steps = int(2e7)
     c.eval_env = Atari('Breakout', episodic_life=False)
     c.eval_freq = None
+    c.seed = 1
     return c
 
 
