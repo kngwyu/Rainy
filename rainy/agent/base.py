@@ -155,11 +155,7 @@ class NStepAgent(Agent):
         self.env.close()
         self.penv.close()
 
-    def step_len(self) -> int:
-        return self.config.nsteps
-
     def train_episode(self) -> List[float]:
-        steps = 0
         if self.storage.initialized():
             states = self.storage.states[0]
         else:
@@ -167,12 +163,10 @@ class NStepAgent(Agent):
                 self.penv.seed(self.config.seed)
             states = self.penv.reset()
             self.storage.set_initial_state(states)
-        step = self.step_len() * self.config.nworkers
+        step = self.config.nsteps * self.config.nworkers
         while True:
             states, rewards = self.nstep(states)
-            steps += step
             self.total_steps += step
             if rewards:
                 break
-        self.states = states
         return rewards

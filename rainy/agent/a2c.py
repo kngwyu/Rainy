@@ -31,7 +31,7 @@ class A2cAgent(NStepAgent):
     def _one_step(self, states: Array[State], episodic_rewards: List[float]) -> Array[State]:
         with torch.no_grad():
             policy, value = self.net(self.penv.states_to_array(states))
-        next_states, rewards, done, _ = self.penv.step(policy.action())
+        next_states, rewards, done, infos = self.penv.step(policy.action())
         self.rewards += rewards
         for i in filter(lambda i: done[i], range(self.config.nworkers)):
             episodic_rewards.append(self.rewards[i])
@@ -53,7 +53,7 @@ class A2cAgent(NStepAgent):
         policy, value = self.net(self.storage.batched_states(self.penv))
         policy.set_action(self.storage.batched_actions())
 
-        advantage = self.storage.batched_returns().flatten() - value
+        advantage = self.storage.batched_returns() - value
         policy_loss = -(policy.log_prob() * advantage.detach()).mean()
         value_loss = advantage.pow(2).mean()
         entropy_loss = policy.entropy().mean()
