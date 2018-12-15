@@ -33,9 +33,9 @@ class A2cAgent(NStepAgent):
             policy, value = self.net(self.penv.states_to_array(states))
         next_states, rewards, done, infos = self.penv.step(policy.action())
         self.rewards += rewards
-        for i in filter(lambda i: done[i], range(self.config.nworkers)):
-            episodic_rewards.append(self.rewards[i])
-            self.rewards[i] = 0.0
+        for info in infos:
+            if 'episode' in info.keys():
+                episodic_rewards.append(self.rewards[i])
         self.storage.push(next_states, rewards, done, policy=policy, value=value)
         return next_states
 
