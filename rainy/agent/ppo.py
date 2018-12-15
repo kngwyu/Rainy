@@ -19,7 +19,7 @@ class PPOAgent(A2cAgent):
 
     def nstep(self, states: Iterable[State]) -> Tuple[Iterable[State], Iterable[float]]:
         rollouts, episodic_rewards = [], []
-        for _ in range(self.config.nstep):
+        for _ in range(self.config.nsteps):
             states, rollout = self._one_step(states, episodic_rewards)
             rollouts.append(rollout)
         next_value = self.net(self.penv.states_to_array(states)).value.detach()

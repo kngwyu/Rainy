@@ -4,7 +4,7 @@ from multiprocessing.connection import Connection
 import numpy as np
 from numpy import ndarray
 from torch import Tensor
-from typing import Any, Callable, Generic, Iterable, List, Tuple
+from typing import Any, Callable, Generic, Iterable, Tuple
 from ..util.meta import Array
 from . import Action, EnvExt, State
 
@@ -43,27 +43,27 @@ class ParallelEnv(ABC, Generic[Action, State]):
     def state_dim(self) -> Tuple[int, ...]:
         pass
 
-    @abstractmethod
-    def states_to_array(self, states: Iterable[State]) -> ndarray:
-        return np.asarray([s for s in states])
+    @property
+    def states_to_array(self, states: Iterable[State]) -> Array:
+        pass
 
 
-def make_parallel_env(env_gen: Callable[[], EnvExt], num_workers: int) -> ParallelEnv:
+def make_parallel_env(env_gen: Callable[[], EnvExt], nworkers: int) -> ParallelEnv:
     e = env_gen()
     if not isinstance(e, EnvExt):
         raise ValueError('Needs EnvExt, but given {}'.format(type(e)))
-    if num_workers < 1:
-        raise ValueError('num_workers must be larger than 0')
-    elif num_workers == 1:
+    if nworkers < 1:
+        raise ValueError('nworkers must be larger than 0')
+    elif nworkers == 1:
         return DummyParallelEnv(e, 1)
     else:
-        return MultiProcEnv(env_gen, num_workers)
+        return MultiProcEnv(env_gen, nworkers)
 
 
 class MultiProcEnv(ParallelEnv):
-    def __init__(self, env_gen: Callable[[], EnvExt], num_workers: int) -> None:
-        assert num_workers >= 2
-        self.envs = [_ProcHandler(env_gen()) for _ in range(num_workers)]
+    def __init__(self, env_gen: Callable[[], EnvExt], nworkers: int) -> None:
+        assert nworkers >= 2
+        self.envs = [_ProcHandler(env_gen()) for _ in range(nworkers)]
         self._reserved = env_gen()
 
     def close(self) -> None:
@@ -154,8 +154,8 @@ class _ProcWorker(mp.Process):
 
 
 class DummyParallelEnv(ParallelEnv):
-    def __init__(self, gen: Callable[[], EnvExt], num_workers: int) -> None:
-        self.envs = [gen() for _ in range(num_workers)]
+    def __init__(self, gen: Callable[[], EnvExt], nworkers: int) -> None:
+        self.envs = [gen() for _ in range(nworkers)]
 
     def close(self) -> None:
         for env in self.envs:

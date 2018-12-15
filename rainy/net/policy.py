@@ -7,6 +7,9 @@ class Policy:
         self.dist = dist
         self._action = None
 
+    def detach_(self) -> None:
+        self.dist.detach_()
+
     def action(self) -> Tensor:
         if self._action is None:
             self._action = self.dist.sample().detach()
@@ -22,6 +25,9 @@ class Policy:
 
     def entropy(self) -> Tensor:
         return self.dist.entropy()
+
+    def set_action(self, action: Tensor) -> None:
+        self._action = action
 
 
 def softmax(params: Tensor):

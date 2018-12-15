@@ -24,7 +24,7 @@ class ActorCriticNet(nn.Module):
         self.actor_head = actor_head
         self.critic_head = critic_head
         self.device = device
-        self.to(self.device())
+        self.to(self.device.unwrapped)
 
     @property
     def state_dim(self) -> Tuple[int, ...]:
@@ -62,7 +62,7 @@ def ac_conv(state_dim: Tuple[int, int, int], action_dim: int, device: Device) ->
     """Convolutuion network used for atari experiments
        in A3C paper(http://proceedings.mlr.press/v48/mniha16.pdf)
     """
-    body = DqnConv(state_dim, hidden_channels=(64, 32), output_dim=256)
+    body = DqnConv(state_dim, hidden_channels=(32, 64, 32), output_dim=256)
     ac_head = LinearHead(body.output_dim, action_dim)
     cr_head = LinearHead(body.output_dim, 1)
     return SoftmaxActorCriticNet(body, ac_head, cr_head, device=device)

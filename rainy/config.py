@@ -36,10 +36,10 @@ class Config:
         self.sync_freq = 200
 
         # for multi worker algorithms
-        self.num_workers = 8
+        self.nworkers = 8
 
         # for n-step algorithms
-        self.nstep = 5
+        self.nsteps = 5
 
         # for actor-critic
         self.entropy_weight = 0.01
@@ -109,7 +109,7 @@ class Config:
         self.__replay = replay
 
     def parallel_env(self) -> ParallelEnv:
-        penv = self.__parallel_env(self.__env, self.num_workers)
+        penv = self.__parallel_env(self.__env, self.nworkers)
         self.action_dim = penv.action_dim
         self.state_dim = penv.state_dim
         return penv

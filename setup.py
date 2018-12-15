@@ -14,7 +14,7 @@ requirements = [
     'torch>=0.4',
 ]
 test_requirements = ['pytest>=3.0']
-print(requirements)
+
 setup(name='rainy',
       author='Yuji Kanagawa',
       url='https://github.com/kngwyu/Rainy',

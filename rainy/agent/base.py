@@ -3,9 +3,11 @@ import numpy as np
 from pathlib import Path
 import torch
 from torch import nn
-from typing import Callable, Iterable, List, Tuple
+from typing import Callable, List, Tuple
 from ..config import Config
+from .nstep_common import RolloutStorage
 from ..envs import Action, EnvExt, State
+from ..util.meta import Array
 
 
 class Agent(ABC):
@@ -107,7 +109,7 @@ class Agent(ABC):
         torch.save(save_dict, log_dir.joinpath(filename))
 
     def load(self, filename: str) -> None:
-        saved_dict = torch.load(filename, map_location=self.config.device())
+        saved_dict = torch.load(filename, map_location=self.config.device.unwrapped)
         for idx, member_str in enumerate(self.members_to_save()):
             saved_item = saved_dict[idx]
             mem = getattr(self, member_str)
@@ -141,12 +143,12 @@ class OneStepAgent(Agent):
 class NStepAgent(Agent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.states = None
-        self.rewards = np.zeros(config.num_workers, dtype=np.float32)
+        self.storage = RolloutStorage(config.nsteps, config.nworkers, config.device)
+        self.rewards = np.zeros(config.nworkers, dtype=np.float32)
         self.penv = config.parallel_env()
 
     @abstractmethod
-    def nstep(self, states: Iterable[State]) -> Tuple[Iterable[State], Iterable[float]]:
+    def nstep(self, states: Array[State]) -> Tuple[Array[State], Array[float]]:
         pass
 
     def close(self) -> None:
@@ -154,17 +156,18 @@ class NStepAgent(Agent):
         self.penv.close()
 
     def step_len(self) -> int:
-        return self.config.nstep
+        return self.config.nsteps
 
     def train_episode(self) -> List[float]:
         steps = 0
-        if self.states is None:
+        if self.storage.initialized():
+            states = self.storage.states[0]
+        else:
             if self.config.seed:
                 self.penv.seed(self.config.seed)
             states = self.penv.reset()
-        else:
-            states = self.states
-        step = self.step_len() * self.config.num_workers
+            self.storage.set_initial_state(states)
+        step = self.step_len() * self.config.nworkers
         while True:
             states, rewards = self.nstep(states)
             steps += step

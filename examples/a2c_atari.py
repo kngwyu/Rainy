@@ -17,7 +17,7 @@ def config() -> Config:
         lambda params: RMSprop(params, lr=7e-4, alpha=0.99, eps=1e-5)
     )
     c.set_net_fn('actor-critic', net.actor_critic.ac_conv)
-    c.num_workers = 16
+    c.nworkers = 16
     c.set_parallel_env(lambda env_gen, num_w: FrameStackParallel(MultiProcEnv(env_gen, num_w)))
     c.grad_clip = 0.5
     c.gae_tau = 1.0

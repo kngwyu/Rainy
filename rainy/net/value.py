@@ -37,7 +37,7 @@ class ValueNet(ValuePredictor, nn.Module):
         else:
             self.body = body
         self.device = device
-        self.to(self.device())
+        self.to(self.device.unwrapped)
 
     def action_values(self, state: ndarray, nostack: bool = False) -> Tensor:
         if nostack:

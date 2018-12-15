@@ -68,21 +68,20 @@ class DqnConv(ConvBody):
     def __init__(
             self,
             dim: Tuple[int, int, int],
-            batch_size: int = 32,
             kernel_and_strides: List[Tuple[int, int]] = [(8, 4), (4, 2), (3, 1)],
-            hidden_channels: Tuple[int, int] = (64, 64),
+            hidden_channels: Tuple[int, int, int] = (32, 64, 64),
             output_dim: int = 512,
             activator: Activator = F.relu,
             init: Initializer = Initializer(nonlinearity = 'relu')
     ) -> None:
         in_channel, width, height = dim
-        hidden1, hidden2 = hidden_channels
-        conv1 = nn.Conv2d(in_channel, batch_size, *kernel_and_strides[0])
-        conv2 = nn.Conv2d(batch_size, hidden1, *kernel_and_strides[1])
-        conv3 = nn.Conv2d(hidden1, hidden2, *kernel_and_strides[2])
+        hidden1, hidden2, hidden3 = hidden_channels
+        conv1 = nn.Conv2d(in_channel, hidden1, *kernel_and_strides[0])
+        conv2 = nn.Conv2d(hidden1, hidden2, *kernel_and_strides[1])
+        conv3 = nn.Conv2d(hidden2, hidden3, *kernel_and_strides[2])
         width, height = calc_cnn_offset(kernel_and_strides, (width, height))
         assert width != 0 and height != 0
-        fc = nn.Linear(width * height * hidden2, output_dim)
+        fc = nn.Linear(width * height * hidden3, output_dim)
         self._output_dim = output_dim
         super().__init__(F.relu, init, dim, fc, conv1, conv2, conv3)
 

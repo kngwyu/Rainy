@@ -20,7 +20,7 @@ class DqnAgent(OneStepAgent):
         assert self.replay.feed == DqnReplayFeed
         self.batch_indices = torch.arange(
             config.batch_size,
-            device=self.config.device(),
+            device=self.config.device.unwrapped,
             dtype=torch.long
         )
 
