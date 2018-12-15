@@ -12,7 +12,7 @@ from torch.optim import RMSprop
 
 def config() -> Config:
     c = Config()
-    c.set_env(lambda: Atari('Breakout', frame_stack=False, frame_stack_parallel=True))
+    c.set_env(lambda: Atari('Breakout', frame_stack=False))
     c.set_optimizer(
         lambda params: RMSprop(params, lr=7e-4, alpha=0.99, eps=1e-5)
     )

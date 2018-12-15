@@ -227,7 +227,14 @@ class ParallelEnvWrapper(ParallelEnv):
 class FrameStackParallel(ParallelEnvWrapper):
     def __init__(self, penv: ParallelEnv, nstack: int = 4, dtype: type = np.float32) -> None:
         super().__init__(penv)
-        self.shape = (nstack, *self.penv.state_dim)
+        idx = 0
+        shape = self.penv.state_dim
+        for dim in shape:
+            if dim == 1:
+                idx += 1
+            else:
+                break
+        self.shape = (nstack, *self.penv.state_dim[idx:])
         self.obs = np.zeros((self.num_envs(), *self.shape), dtype=dtype)
 
     def step(
@@ -236,17 +243,15 @@ class FrameStackParallel(ParallelEnvWrapper):
     ) -> Tuple[ndarray, Array[float], Array[bool], Array[Any]]:
         state, reward, done, info = self.penv.step(actions)
         self.obs = np.roll(self.obs, shift=-1, axis=1)
-        for (i, is_terminal) in enumerate(done):
-            if is_terminal:
-                self.obs[i] = 0.0
-        self.obs[:, -1] = self.states_to_array(state)
+        for i, _ in filter(lambda t: t[1], enumerate(done)):
+            self.obs[i] = 0.0
+        self.obs[:, -1] = self.states_to_array(state).squeeze()
         return (self.obs, reward, done, info)
 
     def reset(self) -> Array[State]:
-        state = self.penv.reset()
-        state_array = self.states_to_array(state)
         self.obs.fill(0)
-        self.obs[:, -1] = state_array
+        state = self.penv.reset()
+        self.obs[:, -1] = self.states_to_array(state).squeeze()
         return self.obs
 
     @property

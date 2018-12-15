@@ -6,7 +6,7 @@ import numpy as np
 from numpy import ndarray
 import gym
 from gym.spaces import Box
-from typing import Optional, Tuple, Union
+from typing import Tuple, Union
 
 
 class ClassicalControl(EnvExt):
@@ -31,10 +31,7 @@ class Atari(EnvExt):
             clip_rewards: bool = True,
             episodic_life: bool = True,
             frame_stack: bool = True,
-            frame_stack_parallel: bool = False,
     ) -> None:
-        assert not (frame_stack and frame_stack_parallel), \
-            "You can't specify frame_stack and frame_stack_parallel simultaneously."
         name += 'NoFrameskip-v4'
         env = make_atari(name)
         env = wrap_deepmind(
@@ -43,7 +40,7 @@ class Atari(EnvExt):
             clip_rewards=clip_rewards,
             frame_stack=frame_stack
         )
-        env = TransposeImage(env, frame_stack_parallel=frame_stack_parallel)
+        env = TransposeImage(env)
         super().__init__(env)
 
     @property
@@ -68,17 +65,10 @@ class TransposeImage(gym.ObservationWrapper):
         super().__init__(env)
         obs_shape = self.observation_space.shape
         self.scaler = np.vectorize(lambda x: x / 255.0)
-        self.do_squeeze = False
-        if frame_stack_parallel:
-            assert obs_shape[2] == 1
-            shape = [obs_shape[1], obs_shape[0]]
-            self.do_squeeze = True
-        else:
-            shape = [obs_shape[2], obs_shape[1], obs_shape[0]]
         self.observation_space: gym.Box = Box(
             self.observation_space.low[0, 0, 0],
             self.observation_space.high[0, 0, 0],
-            shape,
+            [obs_shape[2], obs_shape[1], obs_shape[0]],
             dtype=self.observation_space.dtype
         )
 
@@ -88,5 +78,4 @@ class TransposeImage(gym.ObservationWrapper):
             img = np.concatenate(observation._frames, axis=2).transpose(2, 0, 1)
         else:
             img = observation.transpose(2, 0, 1)  # type: ignore
-        img = self.scaler(img)
-        return img.squeeze() if self.do_squeeze else img
+        return self.scaler(img)
