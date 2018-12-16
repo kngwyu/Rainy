@@ -52,8 +52,11 @@ class Config:
         self.lr_decay = False
 
         # For ppo
+        self.adv_normalize_eps = 1.0e-5
+        self.ppo_minibatch_size = 32
         self.ppo_epochs = 1.0
         self.ppo_clip = 0.2
+        self.ppo_value_clip = True
         self.clip_decay = False
 
         # Logger and logging frequency

@@ -42,7 +42,7 @@ class RolloutStorage(Generic[State]):
         if policy is not None:
             self.policies.append(policy)
         if value is not None:
-            self.values.append(value)
+            self.values.append(value.to(self.device.unwrapped))  # for testing
 
     def reset(self) -> None:
         self.masks = [self.masks[-1]]
@@ -61,28 +61,28 @@ class RolloutStorage(Generic[State]):
     def batch_returns(self) -> Tensor:
         return self.returns[:-1].flatten()
 
-    def _masks_and_rewards(self, next_value: Tensor) -> Tuple[Tensor, Tensor]:
-        self.returns[-1] = next_value
-        self.values.append(next_value)
-        return self.device.tensor(self.masks), self.device.tensor(self.rewards)
+    def _values(self) -> Tensor:
+        return torch.cat(self.values[:self.nsteps], dim=0)
+
+    def _masks_and_rewards(self) -> Tuple[Tensor, Tensor]:
+        m, r = self.device.tensor(self.masks[:-1]), self.device.tensor(self.rewards)
+        return m.flatten(), r.flatten()
 
     def calc_ac_returns(self, next_value: Tensor, gamma: float) -> None:
+        self.returns[-1] = next_value
         masks, rewards = self._masks_and_rewards(next_value)
         for i in reversed(range(self.nsteps)):
             self.returns[i] = self.returns[i + 1] * gamma * masks[i + 1] + rewards[i]
 
     def calc_gae_returns(self, next_value: Tensor, gamma: float, tau: float) -> None:
+        self.values.append(next_value)
         masks, rewards = self._masks_and_rewards(next_value)
         gae = torch.zeros(self.nworkers, device=self.device.unwrapped)
         for i in reversed(range(self.nsteps)):
-            td_error = rewards[i] + gamma * self.values[i + 1] * masks[i + 1] - self.values[i]
+            td_error = \
+                rewards[i] + gamma * self.values[i + 1] * masks[i + 1] - self.values[i]
             gae = td_error + gamma * tau * masks[i] * gae
             self.returns[i] = gae + self.values[i]
-
-    def _masks_and_rewards_and_values(self) -> Tuple[Tensor, Tensor, Tensor]:
-        m, r = self.device.tensor(self.masks[:-1]), self.device.tensor(self.rewards)
-        v = torch.cat(self.values[:self.nsteps], dim=0)  # for testing not use -1 here
-        return m.flatten(), r.flatten(), v
 
     def _log_probs(self) -> Tensor:
         return torch.cat([p.log_prob() for p in self.policies], dim=0)
@@ -105,7 +105,7 @@ class FeedForwardSampler:
             storage: RolloutStorage[Any],
             penv: ParallelEnv,
             minibatch_size: int,
-            adv_noramalize_eps: Optional[float] = None,
+            adv_normalize_eps: Optional[float] = None,
     ) -> None:
         self.batch_size = storage.nsteps * storage.nworkers
         if minibatch_size >= self.batch_size:
@@ -117,11 +117,15 @@ class FeedForwardSampler:
         self.minibatch_size = minibatch_size
         self.states = storage.batch_states(penv)
         self.actions = storage.batch_actions()
-        self.masks, self.rewards, self.values = storage._masks_and_rewards_and_values()
+        self.masks, self.rewards = storage._masks_and_rewards()
         self.returns = storage.batch_returns()
+        self.values = storage._values()
         self.old_log_probs = storage._log_probs()
+        print(self.returns)
+        print(self.values)
         self.advantages = self.returns - self.values
         if adv_normalize_eps:
+            # I don't know what this is for, but baselines does so ('_')
             adv = self.advantages
             self.advantages = (adv - adv.mean()) / (adv.std() + adv_normalize_eps)
 

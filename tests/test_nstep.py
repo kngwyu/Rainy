@@ -20,7 +20,7 @@ def test_storage(penv: ParallelEnv) -> None:
     storage.set_initial_state(states)
     for _ in range(NSTEP):
         state, reward, done, _ = penv.step([None] * NWORKERS)
-        value = torch.rand((NWORKERS, ACTION_DIM))
+        value = torch.rand(NWORKERS, dtype=torch.float32)
         policy = softmax(torch.rand(NWORKERS, ACTION_DIM))
         storage.push(state, reward, done, value=value, policy=policy)
     batch = storage.batch_states(penv)
@@ -30,7 +30,7 @@ def test_storage(penv: ParallelEnv) -> None:
     assert sampler.actions.shape == batch_shape
     assert sampler.returns.shape == batch_shape
     assert sampler.masks.shape == batch_shape
-    assert sampler.values.shape == torch.Size((*batch_shape, ACTION_DIM))
+    assert sampler.values.shape == batch_shape
     assert sampler.old_log_probs.shape == batch_shape
     assert sampler.rewards.shape == batch_shape
     penv.close()
@@ -49,7 +49,7 @@ def test_sampler(penv: ParallelEnv) -> None:
     storage.set_initial_state(states)
     for _ in range(NSTEP):
         state, reward, done, _ = penv.step([None] * NWORKERS)
-        value = torch.rand((NWORKERS, ACTION_DIM))
+        value = torch.rand(NWORKERS, dtype=torch.float32)
         policy = softmax(torch.rand(NWORKERS, ACTION_DIM))
         storage.push(state, reward, done, policy=policy, value=value)
     MINIBATCH = 10
