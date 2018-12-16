@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 import torch
 from torch import nn
-from typing import Callable, List, Tuple
+from typing import Callable, Generic, List, Tuple
 from ..config import Config
 from .nstep_common import RolloutStorage
 from ..envs import Action, EnvExt, State
@@ -140,15 +140,16 @@ class OneStepAgent(Agent):
         return [total_reward]
 
 
-class NStepAgent(Agent):
+class NStepAgent(Agent, Generic[State]):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.storage = RolloutStorage(config.nsteps, config.nworkers, config.device)
+        self.storage: RolloutStorage[State] = \
+            RolloutStorage(config.nsteps, config.nworkers, config.device)
         self.rewards = np.zeros(config.nworkers, dtype=np.float32)
         self.penv = config.parallel_env()
 
     @abstractmethod
-    def nstep(self, states: Array[State]) -> Tuple[Array[State], Array[float]]:
+    def nstep(self, states: Array[State]) -> Tuple[Array[State], List[float]]:
         pass
 
     def close(self) -> None:

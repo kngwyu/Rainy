@@ -1,14 +1,14 @@
 import numpy as np
 import torch
 from torch import Tensor
-from typing import List, Optional, Tuple
+from typing import Generic, List, Optional, Tuple
 from ..envs import ParallelEnv, State
 from ..net import Policy
 from ..util import Device
 from ..util.meta import Array
 
 
-class RolloutStorage:
+class RolloutStorage(Generic[State]):
     def __init__(self, nsteps: int, nworkers: int, device: Device) -> None:
         self.states: List[Array[State]] = []
         self.rewards: List[Array[float]] = []
@@ -37,7 +37,7 @@ class RolloutStorage:
         assert self.states, '[RolloutStorage.push] Call set_initial_state first'
         self.states.append(state)
         self.rewards.append(reward)
-        self.masks.append(1.0 - mask)
+        self.masks.append(1.0 - mask)  # type: ignore
         if policy is not None:
             self.policies.append(policy)
         if value is not None:

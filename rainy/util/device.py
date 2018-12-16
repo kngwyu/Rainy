@@ -33,7 +33,7 @@ class Device():
         """
         t = type(arr)
         if t == Tensor:
-            return arr.to(device=self.device)
+            return arr.to(device=self.device)  # type: ignore
         elif t == ndarray or t == list:
             return torch.tensor(arr, device=self.device, dtype=dtype)
         else:

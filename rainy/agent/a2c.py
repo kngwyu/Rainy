@@ -39,7 +39,7 @@ class A2cAgent(NStepAgent):
         self.storage.push(next_states, rewards, done, policy=policy, value=value)
         return next_states
 
-    def nstep(self, states: Array[State]) -> Tuple[Array[State], Array[float]]:
+    def nstep(self, states: Array[State]) -> Tuple[Array[State], List[float]]:
         episodic_rewards: List[float] = []
         for _ in range(self.config.nsteps):
             states = self._one_step(states, episodic_rewards)

@@ -42,7 +42,7 @@ class ParallelEnv(ABC, Generic[Action, State]):
     def state_dim(self) -> Tuple[int, ...]:
         pass
 
-    @property
+    @abstractmethod
     def states_to_array(self, states: Iterable[State]) -> Array:
         pass
 
