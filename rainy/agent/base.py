@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 import torch
 from torch import nn
-from typing import Callable, Generic, List, Tuple
+from typing import Callable, Generic, Iterable, List, Tuple
 from ..config import Config
 from .nstep_common import RolloutStorage
 from ..envs import Action, EnvExt, State
@@ -30,7 +30,7 @@ class Agent(ABC):
         pass
 
     @abstractmethod
-    def train_episode(self) -> List[float]:
+    def train_episodes(self, max_steps: int) -> Iterable[List[float]]:
         """Train the agent.
         """
         pass
@@ -124,20 +124,20 @@ class OneStepAgent(Agent):
     def step(self, state: State) -> Tuple[State, float, bool]:
         pass
 
-    def train_episode(self) -> List[float]:
+    def train_episodes(self, max_steps: int) -> Iterable[List[float]]:
         total_reward = 0.0
-        steps = 0
         if self.config.seed:
             self.env.seed(self.config.seed)
         state = self.env.reset()
         while True:
             state, reward, done = self.step(state)
-            steps += 1
             self.total_steps += 1
             total_reward += reward
             if done:
+                yield [total_reward]
+                total_reward = 0.0
+            if self.total_steps > max_steps:
                 break
-        return [total_reward]
 
 
 class NStepAgent(Agent, Generic[State]):
@@ -146,17 +146,27 @@ class NStepAgent(Agent, Generic[State]):
         self.storage: RolloutStorage[State] = \
             RolloutStorage(config.nsteps, config.nworkers, config.device)
         self.rewards = np.zeros(config.nworkers, dtype=np.float32)
+        self.episodic_rewards = []
         self.penv = config.parallel_env()
 
     @abstractmethod
     def nstep(self, states: Array[State]) -> Tuple[Array[State], List[float]]:
         pass
 
+    def report_reward(self, done: Array[bool], info: Array[dict]) -> None:
+        if self.config.use_reward_monitor:
+            for i in filter(lambda i: 'episode' in i, info):
+                self.episodic_rewards.append(i['episode']['r'])
+        else:
+            for i in filter(lambda i: done[i], range(self.config.nworkers)):
+                self.episodic_rewards.append(self.rewards[i])
+                self.rewards[i] = 0.0
+
     def close(self) -> None:
         self.env.close()
         self.penv.close()
 
-    def train_episode(self) -> List[float]:
+    def train_episodes(self, max_steps: int) -> Iterable[List[float]]:
         if self.storage.initialized():
             states = self.storage.states[0]
         else:
@@ -166,8 +176,10 @@ class NStepAgent(Agent, Generic[State]):
             self.storage.set_initial_state(states)
         step = self.config.nsteps * self.config.nworkers
         while True:
-            states, rewards = self.nstep(states)
+            states = self.nstep(states)
             self.total_steps += step
-            if rewards:
+            if self.episodic_rewards:
+                yield self.episodic_rewards
+                self.episodic_rewards = []
+            if self.total_steps > max_steps:
                 break
-        return rewards

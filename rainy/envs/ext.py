@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
 import gym
 from numpy import ndarray
-from torch import Tensor
 from typing import Any, Generic, Tuple, TypeVar
 
 
-Action = TypeVar('Action', int, Tensor)
+Action = TypeVar('Action', bound=int)
 State = TypeVar('State')
 
 
@@ -41,10 +40,7 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
         """
         Inherited from gym.Env.
         """
-        if type(action) == Tensor:
-            return self._env.step(action.item())  # type: ignore
-        else:
-            return self._env.step(action)
+        return self._env.step(action)
 
     def step_and_reset(self, action: Action) -> Tuple[State, float, bool, Any]:
         state, reward, done, info = self.step(action)

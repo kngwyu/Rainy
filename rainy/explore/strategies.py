@@ -20,7 +20,7 @@ class Greedy(Explorer):
 
 class EpsGreedy(Explorer):
     """ε-greedy policy
-    """    
+    """
     def __init__(self, epsilon: float, cooler: Cooler, value_pred: ValuePredictor) -> None:
         self.epsilon = epsilon
         self.cooler = cooler

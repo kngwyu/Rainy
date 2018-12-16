@@ -51,20 +51,20 @@ def train_agent(
     def truncate_episode(episodes: int, freq: Optional[int]) -> int:
         return episodes - episodes % freq if freq else episodes
 
-    while not end:
-        if max_steps and ag.total_steps > max_steps:
-            end = True
-        tmp = ag.train_episode()
-        episodes += len(tmp)
-        rewards += tmp
-        if interval(episodes, len(tmp), ag.config.episode_log_freq):
-            tmp_eps = truncate_episode(episodes, ag.config.episode_log_freq)
-            log_episode(tmp_eps, np.array(rewards[:tmp_eps]))
-            rewards = rewards[tmp_eps:]
-        if end or interval(episodes, len(tmp), ag.config.eval_freq):
+    for rw in ag.train_episodes(max_steps):
+        rw_len = len(rw)
+        episodes += rw_len
+        rewards += rw
+        if interval(episodes, rw_len, ag.config.episode_log_freq):
+            eps = truncate_episode(episodes, ag.config.episode_log_freq)
+            log_episode(eps, np.array(rewards[:eps]))
+            rewards = rewards[eps:]
+        if interval(episodes, rw_len, ag.config.eval_freq):
             log_eval(truncate_episode(episodes, ag.config.eval_freq))
-        if end or interval(episodes, len(tmp), ag.config.save_freq):
+        if interval(episodes, rw_len, ag.config.save_freq):
             ag.save(save_file_name)
+    log_eval(episodes)
+    ag.save(save_file_name)
     ag.close()
 
 

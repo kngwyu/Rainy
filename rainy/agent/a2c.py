@@ -24,25 +24,22 @@ class A2cAgent(NStepAgent):
             state = np.stack([state])
         policy = self.net.policy(state)
         if self.config.eval_deterministic:
-            return policy.best_action().cpu().numpy()
+            return policy.best_action().squeeze().cpu().numpy()
         else:
-            return policy.action().cpu().numpy()
+            return policy.action().squeeze().cpu().numpy()
 
-    def _one_step(self, states: Array[State], episodic_rewards: List[float]) -> Array[State]:
+    def _one_step(self, states: Array[State]) -> Array[State]:
         with torch.no_grad():
             policy, value = self.net(self.penv.states_to_array(states))
-        next_states, rewards, done, _ = self.penv.step(policy.action().cpu().numpy())
+        next_states, rewards, done, info = self.penv.step(policy.action().squeeze().cpu().numpy())
         self.rewards += rewards
-        for i in filter(lambda i: done[i], range(self.config.nworkers)):
-            episodic_rewards.append(self.rewards[i])
-            self.rewards[i] = 0.0
+        self.report_reward(done, info)
         self.storage.push(next_states, rewards, done, policy=policy, value=value)
         return next_states
 
-    def nstep(self, states: Array[State]) -> Tuple[Array[State], List[float]]:
-        episodic_rewards: List[float] = []
+    def nstep(self, states: Array[State]) -> Array[State]:
         for _ in range(self.config.nsteps):
-            states = self._one_step(states, episodic_rewards)
+            states = self._one_step(states)
         with torch.no_grad():
             next_value = self.net.value(self.penv.states_to_array(states))
         if self.config.use_gae:
@@ -65,4 +62,4 @@ class A2cAgent(NStepAgent):
         nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
         self.optimizer.step()
         self.storage.reset()
-        return states, episodic_rewards
+        return states

@@ -16,6 +16,7 @@ def config() -> Config:
     c.gae_tau = 0.95
     c.use_gae = True
     c.eval_deterministic = True
+    c.use_reward_monitor = False
     return c
 
 

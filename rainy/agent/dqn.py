@@ -28,9 +28,7 @@ class DqnAgent(OneStepAgent):
         return "net", "target_net", "policy", "total_steps"
 
     def eval_action(self, state: State) -> Action:
-        action_values = self.net.action_values(state).detach()
-        # Here supposes action_values is 1×(action_dim) array
-        return action_values.argmax()
+        return self.net.action_values(state).detach().argmax().item()
 
     def step(self, state: State) -> Tuple[State, float, bool]:
         train_started = self.total_steps > self.config.train_start

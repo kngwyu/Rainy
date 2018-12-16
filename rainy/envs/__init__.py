@@ -1,5 +1,6 @@
 from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
 from .ext import Action, EnvExt, State
+from .monitor import RewardMonitor
 from .parallel import DummyParallelEnv, make_parallel_env, MultiProcEnv, ParallelEnv
 from .parallel import FrameStackParallel, ParallelEnvWrapper
 import numpy as np
@@ -34,6 +35,7 @@ class Atari(EnvExt):
     ) -> None:
         name += 'NoFrameskip-v4'
         env = make_atari(name)
+        env = RewardMonitor(env)
         env = wrap_deepmind(
             env,
             episodic_life=episodic_life,
