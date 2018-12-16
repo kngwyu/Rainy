@@ -7,7 +7,7 @@ from typing import Callable, Generic, Iterable, List, Optional, Tuple
 from ..config import Config
 from .nstep_common import RolloutStorage
 from ..envs import Action, EnvExt, State
-from ..util.meta import Array
+from ..util.typehack import Array
 
 
 class Agent(ABC):
@@ -177,13 +177,10 @@ class NStepAgent(Agent, Generic[State]):
         self.penv.close()
 
     def train_episodes(self, max_steps: int) -> Iterable[List[float]]:
-        if self.storage.initialized():
-            states = self.storage.states[0]
-        else:
-            if self.config.seed:
-                self.penv.seed(self.config.seed)
-            states = self.penv.reset()
-            self.storage.set_initial_state(states)
+        if self.config.seed:
+            self.penv.seed(self.config.seed)
+        states = self.penv.reset()
+        self.storage.set_initial_state(states)
         step = self.config.nsteps * self.config.nworkers
         while True:
             states = self.nstep(states)

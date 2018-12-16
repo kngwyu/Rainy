@@ -17,6 +17,9 @@ python setup.py install
 
 # Referenced Implementaions
 https://github.com/ShangtongZhang/DeepRL
+
 https://github.com/ikostrikov/pytorch-a2c-ppo-acktr
+
 https://github.com/openai/baselines
+
 https://github.com/chainer/chainerrl

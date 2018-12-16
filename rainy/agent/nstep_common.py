@@ -6,7 +6,7 @@ from typing import Any, Generic, Iterable, List, NamedTuple, Optional, Tuple
 from ..envs import ParallelEnv, State
 from ..net import Policy
 from ..util import Device
-from ..util.meta import Array
+from ..util.typehack import Array
 
 
 class RolloutStorage(Generic[State]):
@@ -61,22 +61,28 @@ class RolloutStorage(Generic[State]):
     def batch_returns(self) -> Tensor:
         return self.returns[:-1].flatten()
 
-    def _values(self) -> Tensor:
+    def batch_values(self) -> Tensor:
         return torch.cat(self.values[:self.nsteps], dim=0)
 
+    def batch_masks_and_rewards(self) -> Iterable[Tensor]:
+        return map(lambda a: self.device.tensor(a).flatten(), (self.masks[:-1], self.rewards))
+
     def _masks_and_rewards(self) -> Tuple[Tensor, Tensor]:
-        m, r = self.device.tensor(self.masks[:-1]), self.device.tensor(self.rewards)
-        return m.flatten(), r.flatten()
+        return self.device.tensor(self.masks), self.device.tensor(self.rewards)
+
+    def append_next_value(self, next_value: Tensor) -> None:
+        self.returns[-1] = next_value
+        self.values.append(next_value)
 
     def calc_ac_returns(self, next_value: Tensor, gamma: float) -> None:
-        self.returns[-1] = next_value
-        masks, rewards = self._masks_and_rewards(next_value)
+        self.append_next_value(next_value)
+        masks, rewards = self._masks_and_rewards()
         for i in reversed(range(self.nsteps)):
             self.returns[i] = self.returns[i + 1] * gamma * masks[i + 1] + rewards[i]
 
     def calc_gae_returns(self, next_value: Tensor, gamma: float, tau: float) -> None:
-        self.values.append(next_value)
-        masks, rewards = self._masks_and_rewards(next_value)
+        self.append_next_value(next_value)
+        masks, rewards = self._masks_and_rewards()
         gae = torch.zeros(self.nworkers, device=self.device.unwrapped)
         for i in reversed(range(self.nsteps)):
             td_error = \
@@ -117,12 +123,10 @@ class FeedForwardSampler:
         self.minibatch_size = minibatch_size
         self.states = storage.batch_states(penv)
         self.actions = storage.batch_actions()
-        self.masks, self.rewards = storage._masks_and_rewards()
+        self.masks, self.rewards = storage.batch_masks_and_rewards()
         self.returns = storage.batch_returns()
-        self.values = storage._values()
+        self.values = storage.batch_values()
         self.old_log_probs = storage._log_probs()
-        print(self.returns)
-        print(self.values)
         self.advantages = self.returns - self.values
         if adv_normalize_eps:
             # I don't know what this is for, but baselines does so ('_')

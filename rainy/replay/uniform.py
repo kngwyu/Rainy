@@ -4,7 +4,7 @@ from .array_deque import ArrayDeque
 from .base import ReplayFeed, ReplayBuffer
 from ..envs import State
 from ..util import sample_indices
-from ..util.meta import GenericNamedMeta
+from ..util.typehack import GenericNamedMeta
 
 
 class UniformReplayBuffer(ReplayBuffer, Generic[ReplayFeed]):

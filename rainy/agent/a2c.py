@@ -5,7 +5,7 @@ from typing import Tuple
 from .base import NStepAgent
 from ..config import Config
 from ..envs import Action, State
-from ..util.meta import Array
+from ..util.typehack import Array
 
 
 class A2cAgent(NStepAgent):

@@ -4,9 +4,10 @@ from .a2c import A2cAgent
 from .nstep_common import FeedForwardSampler
 from ..config import Config
 from ..envs import State
+from ..util.typehack import Array
 
 
-class PPOAgent(A2cAgent):
+class PpoAgent(A2cAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self.net = config.net('actor-critic')
