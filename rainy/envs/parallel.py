@@ -3,7 +3,6 @@ import multiprocessing as mp
 from multiprocessing.connection import Connection
 import numpy as np
 from numpy import ndarray
-from torch import Tensor
 from typing import Any, Callable, Generic, Iterable, Tuple
 from ..util.meta import Array
 from . import Action, EnvExt, State
@@ -119,8 +118,6 @@ class _ProcHandler:
         self.pipe.send((_ProcWorker.SEED, seed))
 
     def step(self, action: Action) -> None:
-        if isinstance(action, Tensor):
-            action = action.item()
         self.pipe.send((_ProcWorker.STEP, action))
 
     def recv(self) -> Any:

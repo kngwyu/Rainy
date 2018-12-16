@@ -1,6 +1,6 @@
 from numpy import ndarray
 from torch import nn, Tensor
-from typing import NamedTuple, Tuple, Union
+from typing import Tuple, Union
 from .body import DqnConv, FcBody, NetworkBody
 from .head import LinearHead, NetworkHead
 from .init import Initializer, orthogonal
@@ -39,20 +39,18 @@ class ActorCriticNet(nn.Module):
         raise NotImplementedError()
 
     def value(self, states: Union[ndarray, Tensor]) -> Tensor:
-        features = self.body(self.device.tensor(states))
-        return self.critic_head(features)
-
-
-class AcOutput(NamedTuple):
-    policy: Policy
-    value: Tensor
+        raise NotImplementedError()
 
 
 class SoftmaxActorCriticNet(ActorCriticNet):
-    def forward(self, states: Union[ndarray, Tensor]) -> AcOutput:
+    def forward(self, states: Union[ndarray, Tensor]) -> Tuple[Policy, Tensor]:
         features = self.body(self.device.tensor(states))
         policy, value = self.actor_head(features), self.critic_head(features)
-        return AcOutput(softmax(policy), value.squeeze())
+        return softmax(policy), value.squeeze()
+
+    def value(self, states: Union[ndarray, Tensor]) -> Tensor:
+        features = self.body(self.device.tensor(states))
+        return self.critic_head(features).squeeze()
 
     def policy(self, states: Union[ndarray, Tensor]) -> Policy:
         features = self.body(self.device.tensor(states))
