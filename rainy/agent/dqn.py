@@ -30,17 +30,17 @@ class DqnAgent(OneStepAgent):
     def eval_action(self, state: State) -> Action:
         return self.net.action_values(state).detach().argmax().item()
 
-    def step(self, state: State) -> Tuple[State, float, bool]:
+    def step(self, state: State) -> Tuple[State, float, bool, dict]:
         train_started = self.total_steps > self.config.train_start
         if train_started:
             action = self.policy.select_action(self.env.state_to_array(state))
         else:
             action = self.random_action()
-        next_state, reward, done, _ = self.env.step(action)
+        next_state, reward, done, info = self.env.step(action)
         self.replay.append(state, action, reward, next_state, done)
         if train_started:
             self._train()
-        return next_state, reward, done
+        return next_state, reward, done, info
 
     def _train(self) -> None:
         obs = self.replay.sample(self.config.batch_size)

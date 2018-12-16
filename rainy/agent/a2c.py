@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch import nn
-from typing import List, Tuple
+from typing import Tuple
 from .base import NStepAgent
 from ..config import Config
 from ..envs import Action, State
