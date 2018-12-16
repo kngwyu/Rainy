@@ -22,10 +22,10 @@ def config() -> Config:
     c.grad_clip = 0.5
     c.value_loss_weight = 0.5
     c.use_gae = False
-    c.max_steps = int(8e7)
+    c.max_steps = int(2e7)
     c.eval_env = Atari('Breakout')
     c.eval_freq = None
-    c.episode_log_freq = 1000
+    c.episode_log_freq = 100
     c.use_reward_monitor = True
     c.seed = 1
     c.eval_deterministic = False
