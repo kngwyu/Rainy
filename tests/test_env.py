@@ -39,10 +39,10 @@ class DummyEnv(EnvExt):
         self.state = State.START
         return self.state
 
-    def step(self, _action) -> Tuple[State, float, bool, None]:
+    def step(self, _action) -> Tuple[State, float, bool, dict]:
         prob = np.asarray(self.transition[self.state.value])
         self.state = State(np.random.choice(np.arange(5), 1, p=prob))
-        return self.state, self.rewards, self.state.is_end(), None
+        return self.state, self.rewards[self.state.value], self.state.is_end(), {}
 
     @property
     def action_dim(self) -> int:

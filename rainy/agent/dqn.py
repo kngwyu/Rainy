@@ -19,7 +19,7 @@ class DqnAgent(OneStepAgent):
         self.replay = config.replay_buffer()
         assert self.replay.feed == DqnReplayFeed
         self.batch_indices = torch.arange(
-            config.batch_size,
+            config.replay_batch_size,
             device=self.config.device.unwrapped,
             dtype=torch.long
         )
@@ -43,12 +43,12 @@ class DqnAgent(OneStepAgent):
         return next_state, reward, done, info
 
     def _train(self) -> None:
-        obs = self.replay.sample(self.config.batch_size)
+        obs = self.replay.sample(self.config.replay_batch_size)
         obs = [ob.to_ndarray(self.env.state_to_array) for ob in obs]
         states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
         q_next = self.target_net(next_states).detach()
         if self.config.double_q:
-            # Here supposes action_values is batch_size×(action_dim) array
+            # Here supposes action_values is replay_batch_size×(action_dim) array
             action_values = self.net.action_values(next_states, nostack=True).detach()
             q_next = q_next[self.batch_indices, action_values.argmax(dim=-1)]
         else:

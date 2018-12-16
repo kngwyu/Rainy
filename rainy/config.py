@@ -17,37 +17,46 @@ class Config:
         self.action_dim = 0
         self.state_dim: Tuple[int, ...] = (0,)
 
-        # these parameters are set really small by default,
-        # so please change them manually in use
-        self.batch_size = 10
+        # common parameters
         self.discount_factor = 0.99
         self.device = Device()
-        self.grad_clip = 5.0
+        self.grad_clip = 5.0  # I recommend 0.5 for A2C
         self.max_steps = 10000
-        self.replay_size = 10000
-        self.train_start = 1000
         self.eval_deterministic = True
 
-        # for the cases you can't set seed in constructor, like gym.atari
+        # For replay buffer algorithms
+        self.replay_batch_size = 10
+        self.replay_size = 10000
+        self.train_start = 1000
+
+        # For the cases you can't set seed in constructor, like gym.atari
         self.seed: Optional[int] = 0
 
-        # for DQN-like algorithms
+        # For DQN-like algorithms
         self.double_q = False
         self.sync_freq = 200
 
-        # for multi worker algorithms
+        # For multi worker algorithms
         self.nworkers = 8
 
-        # for n-step algorithms
+        # For n-step algorithms
         self.nsteps = 5
 
-        # for actor-critic
+        # For actor-critic algorithms
         self.entropy_weight = 0.01
         self.value_loss_weight = 1.0
         self.use_gae = False
         self.gae_tau = 1.0
 
-        # logger and logging frequency
+        # For acktr and ppo
+        self.lr_decay = False
+
+        # For ppo
+        self.ppo_epochs = 1.0
+        self.ppo_clip = 0.2
+        self.clip_decay = False
+
+        # Logger and logging frequency
         self.logger = Logger()
         self.episode_log_freq = 100
         self.step_log_freq = 1000

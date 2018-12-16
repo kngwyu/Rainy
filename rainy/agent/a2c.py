@@ -48,10 +48,10 @@ class A2cAgent(NStepAgent):
         else:
             self.storage.calc_ac_returns(next_value, self.config.discount_factor)
 
-        policy, value = self.net(self.storage.batched_states(self.penv))
-        policy.set_action(self.storage.batched_actions())
+        policy, value = self.net(self.storage.batch_states(self.penv))
+        policy.set_action(self.storage.batch_actions())
 
-        advantage = self.storage.batched_returns() - value
+        advantage = self.storage.batch_returns() - value
         policy_loss = -(policy.log_prob() * advantage.detach()).mean()
         value_loss = advantage.pow(2).mean()
         entropy_loss = policy.entropy().mean()
