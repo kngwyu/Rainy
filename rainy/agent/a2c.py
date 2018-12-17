@@ -60,6 +60,11 @@ class A2cAgent(NStepAgent):
          + self.config.value_loss_weight * value_loss
          - self.config.entropy_weight * entropy_loss).backward()
         nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
+        self.report_loss(
+            policy_loss=policy_loss.item(),
+            value_loss=value_loss.item(),
+            entropy_loss=entropy_loss.item(),
+        )
         self.optimizer.step()
         self.storage.reset()
         return states

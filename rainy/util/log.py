@@ -62,10 +62,11 @@ class Logger(logging.Logger):
 
     def exp(self, name: str, msg: dict, *args, **kwargs) -> None:
         """
-        For structured logging, only dict is enabled as argument
+        For structured logging,c only dict is enabled as argument
         """
-        if self.isEnabledFor(EXP):
-            delta = datetime.now() - self.exp_start
-            msg['elapsed-time'] = delta.total_seconds()
-            msg['name'] = name
-            self._log(EXP, json.dumps(msg), args, **kwargs)  # type: ignore
+        if not self.isEnabledFor(EXP):
+            return
+        delta = datetime.now() - self.exp_start
+        msg['elapsed-time'] = delta.total_seconds()
+        msg['name'] = name
+        self._log(EXP, json.dumps(msg), args, **kwargs)  # type: ignore

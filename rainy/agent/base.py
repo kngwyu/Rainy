@@ -14,8 +14,8 @@ class Agent(ABC):
     """Children must call super().__init__(config) first
     """
     def __init__(self, config: Config) -> None:
-        self.logger = config.logger
         self.config = config
+        self.logger = config.logger
         self.env = config.env()
         self.total_steps = 0
 
@@ -40,6 +40,16 @@ class Agent(ABC):
         """Return the best action according to training results.
         """
         pass
+
+    @property
+    @abstractmethod
+    def update_steps(self) -> int:
+        pass
+
+    def report_loss(self, **kwargs) -> None:
+        if self.update_steps % self.config.network_log_freq == 0:
+            kwargs['update_steps'] = self.update_steps
+            self.logger.exp('loss', kwargs)
 
     def close(self) -> None:
         self.env.close()
@@ -132,6 +142,10 @@ class OneStepAgent(Agent):
     def step(self, state: State) -> Tuple[State, float, bool, dict]:
         pass
 
+    @property
+    def update_steps(self) -> int:
+        return self.total_steps
+
     def train_episodes(self, max_steps: int) -> Iterable[List[float]]:
         total_reward = 0.0
         if self.config.seed:
@@ -162,6 +176,10 @@ class NStepAgent(Agent, Generic[State]):
     @abstractmethod
     def nstep(self, states: Array[State]) -> Array[State]:
         pass
+
+    @property
+    def update_steps(self) -> int:
+        return self.total_steps // (self.config.nsteps * self.config.nworkers)
 
     def report_reward(self, done: Array[bool], info: Array[dict]) -> None:
         if self.config.use_reward_monitor:

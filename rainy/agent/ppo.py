@@ -16,8 +16,8 @@ class PpoAgent(A2cAgent):
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
-        # STUB
-        self.loss_reporter = {'p': 0.0, 'v': 0.0, 'e': 0.0}
+        nbatchs = -(-self.config.nsteps * self.config.nworkers) // self.config.ppo_minibatch_size
+        self.num_updates = self.config.ppo_epochs * nbatchs
 
     def _policy_loss(self, policy: Policy, advantages: Tensor, old_log_probs: Tensor) -> Tensor:
         prob_ratio = torch.exp(policy.log_prob() - old_log_probs)
@@ -39,6 +39,7 @@ class PpoAgent(A2cAgent):
     def nstep(self, states: Array[State]) -> Array[State]:
         for _ in range(self.config.nsteps):
             states = self._one_step(states)
+        p, v, e = (0.0, 0.0, 0.0)
         with torch.no_grad():
             next_value = self.net.value(self.penv.states_to_array(states))
         if self.config.use_gae:
@@ -65,12 +66,12 @@ class PpoAgent(A2cAgent):
                  - self.config.entropy_weight * entropy_loss).backward()
                 nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
                 self.optimizer.step()
-                # loss reporting will be implemented in the future...
-                self.loss_reporter['p'] += policy_loss.item()
-                self.loss_reporter['v'] += value_loss.item()
-                self.loss_reporter['e'] += entropy_loss.item()
-        self.loss_reporter = {'p': 0.0, 'v': 0.0, 'e': 0.0}
+                p, v, e = p + policy_loss.item(), v + value_loss.item(), e + entropy_loss.item()
+
         lr_decay(self.optimizer, self.lr_cooler)
         self.clip_eps = self.clip_cooler(self.clip_eps)
         self.storage.reset()
+
+        p, v, e = map(lambda x: x / float(self.num_updates), (p, v, e))
+        self.report_loss(policy_loss=p, value_loss=v, entropy_loss=e)
         return states

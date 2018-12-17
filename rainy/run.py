@@ -16,13 +16,12 @@ def train_agent(
     max_steps = ag.config.max_steps
     episodes = 0
     rewards: List[float] = []
-    end = False
     action_file = Path(action_file_name)
 
     def log_episode(episodes: int, rewards: np.ndarray) -> None:
         ag.logger.exp('train_reward', {
             'episodes': episodes,
-            'total_steps': ag.total_steps,
+            'update_steps': ag.update_steps,
             'reward_mean': float(np.mean(rewards)),
             'reward_max': float(np.max(rewards)),
             'reward_min': float(np.min(rewards)),
