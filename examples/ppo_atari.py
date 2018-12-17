@@ -2,7 +2,7 @@ import os
 from rainy import Config, net
 from rainy.agent import PpoAgent
 import rainy.util.cli as cli
-from rainy.envs import Atari, MultiProcEnv
+from rainy.envs import Atari, FrameStackParallel, MultiProcEnv
 from torch.optim import Adam
 
 
