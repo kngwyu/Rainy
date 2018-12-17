@@ -139,9 +139,13 @@ class Config:
         self.__net[name] = net
 
     def lr_cooler(self, initial: float, minimum: float = 0.0) -> Cooler:
-        if self.lr_decay is None:
+        if not self.lr_decay:
             return DummyCooler()
         return LinearCooler(initial, minimum, self.max_steps)
 
+    def clip_cooler(self, minimum: float = 0.0) -> Cooler:
+        if not self.clip_decay:
+            return DummyCooler()
+        return LinearCooler(self.ppo_clip, minimum, self.max_steps)
 
 

@@ -13,14 +13,15 @@ class PpoAgent(A2cAgent):
         super().__init__(config)
         self.net = config.net('actor-critic')
         self.optimizer = config.optimizer(self.net.parameters())
-        self.cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
+        self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
+        self.clip_cooler = config.clip_cooler()
+        self.clip_eps = config.ppo_clip
         self.loss_reporter = {'p': 0.0, 'v': 0.0, 'e': 0.0}
 
     def _policy_loss(self, policy: Policy, advantages: Tensor, old_log_probs: Tensor) -> Tensor:
-        clip_eps = self.config.ppo_clip
         prob_ratio = torch.exp(policy.log_prob() - old_log_probs)
         surr1 = prob_ratio * advantages
-        surr2 = prob_ratio.clamp(1.0 - clip_eps, 1.0 + clip_eps) * advantages
+        surr2 = prob_ratio.clamp(1.0 - self.clip_eps, 1.0 + self.clip_eps) * advantages
         return -torch.min(surr1, surr2).mean()
 
     def _value_loss(self, value: Tensor, old_value: Tensor, returns: Tensor) -> Tensor:
@@ -30,8 +31,7 @@ class PpoAgent(A2cAgent):
         unclipped_loss = (value - returns).pow(2)
         if not self.config.ppo_value_clip:
             return unclipped_loss.mean()
-        clip_eps = self.config.ppo_clip
-        value_clipped = old_value + (value - old_value).clamp(-clip_eps, clip_eps)
+        value_clipped = old_value + (value - old_value).clamp(-self.clip_eps, self.clip_eps)
         clipped_loss = (value_clipped - returns).pow(2)
         return torch.max(unclipped_loss, clipped_loss).mean()
 
@@ -69,7 +69,7 @@ class PpoAgent(A2cAgent):
                 self.loss_reporter['v'] += value_loss.item()
                 self.loss_reporter['e'] += entropy_loss.item()
         self.loss_reporter = {'p': 0.0, 'v': 0.0, 'e': 0.0}
-        if self.config.lr_decay:
-            lr_decay(self.optimizer, self.cooler)
+        lr_decay(self.optimizer, self.lr_cooler)
+        self.clip_eps = self.clip_cooler(self.clip_eps)
         self.storage.reset()
         return states
