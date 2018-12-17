@@ -13,6 +13,7 @@ def config() -> Config:
     c.set_parallel_env(lambda env_gen, num_w: FrameStackParallel(MultiProcEnv(env_gen, num_w)))
     c.set_optimizer(lambda params: Adam(params, lr=2.5e-4, eps=1.0e-4))
     c.max_steps = int(2e7)
+    c.grad_clip = 0.5
     # ppo params
     c.nworkers = 8
     c.nsteps = 128

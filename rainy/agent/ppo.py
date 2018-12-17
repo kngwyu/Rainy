@@ -39,14 +39,16 @@ class PpoAgent(A2cAgent):
     def nstep(self, states: Array[State]) -> Array[State]:
         for _ in range(self.config.nsteps):
             states = self._one_step(states)
-        p, v, e = (0.0, 0.0, 0.0)
+
         with torch.no_grad():
             next_value = self.net.value(self.penv.states_to_array(states))
+
         if self.config.use_gae:
             gamma, tau = self.config.discount_factor, self.config.gae_tau
             self.storage.calc_gae_returns(next_value, gamma, tau)
         else:
             self.storage.calc_ac_returns(next_value, self.config.discount_factor)
+        p, v, e = (0.0, 0.0, 0.0)
         for _ in range(self.config.ppo_epochs):
             sampler = FeedForwardSampler(
                 self.storage,
