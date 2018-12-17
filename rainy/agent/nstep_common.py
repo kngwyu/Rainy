@@ -115,6 +115,10 @@ class FeedForwardSampler:
             minibatch_size: int,
             adv_normalize_eps: Optional[float] = None,
     ) -> None:
+        """Create a batch sampler from storage for feed forward network.
+        adv_normalize_eps is adpoted from Open AI's PPO implementation.
+        I think it's for reduce variance of advantages, but I'm not sure.
+        """
         self.batch_size = storage.nsteps * storage.nworkers
         if minibatch_size >= self.batch_size:
             raise ValueError(
@@ -131,7 +135,6 @@ class FeedForwardSampler:
         self.old_log_probs = storage.batch_log_probs()
         self.advantages = self.returns - self.values
         if adv_normalize_eps:
-            # I don't know what this is for, but baselines does so ('_')
             adv = self.advantages
             self.advantages = (adv - adv.mean()) / (adv.std() + adv_normalize_eps)
 

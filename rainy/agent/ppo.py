@@ -16,6 +16,7 @@ class PpoAgent(A2cAgent):
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
+        # STUB
         self.loss_reporter = {'p': 0.0, 'v': 0.0, 'e': 0.0}
 
     def _policy_loss(self, policy: Policy, advantages: Tensor, old_log_probs: Tensor) -> Tensor:
@@ -26,7 +27,7 @@ class PpoAgent(A2cAgent):
 
     def _value_loss(self, value: Tensor, old_value: Tensor, returns: Tensor) -> Tensor:
         """Clip value function loss.
-        I don't know about this so much but baselines does so (>_<).
+        OpenAI baselines says it reduces variability during Critic training... but I'm not sure.
         """
         unclipped_loss = (value - returns).pow(2)
         if not self.config.ppo_value_clip:
@@ -64,7 +65,7 @@ class PpoAgent(A2cAgent):
                  - self.config.entropy_weight * entropy_loss).backward()
                 nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
                 self.optimizer.step()
-                # loss reporting will be implemented in the future, maybe
+                # loss reporting will be implemented in the future...
                 self.loss_reporter['p'] += policy_loss.item()
                 self.loss_reporter['v'] += value_loss.item()
                 self.loss_reporter['e'] += entropy_loss.item()

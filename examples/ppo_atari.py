@@ -8,7 +8,7 @@ from torch.optim import Adam
 
 def config() -> Config:
     c = Config()
-    c.set_env(lambda: Atari('Breakout'))
+    c.set_env(lambda: Atari('Breakout', frame_stack=False))
     c.set_net_fn('actor-critic', net.actor_critic.ac_conv)
     c.set_parallel_env(lambda env_gen, num_w: MultiProcEnv(env_gen, num_w))
     c.set_optimizer(lambda params: Adam(params, lr=2.5e-4, eps=1.0e-4))
