@@ -1,10 +1,12 @@
 import numpy as np
 import torch
 from torch import Tensor
+from torch.optim import Optimizer
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 from typing import Any, Generic, Iterable, List, NamedTuple, Optional, Tuple
 from ..envs import ParallelEnv, State
 from ..net import Policy
+from ..explore import Cooler
 from ..util import Device
 from ..util.typehack import Array
 
@@ -67,6 +69,9 @@ class RolloutStorage(Generic[State]):
     def batch_masks_and_rewards(self) -> Iterable[Tensor]:
         return map(lambda a: self.device.tensor(a).flatten(), (self.masks[:-1], self.rewards))
 
+    def batch_log_probs(self) -> Tensor:
+        return torch.cat([p.log_prob() for p in self.policies], dim=0)
+
     def _masks_and_rewards(self) -> Tuple[Tensor, Tensor]:
         return self.device.tensor(self.masks), self.device.tensor(self.rewards)
 
@@ -89,9 +94,6 @@ class RolloutStorage(Generic[State]):
                 rewards[i] + gamma * self.values[i + 1] * masks[i + 1] - self.values[i]
             gae = td_error + gamma * tau * masks[i] * gae
             self.returns[i] = gae + self.values[i]
-
-    def _log_probs(self) -> Tensor:
-        return torch.cat([p.log_prob() for p in self.policies], dim=0)
 
 
 class FeedForwardBatch(NamedTuple):
@@ -126,7 +128,7 @@ class FeedForwardSampler:
         self.masks, self.rewards = storage.batch_masks_and_rewards()
         self.returns = storage.batch_returns()
         self.values = storage.batch_values()
-        self.old_log_probs = storage._log_probs()
+        self.old_log_probs = storage.batch_log_probs()
         self.advantages = self.returns - self.values
         if adv_normalize_eps:
             # I don't know what this is for, but baselines does so ('_')
@@ -150,4 +152,9 @@ class FeedForwardSampler:
                 self.old_log_probs,
                 self.advantages
             )))
+
+
+def lr_decay(optimizer: Optimizer, cooler: Cooler) -> None:
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = cooler(param_group['lr'])
 

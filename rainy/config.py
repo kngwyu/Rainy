@@ -2,7 +2,7 @@ from torch import nn, Tensor
 from torch.optim import Optimizer, RMSprop
 from typing import Callable, Dict, Iterable, Optional, Tuple, Union
 from .net import actor_critic, ValuePredictor, value
-from .explore import LinearCooler, Explorer, EpsGreedy
+from .explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
 from .replay import DqnReplayFeed, ReplayBuffer, UniformReplayBuffer
 from .util import Device, Logger
 from .envs import ClassicalControl, DummyParallelEnv, EnvExt, ParallelEnv
@@ -137,6 +137,11 @@ class Config:
 
     def set_net_fn(self, name: str, net: NetFn) -> None:
         self.__net[name] = net
+
+    def lr_cooler(self, initial: float, minimum: float = 0.0) -> Cooler:
+        if self.lr_decay is None:
+            return DummyCooler()
+        return LinearCooler(initial, minimum, self.max_steps)
 
 
 
