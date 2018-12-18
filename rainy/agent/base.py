@@ -48,7 +48,7 @@ class Agent(ABC):
 
     def report_loss(self, **kwargs) -> None:
         if self.update_steps % self.config.network_log_freq == 0:
-            kwargs['update_steps'] = self.update_steps
+            kwargs['update-steps'] = self.update_steps
             self.logger.exp('loss', kwargs)
 
     def close(self) -> None:

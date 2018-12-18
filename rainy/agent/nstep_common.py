@@ -3,7 +3,7 @@ import torch
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
-from typing import Any, Generic, Iterable, List, NamedTuple, Optional, Tuple
+from typing import Any, Generic, Iterable, Iterator, List, NamedTuple, Optional, Tuple
 from ..envs import ParallelEnv, State
 from ..net import Policy
 from ..explore import Cooler
@@ -138,7 +138,7 @@ class FeedForwardSampler:
             adv = self.advantages
             self.advantages = (adv - adv.mean()) / (adv.std() + adv_normalize_eps)
 
-    def __iter__(self) -> Iterable[tuple]:
+    def __iter__(self) -> Iterator[FeedForwardBatch]:
         samplar = BatchSampler(
             SubsetRandomSampler(range(self.batch_size)),
             batch_size=self.minibatch_size,

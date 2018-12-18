@@ -1,6 +1,7 @@
 import click
 from typing import Callable, Optional, Tuple
 
+from .log import ExperimentLog
 from ..agent import Agent
 from ..config import Config
 from ..run import eval_agent, train_agent
@@ -50,6 +51,25 @@ def eval(ctx: dict, logdir: str, render: bool, fname: str) -> None:
     c = ctx.obj['config']
     ag = ctx.obj['make_agent'](c)
     eval_agent(ag, logdir, render=render, action_file=fname)
+
+
+@rainy_cli.command()
+@click.option('--log-dir', type=str)
+@click.option('--vi-mode', is_flag=True)
+@click.pass_context
+def ipython(ctx: dict, log_dir: Optional[str], vi_mode: bool) -> None:
+    config, make_agent = ctx.obj['config'], ctx.obj['make_agent']  # noqa
+    if log_dir is not None:
+        log = ExperimentLog(logdir)  # noqa
+    else:
+        open_log = ExperimentLog  # noqa
+    try:
+        from ptpython.ipython import embed
+        del ctx, log_dir
+        import rainy  # noqa
+        embed(vi_mode=vi_mode)
+    except ImportError:
+        print("To use 'rainy ipython', install ipython and ptpython first.")
 
 
 def run_cli(

@@ -21,4 +21,4 @@ def config() -> Config:
 
 
 if __name__ == '__main__':
-    cli.run_cli(config(), lambda c: A2cAgent(c), script_path=os.path.realpath(__file__))
+    cli.run_cli(config(), A2cAgent, script_path=os.path.realpath(__file__))

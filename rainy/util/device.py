@@ -45,10 +45,13 @@ class Device():
     def is_multi_gpu(self) -> bool:
         return len(self.gpu_indices) > 1
 
-    def __use_all_gpu(self):
+    def __use_all_gpu(self) -> None:
         self.gpu_indices = list(range(torch.cuda.device_count()))
         self.device = torch.device('cuda:0')
 
-    def __use_cpu(self):
+    def __use_cpu(self) -> None:
         self.gpu_indices = []
         self.device = torch.device('cpu')
+
+    def __repr__(self) -> str:
+        return str(self.device)

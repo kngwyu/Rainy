@@ -148,4 +148,7 @@ class Config:
             return DummyCooler()
         return LinearCooler(self.ppo_clip, minimum, self.max_steps)
 
+    def __repr__(self) -> str:
+        d = filter(lambda t: not t[0].startswith('_Config'), self.__dict__.items())
+        return 'Config: ' + str(dict(d))
 
