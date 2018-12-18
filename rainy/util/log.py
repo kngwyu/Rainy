@@ -86,10 +86,16 @@ def _load_log_file(file_path: Path) -> List[Dict[str, Any]]:
 class LogWrapper:
     """Wrapper of filterd log.
     """
-    def __init__(self, name: str, inner: List[Dict[str, Any]]) -> None:
+    def __init__(
+            self,
+            name: str,
+            inner: List[Dict[str, Any]],
+            path: Optional[Path] = None,
+    ) -> None:
         self.name = name
         self.inner = inner
         self._available_keys = set()
+        self._path = path
 
     @property
     def unwrapped(self) -> List[Dict[str, Any]]:
@@ -102,19 +108,22 @@ class LogWrapper:
                     self._available_keys.add(key)
         return self._available_keys
 
-    def get_values(self, key: str) -> List[Any]:
+    def get(self, key: str) -> List[Any]:
         if key not in self.inner[0]:
-            raise ValueError('LogWrapper({}) has no logging key {}'.format(self.name, key))
+            raise KeyError(
+                'LogWrapper({}) doesn\'t have the logging key {}. Available keys: {}'
+                .format(self.name, key, self.keys())
+            )
         return list(map(lambda d: d[key], self.inner))
 
-    def update_steps(self) -> List[int]:
-        return self.get_values('update-steps')
+    def is_empty(self) -> bool:
+        return len(self.inner) == 0
 
-    def episodes(self) -> List[int]:
-        return self.get_values('episodes')
+    def __repr__(self) -> str:
+        return 'LogWrapper({}, {})'.format(self._path.as_posix(), self.name)
 
-    def elapsed_time(self) -> List[int]:
-        return self.get_values('elapsed-time')
+    def __getitem__(self, key: str) -> List[Any]:
+        return self.get(key)
 
 
 class ExperimentLog:
@@ -139,5 +148,21 @@ class ExperimentLog:
                 self._available_keys.add(log['name'])
         return self._available_keys
 
-    def get_log(self, key: str) -> LogWrapper:
-        return LogWrapper(key, list(filter(lambda log: log['name'] == key, self.log)))
+    def get(self, key: str) -> LogWrapper:
+        log = LogWrapper(
+            key,
+            list(filter(lambda log: log['name'] == key, self.log)),
+            self.log_path
+        )
+        if log.is_empty():
+            raise KeyError(
+                '{} doesn\'t have the key {}. Available keys: {}'
+                .format(self, key, self.keys())
+            )
+        return log
+
+    def __getitem__(self, key: str) -> List[Any]:
+        return self.get(key)
+
+    def __repr__(self) -> str:
+        return 'ExperimentLog({})'.format(self.log_path.as_posix())

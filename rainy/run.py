@@ -19,7 +19,7 @@ def train_agent(
     action_file = Path(action_file_name)
 
     def log_episode(episodes: int, rewards: np.ndarray) -> None:
-        ag.logger.exp('train-reward', {
+        ag.logger.exp('train', {
             'episodes': episodes,
             'update-steps': ag.update_steps,
             'reward-mean': float(np.mean(rewards)),
