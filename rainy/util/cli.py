@@ -60,7 +60,7 @@ def eval(ctx: dict, logdir: str, render: bool, fname: str) -> None:
 def ipython(ctx: dict, log_dir: Optional[str], vi_mode: bool) -> None:
     config, make_agent = ctx.obj['config'], ctx.obj['make_agent']  # noqa
     if log_dir is not None:
-        log = ExperimentLog(logdir)  # noqa
+        log = ExperimentLog(log_dir)  # noqa
     else:
         open_log = ExperimentLog  # noqa
     try:
