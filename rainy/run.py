@@ -1,4 +1,4 @@
-from .agent import Agent
+from .agent import Agent, EpisodeResult
 import numpy as np
 from pathlib import Path
 from typing import List, Optional
@@ -15,16 +15,20 @@ def train_agent(
 ) -> None:
     max_steps = ag.config.max_steps
     episodes = 0
-    rewards: List[float] = []
+    results: List[EpisodeResult] = []
     action_file = Path(action_file_name)
 
-    def log_episode(episodes: int, rewards: np.ndarray) -> None:
+    def log_episode(episodes: int, res: List[EpisodeResult]) -> None:
+        rewards = np.array(list(map(lambda t: t.reward, res)))
+        length = np.array(list(map(lambda t: t.length, res)))
         ag.logger.exp('train', {
             'episodes': episodes,
             'update-steps': ag.update_steps,
             'reward-mean': float(np.mean(rewards)),
-            'reward-max': float(np.max(rewards)),
             'reward-min': float(np.min(rewards)),
+            'reward-max': float(np.max(rewards)),
+            'reward-stdev': float(np.std(rewards)),
+            'length-mean': int(np.mean(length)),
         })
 
     def log_eval(episodes: int):
@@ -35,14 +39,15 @@ def train_agent(
                 episodes,
                 action_file.suffix
             ))
-            reward = ag.eval_and_save(fname.as_posix())
+            res = ag.eval_and_save(fname.as_posix())
         else:
-            reward = ag.eval_episode()
-            ag.logger.exp('eval', {
-                'episodes': episodes,
-                'update-steps': ag.update_steps,
-                'reward': reward,
-            })
+            res = ag.eval_episode()
+        ag.logger.exp('eval', {
+            'episodes': episodes,
+            'update-steps': ag.update_steps,
+            'reward': res.reward,
+            'length': res.length,
+        })
 
     def interval(turn: int, width: int, freq: Optional[int]) -> bool:
         return freq and turn != 0 and turn // freq != (turn - width) // freq  # type: ignore
@@ -50,17 +55,17 @@ def train_agent(
     def truncate_episode(episodes: int, freq: Optional[int]) -> int:
         return episodes - episodes % freq if freq else episodes
 
-    for rw in ag.train_episodes(max_steps):
-        rw_len = len(rw)
-        episodes += rw_len
-        rewards += rw
-        if interval(episodes, rw_len, ag.config.episode_log_freq):
+    for res in ag.train_episodes(max_steps):
+        ep_len = len(res)
+        episodes += ep_len
+        results += res
+        if interval(episodes, ep_len, ag.config.episode_log_freq):
             eps = truncate_episode(episodes, ag.config.episode_log_freq)
-            log_episode(eps, np.array(rewards[:eps]))
-            rewards = rewards[eps:]
-        if interval(episodes, rw_len, ag.config.eval_freq):
+            log_episode(eps, results[:eps])
+            results = results[eps:]
+        if interval(episodes, ep_len, ag.config.eval_freq):
             log_eval(truncate_episode(episodes, ag.config.eval_freq))
-        if interval(episodes, rw_len, ag.config.save_freq):
+        if interval(episodes, ep_len, ag.config.save_freq):
             ag.save(save_file_name)
     log_eval(episodes)
     ag.save(save_file_name)
@@ -80,7 +85,7 @@ def eval_agent(
         res = ag.eval_and_save(path.joinpath(action_file).as_posix(), render=render)
     else:
         res = ag.eval_episode(render=render)
-    print('reward: {}'.format(res))
+    print('{}'.format(res))
     if render:
         input('--Press Enter to exit--')
     ag.close()

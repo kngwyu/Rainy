@@ -32,6 +32,7 @@ class A2cAgent(NStepAgent):
         with torch.no_grad():
             policy, value = self.net(self.penv.states_to_array(states))
         next_states, rewards, done, info = self.penv.step(policy.action().squeeze().cpu().numpy())
+        self.episode_length += 1
         self.rewards += rewards
         self.report_reward(done, info)
         self.storage.push(next_states, rewards, done, policy=policy, value=value)

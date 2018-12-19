@@ -71,7 +71,7 @@ class Logger(logging.Logger):
         delta = datetime.now() - self.exp_start
         msg['elapsed-time'] = delta.total_seconds()
         msg['name'] = name
-        self._log(EXP, json.dumps(msg), args, **kwargs)  # type: ignore
+        self._log(EXP, json.dumps(msg, sort_keys=True), args, **kwargs)  # type: ignore
 
 
 def _load_log_file(file_path: Path) -> List[Dict[str, Any]]:
@@ -94,7 +94,7 @@ class LogWrapper:
     ) -> None:
         self.name = name
         self.inner = inner
-        self._available_keys = set()
+        self._available_keys: Set[str] = set()
         self._path = path
 
     @property
@@ -120,7 +120,7 @@ class LogWrapper:
         return len(self.inner) == 0
 
     def __repr__(self) -> str:
-        return 'LogWrapper({}, {})'.format(self._path.as_posix(), self.name)
+        return 'LogWrapper({}, {})'.format(self._path, self.name)
 
     def __getitem__(self, key: str) -> List[Any]:
         return self.get(key)
@@ -139,7 +139,7 @@ class ExperimentLog:
             log_path = path
             self.fingerprint = ''
         self.log = _load_log_file(log_path)
-        self._available_keys = set()
+        self._available_keys: Set[str] = set()
         self.log_path = log_path
 
     def keys(self) -> Set[str]:
@@ -161,7 +161,7 @@ class ExperimentLog:
             )
         return log
 
-    def __getitem__(self, key: str) -> List[Any]:
+    def __getitem__(self, key: str) -> LogWrapper:
         return self.get(key)
 
     def __repr__(self) -> str:

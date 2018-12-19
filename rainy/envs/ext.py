@@ -66,12 +66,20 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
 
     @property
     @abstractmethod
-    def state_dim(self) -> Tuple[int]:
+    def state_dim(self) -> Tuple[int, ...]:
         """
         Extended method.
         Returns a shape of observation space.
         """
         pass
+
+    @property
+    def observation_space(self) -> gym.Space:
+        return self._env.observation_space
+
+    @property
+    def action_space(self) -> gym.Space:
+        return self._env.action_space
 
     def state_to_array(self, state: State) -> ndarray:
         """
@@ -88,3 +96,6 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
         Save agent's action history to file.
         """
         pass
+
+    def __repr__(self) -> str:
+        return 'EnvExt({})'.format(self._env)

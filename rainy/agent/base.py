@@ -3,11 +3,19 @@ import numpy as np
 from pathlib import Path
 import torch
 from torch import nn
-from typing import Callable, Generic, Iterable, List, Optional, Tuple
+from typing import Callable, Generic, Iterable, List, NamedTuple, Optional, Tuple
 from ..config import Config
 from .nstep_common import RolloutStorage
 from ..envs import Action, EnvExt, State
 from ..util.typehack import Array
+
+
+class EpisodeResult(NamedTuple):
+    reward: np.float32
+    length: np.int32
+
+    def __repr__(self) -> str:
+        return 'EpisodeResult(reward: {}, episode_length: {})'.format(self.reward, self.length)
 
 
 class Agent(ABC):
@@ -64,7 +72,7 @@ class Agent(ABC):
             self,
             select_action: Callable[[State], Action],
             render: bool
-    ) -> Tuple[float, EnvExt]:
+    ) -> Tuple[EpisodeResult, EnvExt]:
         total_reward = 0.0
         steps = 0
         env = self.config.eval_env
@@ -79,34 +87,40 @@ class Agent(ABC):
             state, reward, done, info = env.step(action)
             steps += 1
             total_reward += reward
-            rw = self._reward(done, info, total_reward)
-            if rw is not None:
-                return rw, env
+            res = self._result(done, info, total_reward, steps)
+            if res is not None:
+                return (res, env)
 
-    def _reward(self, done: bool, info: dict, total_reward: float) -> Optional[float]:
+    def _result(
+            self,
+            done: bool,
+            info: dict,
+            total_reward: float,
+            episode_length: int,
+    ) -> Optional[Tuple[float, int]]:
         if self.config.use_reward_monitor:
             if 'episode' in info:
-                return info['episode']['r']
+                return EpisodeResult(info['episode']['r'], info['episode']['l'])
         elif done:
-            return total_reward
+            return EpisodeResult(total_reward, episode_length)
         return None
 
-    def random_episode(self) -> float:
+    def random_episode(self) -> EpisodeResult:
         def act(_state) -> Action:
             return self.random_action()
         return self.__eval_episode(act, False)[0]
 
-    def random_and_save(self, fname: str) -> float:
+    def random_and_save(self, fname: str) -> EpisodeResult:
         def act(_state) -> Action:
             return self.random_action()
         res, env = self.__eval_episode(act, False)
         env.save_history(fname)
         return res
 
-    def eval_episode(self, render: bool = False) -> float:
+    def eval_episode(self, render: bool = False) -> EpisodeResult:
         return self.__eval_episode(self.eval_action, render=render)[0]
 
-    def eval_and_save(self, fname: str, render: bool = False) -> float:
+    def eval_and_save(self, fname: str, render: bool = False) -> EpisodeResult:
         res, env = self.__eval_episode(self.eval_action, render=render)
         env.save_history(fname)
         return res
@@ -146,20 +160,23 @@ class OneStepAgent(Agent):
     def update_steps(self) -> int:
         return self.total_steps
 
-    def train_episodes(self, max_steps: int) -> Iterable[List[float]]:
-        total_reward = 0.0
+    def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
         if self.config.seed:
             self.env.seed(self.config.seed)
         state = self.env.reset()
+        total_reward = 0.0
+        episode_length = 0
         while True:
             state, reward, done, info = self.step(state)
             self.total_steps += 1
             total_reward += reward
-            rw = self._reward(done, info, total_reward)
-            if rw is not None:
-                yield [rw]
+            episode_length += 1
+            res = self._result(done, info, total_reward, episode_length)
+            if res is not None:
+                yield [res]
                 state = self.env.reset()
                 total_reward = 0.0
+                episode_length = 0
             if self.total_steps >= max_steps:
                 break
 
@@ -170,7 +187,8 @@ class NStepAgent(Agent, Generic[State]):
         self.storage: RolloutStorage[State] = \
             RolloutStorage(config.nsteps, config.nworkers, config.device)
         self.rewards = np.zeros(config.nworkers, dtype=np.float32)
-        self.episodic_rewards: List[float] = []
+        self.episode_length = np.zeros(config.nworkers, dtype=np.int)
+        self.episode_results: List[EpisodeResult] = []
         self.penv = config.parallel_env()
 
     @abstractmethod
@@ -184,11 +202,12 @@ class NStepAgent(Agent, Generic[State]):
     def report_reward(self, done: Array[bool], info: Array[dict]) -> None:
         if self.config.use_reward_monitor:
             for i in filter(lambda i: 'episode' in i, info):
-                self.episodic_rewards.append(i['episode']['r'])
+                self.episode_results.append(EpisodeResult(i['episode']['r'], i['episode']['l']))
         else:
             for i in filter(lambda i: done[i], range(self.config.nworkers)):  # type: ignore
-                self.episodic_rewards.append(self.rewards[i])
+                self.episode_results.append(EpisodeResult(self.rewards[i], self.episode_length[i]))
                 self.rewards[i] = 0.0
+                self.episode_length[i] = 0
 
     def close(self) -> None:
         self.env.close()
@@ -203,8 +222,8 @@ class NStepAgent(Agent, Generic[State]):
         while True:
             states = self.nstep(states)
             self.total_steps += step
-            if self.episodic_rewards:
-                yield self.episodic_rewards
-                self.episodic_rewards = []
+            if self.episode_results:
+                yield self.episode_results
+                self.episode_results = []
             if self.total_steps >= max_steps:
                 break
