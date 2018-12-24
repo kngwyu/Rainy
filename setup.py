@@ -25,5 +25,5 @@ setup(name='rainy',
       packages=find_packages(),
       install_requires=requirements,
       test_requires=test_requirements,
-      extra_require=extra_requirements)
+      extras_require=extra_requirements)
 
