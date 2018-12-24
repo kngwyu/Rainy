@@ -20,9 +20,16 @@ class Logger(logging.Logger):
         self._log_dir: Optional[Path] = None
         self.exp_start = datetime.now()
 
-    def set_dir_from_script_path(self, script_path_: str, comment: Optional[str] = None) -> None:
+    def set_dir_from_script_path(
+            self,
+            script_path_: str,
+            comment: Optional[str] = None,
+            prefix: str = '',
+    ) -> None:
         script_path = Path(script_path_)
         log_dir = script_path.stem + '-' + self.exp_start.strftime("%y%m%d-%H%M%S")
+        if prefix:
+            log_dir = prefix + '/' + log_dir
         try:
             repo = git.Repo(script_path, search_parent_directories=True)
             head = repo.head.commit
