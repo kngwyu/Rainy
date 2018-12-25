@@ -1,7 +1,7 @@
 import pytest
 from test_env import DummyEnv
 import torch
-from rainy.agent.nstep_common import FeedForwardSampler, RolloutStorage
+from rainy.agent.rollout import FeedForwardSampler, RolloutStorage
 from rainy.envs import DummyParallelEnv, MultiProcEnv, ParallelEnv
 from rainy.net.policy import softmax
 from rainy.util import Device

@@ -16,7 +16,8 @@ def config() -> Config:
     c.gae_tau = 0.95
     c.use_gae = False
     c.eval_deterministic = True
-    c.value_loss_weight = 0.5
+    c.value_loss_weight = 0.1
+    c.entropy_weight = 0.001
     return c
 
 

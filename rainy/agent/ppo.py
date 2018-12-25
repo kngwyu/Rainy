@@ -1,7 +1,7 @@
 import torch
 from torch import nn, Tensor
 from .a2c import A2cAgent
-from .nstep_common import FeedForwardSampler, lr_decay
+from .rollout import FeedForwardSampler, lr_decay
 from ..config import Config
 from ..envs import State
 from ..net import Policy

@@ -46,12 +46,13 @@ def random(ctx: dict, save: bool, fname: str) -> None:
 @rainy_cli.command()
 @click.argument('logdir', required=True, type=str)
 @click.option('--render', is_flag=True)
+@click.option('--replay', is_flag=True)
 @click.option('--fname', type=str, default='best-actions.json')
 @click.pass_context
-def eval(ctx: dict, logdir: str, render: bool, fname: str) -> None:
+def eval(ctx: dict, logdir: str, render: bool, replay: bool, fname: str) -> None:
     c = ctx.obj['config']
     ag = ctx.obj['make_agent'](c)
-    eval_agent(ag, logdir, render=render, action_file=fname)
+    eval_agent(ag, logdir, render=render, replay=replay, action_file=fname)
 
 
 @rainy_cli.command()

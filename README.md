@@ -44,7 +44,7 @@ python a2c_cartpole.py train
 - https://arxiv.org/abs/1707.06347
 
 # Implementaions I referenced
-I referenced mainly openai baselines, but all those pacakages were useful.
+I referenced mainly openai baselines, but all these pacakages were useful.
 
 Thanks!
 

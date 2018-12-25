@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from typing import Callable, Generic, Iterable, List, NamedTuple, Optional, Tuple
 from ..config import Config
-from .nstep_common import RolloutStorage
+from .rollout import RolloutStorage
 from ..envs import Action, EnvExt, State
 from ..util.typehack import Array
 

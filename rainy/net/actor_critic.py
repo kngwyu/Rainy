@@ -1,3 +1,4 @@
+import copy
 from numpy import ndarray
 from torch import nn, Tensor
 from typing import Tuple, Union
@@ -9,6 +10,9 @@ from ..util import Device
 
 
 class ActorCriticNet(nn.Module):
+    """A network with common body, value head and policy head.
+    Basically it's same as the one used in A3C paper.
+    """
     def __init__(
             self,
             body: NetworkBody,
@@ -39,7 +43,8 @@ class ActorCriticNet(nn.Module):
         raise NotImplementedError()
 
     def value(self, states: Union[ndarray, Tensor]) -> Tensor:
-        raise NotImplementedError()
+        features = self.body(self.device.tensor(states))
+        return self.critic_head(features).squeeze()
 
 
 class SoftmaxActorCriticNet(ActorCriticNet):
@@ -48,9 +53,32 @@ class SoftmaxActorCriticNet(ActorCriticNet):
         policy, value = self.actor_head(features), self.critic_head(features)
         return softmax(policy), value.squeeze()
 
-    def value(self, states: Union[ndarray, Tensor]) -> Tensor:
+    def policy(self, states: Union[ndarray, Tensor]) -> Policy:
         features = self.body(self.device.tensor(states))
-        return self.critic_head(features).squeeze()
+        return softmax(self.actor_head(features))
+
+
+class RndActorCriticNet(ActorCriticNet):
+    """Actor Critic Network with internal reward pridiction head.
+    It's used in https://arxiv.org/abs/1810.12894,
+    but might be used with other internal reward algorithms.
+    """
+    def __init__(*args, **kwargs) -> None:
+        super.__init__(*args, **kwargs)
+        self.internal_critic_head = copy.deepcopy(self.critic_head)
+
+    def internal_value(self, states: Union[ndarray, Tensor]) -> Tensor:
+        features = self.body(self.device.tensor(states))
+        return self.internal_critic_head(features).squeeze()
+
+
+class RndSoftmaxActorCriticNet(RndActorCriticNet):
+    def forward(self, states: Union[ndarray, Tensor]) -> Tuple[Policy, Tensor]:
+        features = self.body(self.device.tensor(states))
+        policy = self.actor_head(features)
+        ext_value = self.critic_head(features).squeeze()
+        int_value = self.internal_critic_head(features).squeeze()
+        return softmax(policy), ext_value, int_value
 
     def policy(self, states: Union[ndarray, Tensor]) -> Policy:
         features = self.body(self.device.tensor(states))

@@ -46,8 +46,6 @@ class Initializer:
     def __call__(self, mod: Union[nn.Module, nn.Sequential, Iterable[nn.Module]]) -> nn.Module:
         if hasattr(mod, '__iter__'):
             self.__init_list(mod)
-        elif isinstance(mod, nn.Sequential):
-            self.__init_seq(mod)
         else:
             self.__init_mod(mod)
         return mod
@@ -59,19 +57,16 @@ class Initializer:
         return nn.Sequential(*map(lambda mod: self.__init_mod(mod), args))
 
     def __init_mod(self, mod: nn.Module) -> nn.Module:
-        self.weight_init(mod.weight.data)
-        self.bias_init(mod.bias.data)
-        mod.weight.data.mul_(self.scale)
+        for name, param in mod.named_parameters():
+            if 'weight' in name:
+                self.weight_init(param)
+            if 'bias' in name:
+                self.bias_init(param)
         return mod
 
     def __init_list(self, mods: Iterable[nn.Module]) -> Iterable[nn.Module]:
         for mod in mods:
             self.__init_mod(mod)
         return mods
-
-    def __init_seq(self, seq: nn.Sequential) -> nn.Sequential:
-        for mod in seq._modules.values():
-            self.__init_mod(mod)
-        return seq
 
 

@@ -77,6 +77,7 @@ def eval_agent(
         log_dir: str,
         load_file_name: str = SAVE_FILE_DEFAULT,
         render: bool = False,
+        replay: bool = False,
         action_file: Optional[str] = None
 ) -> None:
     path = Path(log_dir)
@@ -88,5 +89,10 @@ def eval_agent(
     print('{}'.format(res))
     if render:
         input('--Press Enter to exit--')
+    if replay:
+        try:
+            ag.config.eval_env.unwrapped.replay()
+        except Exception:
+            print('--replay was specified, but environment has no function named replay')
     ag.close()
 
