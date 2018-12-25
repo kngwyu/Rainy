@@ -62,9 +62,6 @@ class Agent(ABC):
     def close(self) -> None:
         self.env.close()
 
-    def num_envs(self) -> int:
-        return 1
-
     def random_action(self) -> Action:
         return np.random.randint(self.env.action_dim)
 

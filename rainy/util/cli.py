@@ -70,7 +70,7 @@ def ipython(ctx: dict, log_dir: Optional[str], vi_mode: bool) -> None:
         import rainy  # noqa
         embed(vi_mode=vi_mode)
     except ImportError:
-        print("To use 'rainy ipython', install ipython and ptpython first.")
+        print("To use ipython mode, install ipython and ptpython first.")
 
 
 def run_cli(

@@ -99,8 +99,9 @@ class Config:
 
     @eval_env.setter
     def eval_env(self, env: EnvExt) -> None:
-        self.action_dim = env.action_dim
-        self.state_dim = env.state_dim
+        if self.state_dim == (0,):
+            self.action_dim = env.action_dim
+            self.state_dim = env.state_dim
         self.__eval_env = env
 
     def explorer(self, value_pred: ValuePredictor) -> Explorer:
