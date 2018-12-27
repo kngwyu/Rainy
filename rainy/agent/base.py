@@ -4,6 +4,7 @@ from pathlib import Path
 import torch
 from torch import nn
 from typing import Callable, Generic, Iterable, List, NamedTuple, Optional, Tuple
+import warnings
 from ..config import Config
 from .rollout import RolloutStorage
 from ..envs import Action, EnvExt, State
@@ -124,14 +125,14 @@ class Agent(ABC):
 
     def save(self, filename: str) -> None:
         save_dict = {}
-        for idx, member_str in enumerate(self.members_to_save()):
+        for member_str in self.members_to_save():
             value = getattr(self, member_str)
             if isinstance(value, nn.DataParallel):
-                save_dict[idx] = value.module.state_dict()
-            elif isinstance(value, nn.Module):
-                save_dict[idx] = value.state_dict()
+                save_dict[member_str] = value.module.state_dict()
+            elif hasattr(value, 'state_dict'):
+                save_dict[member_str] = value.state_dict()
             else:
-                save_dict[idx] = value
+                save_dict[member_str] = value
         log_dir = self.config.logger.log_dir
         if log_dir is None:
             log_dir = Path('.')
@@ -139,10 +140,17 @@ class Agent(ABC):
 
     def load(self, filename: str) -> None:
         saved_dict = torch.load(filename, map_location=self.config.device.unwrapped)
+        #  For backward compatibility, we need to check both index and name
         for idx, member_str in enumerate(self.members_to_save()):
-            saved_item = saved_dict[idx]
+            if idx in saved_dict:
+                saved_item = saved_dict[idx]
+            elif member_str in saved_dict:
+                saved_item = saved_dict[member_str]
+            else:
+                warnings.warn('Member {} wasn\'t loaded'.format(member_str))
+                continue
             mem = getattr(self, member_str)
-            if isinstance(mem, nn.Module):
+            if hasattr(mem, 'state_dict'):
                 mem.load_state_dict(saved_item)
             else:
                 setattr(self, member_str, saved_item)

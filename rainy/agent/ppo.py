@@ -1,5 +1,6 @@
 import torch
 from torch import nn, Tensor
+from typing import Tuple
 from .a2c import A2cAgent
 from .rollout import FeedForwardSampler, lr_decay
 from ..config import Config
@@ -18,6 +19,9 @@ class PpoAgent(A2cAgent):
         self.clip_eps = config.ppo_clip
         nbatchs = -(-self.config.nsteps * self.config.nworkers) // self.config.ppo_minibatch_size
         self.num_updates = self.config.ppo_epochs * nbatchs
+
+    def members_to_save(self) -> Tuple[str, ...]:
+        return ('net', 'clip_eps', 'optimizer')
 
     def _policy_loss(self, policy: Policy, advantages: Tensor, old_log_probs: Tensor) -> Tensor:
         prob_ratio = torch.exp(policy.log_prob() - old_log_probs)
