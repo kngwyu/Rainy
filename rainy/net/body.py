@@ -53,12 +53,12 @@ class ConvBody(NetworkBody):
         return x
 
 
-def calc_cnn_offset(params: List[Tuple[int, int]], img_size: Tuple[int, int]) -> Tuple[int, int]:
-    width, height = img_size
+def calc_cnn_offset(params: List[Tuple[int, int]], width: int, height: int) -> int:
     for kernel, stride in params:
-        width = (width - (kernel // stride) + 1) // stride
-        height = (height - (kernel // stride) + 1) // stride
-    return width, height
+        width = (width - kernel) // stride + 1
+        height = (height - kernel) // stride + 1
+    assert width > 0 and height > 0, 'Convolution makes dim < 0!!!'
+    return width * height
 
 
 class DqnConv(ConvBody):
@@ -79,9 +79,8 @@ class DqnConv(ConvBody):
         conv1 = nn.Conv2d(in_channel, hidden1, *kernel_and_strides[0])
         conv2 = nn.Conv2d(hidden1, hidden2, *kernel_and_strides[1])
         conv3 = nn.Conv2d(hidden2, hidden3, *kernel_and_strides[2])
-        width, height = calc_cnn_offset(kernel_and_strides, (width, height))
-        assert width != 0 and height != 0
-        fc = nn.Linear(width * height * hidden3, output_dim)
+        hidden = calc_cnn_offset(kernel_and_strides, width, height) * hidden3
+        fc = nn.Linear(hidden, output_dim)
         self._output_dim = output_dim
         super().__init__(F.relu, init, dim, fc, conv1, conv2, conv3)
 

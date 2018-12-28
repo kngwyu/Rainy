@@ -2,6 +2,7 @@ from rainy import Config
 from rainy.agent import PpoAgent
 from rainy.envs import MultiProcEnv
 from pathlib import Path
+import pytest
 from torch.optim import Adam
 LOG_DIR = Path('/tmp/rainy-test/')
 
@@ -19,13 +20,16 @@ def config() -> Config:
     return c
 
 
+@pytest.mark.filterwarnings('ignore:PkgResourcesDeprecationWarning')
 def test_ppo_save() -> None:
     ppo = PpoAgent(config())
     ppo.optimizer.param_groups[0]['lr'] = 1.0
     ppo.clip_eps = 0.2
     ppo.save('ppo-agent.save')
+    ppo.close()
     ppo = PpoAgent(config())
     path = ppo.config.logger.log_dir.joinpath('ppo-agent.save')
     ppo.load(path.as_posix())
     assert ppo.clip_eps == 0.2
     assert ppo.optimizer.param_groups[0]['lr'] == 1.0
+    ppo.close()
