@@ -45,6 +45,10 @@ class ConvBody(NetworkBody):
     def output_dim(self) -> int:
         return self.fc.out_features
 
+    @property
+    def hidden_dim(self) -> int:
+        return self.fc.in_features
+
     def forward(self, x: Tensor) -> Tensor:
         for conv in self.conv:
             x = self.activator(conv(x))
