@@ -14,6 +14,14 @@ def orthogonal(gain: float = 1.) -> InitFn:
     return partial(nn.init.orthogonal_, gain=gain)
 
 
+def kaiming_normal(gain: float = 1.) -> InitFn:
+    return partial(nn.init.kaiming_normal_, gain=gain)
+
+
+def kaiming_uniform(gain: float = 1.) -> InitFn:
+    return partial(nn.init.kaiming_uniform_, gain=gain)
+
+
 def constant(val: float) -> InitFn:
     return partial(nn.init.constant_, val=val)
 
@@ -35,11 +43,13 @@ class Initializer:
         """If nonlinearity is specified, use orthogonal
            with calucurated gain by torch.init.calculate_gain.
         """
+        self.weight_init = weight_init
         if nonlinearity:
             gain = nn.init.calculate_gain(nonlinearity)
-            self.weight_init = orthogonal(gain)
-        else:
-            self.weight_init = weight_init
+            if 'gain' in self.weight_init.keywords:
+                self.weight_init.keywords['gain'] = gain
+            else:
+                raise ValueError('{} doesn\'t have gain', self.weight_init)
         self.bias_init = bias_init
         self.scale = scale
 
