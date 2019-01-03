@@ -87,7 +87,7 @@ class RndSoftmaxActorCriticNet(RndActorCriticNet):
 
 def ac_conv(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> ActorCriticNet:
     """Convolutuion network used for atari experiments
-       in A3C paper(http://proceedings.mlr.press/v48/mniha16.pdf)
+       in A3C paper(https://arxiv.org/abs/1602.01783)
     """
     body = DqnConv(state_dim, hidden_channels=(32, 64, 32), output_dim=256)
     ac_head = LinearHead(body.output_dim, action_dim, Initializer(weight_init=orthogonal(0.01)))

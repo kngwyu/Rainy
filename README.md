@@ -37,7 +37,7 @@ python a2c_cartpole.py train
 - https://www.nature.com/articles/nature14236/
 
 ## A2C (Advantage Actor Critic)
-- http://proceedings.mlr.press/v48/mniha16.pdf (Original version)
+- http://proceedings.mlr.press/v48/mniha16.pdf , https://arxiv.org/abs/1602.01783 (Original version)
 - https://blog.openai.com/baselines-acktr-a2c/ (Synchronized version)
 
 ## PPO (Proximal Policy Optimization)
