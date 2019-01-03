@@ -27,13 +27,20 @@ def test_acnet(net: actor_critic.ActorCriticNet, state_dim: tuple, batch_size: i
     assert values.shape == batch_size
 
 
-@pytest.mark.parametrize('input_dim, batch_size, params', [
-    ((4, 84, 84), 32, None),
-    ((4, 84, 84), 64, None),
-    ((17, 48, 24), 64, [(8, 1), (4, 1), (3, 1)]),
+@pytest.mark.parametrize('input_dim, batch_size, params, hidden', [
+    ((4, 84, 84), 32, None, (64, 7, 7)),
+    ((4, 84, 84), 64, None, (64, 7, 7)),
+    ((17, 48, 24), 64, [(8, 1), (4, 1), (3, 1)], (64, 36, 12)),
+    ((17, 32, 16), 64, [(8, 1), (4, 1), (3, 1)], (64, 20, 4)),
 ])
-def test_dqnconv(input_dim: Tuple[int, int, int], batch_size: int, params: Optional[list]) -> None:
+def test_dqnconv(
+        input_dim: Tuple[int, int, int],
+        batch_size: int,
+        params: Optional[list],
+        hidden: Tuple[int, int, int],
+) -> None:
     dqn_conv = DqnConv(input_dim, kernel_and_strides=params) if params else DqnConv(input_dim)
+    assert dqn_conv.hidden_dim == hidden
     x = torch.ones((batch_size, *input_dim))
     for conv in dqn_conv.conv:
         x = conv.forward(x)

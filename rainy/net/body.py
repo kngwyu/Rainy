@@ -1,5 +1,7 @@
 # network bodies
 from abc import ABC, abstractmethod
+from functools import reduce
+import operator
 from torch import nn, Tensor
 import torch.nn.functional as F
 from typing import Callable, List, Tuple
@@ -27,12 +29,14 @@ class ConvBody(NetworkBody):
             activator: Activator,
             init: Initializer,
             input_dim: Tuple[int, int, int],
+            hidden_dim: Tuple[int, int, int],
             fc: nn.Linear,
             *args
     ) -> None:
         super().__init__()
         self.conv = init.make_list(*args)
         self._input_dim = input_dim
+        self._hidden_dim = hidden_dim
         self.fc = init(fc)
         self.init = init
         self.activator = activator
@@ -47,7 +51,7 @@ class ConvBody(NetworkBody):
 
     @property
     def hidden_dim(self) -> int:
-        return self.fc.in_features
+        return self._hidden_dim
 
     def forward(self, x: Tensor) -> Tensor:
         for conv in self.conv:
@@ -57,12 +61,12 @@ class ConvBody(NetworkBody):
         return x
 
 
-def calc_cnn_offset(params: List[Tuple[int, int]], width: int, height: int) -> int:
+def calc_cnn_offset(params: List[Tuple[int, int]], width: int, height: int) -> Tuple[int, int]:
     for kernel, stride in params:
         width = (width - kernel) // stride + 1
         height = (height - kernel) // stride + 1
     assert width > 0 and height > 0, 'Convolution makes dim < 0!!!'
-    return width * height
+    return width, height
 
 
 class DqnConv(ConvBody):
@@ -83,10 +87,10 @@ class DqnConv(ConvBody):
         conv1 = nn.Conv2d(in_channel, hidden1, *kernel_and_strides[0])
         conv2 = nn.Conv2d(hidden1, hidden2, *kernel_and_strides[1])
         conv3 = nn.Conv2d(hidden2, hidden3, *kernel_and_strides[2])
-        hidden = calc_cnn_offset(kernel_and_strides, width, height) * hidden3
-        fc = nn.Linear(hidden, output_dim)
+        hidden = (hidden3, *calc_cnn_offset(kernel_and_strides, width, height))
+        fc = nn.Linear(reduce(operator.mul, hidden), output_dim)
         self._output_dim = output_dim
-        super().__init__(F.relu, init, dim, fc, conv1, conv2, conv3)
+        super().__init__(F.relu, init, dim, hidden, fc, conv1, conv2, conv3)
 
 
 class FcBody(nn.Module):
