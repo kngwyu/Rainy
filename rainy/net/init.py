@@ -1,9 +1,9 @@
 from functools import partial
-from typing import Callable, Iterable, Optional, Union
-from torch import nn, Tensor
+from typing import Iterable, Optional, Union
+from torch import nn
 
 # function to init Tensor
-InitFn = Callable[[Tensor], None]
+InitFn = partial
 
 
 def uniform(mean: float = 0., var: float = 1.) -> InitFn:
@@ -14,12 +14,12 @@ def orthogonal(gain: float = 1.) -> InitFn:
     return partial(nn.init.orthogonal_, gain=gain)
 
 
-def kaiming_normal(gain: float = 1.) -> InitFn:
-    return partial(nn.init.kaiming_normal_, gain=gain)
+def kaiming_normal(nonlinearity: str = 'relu') -> InitFn:
+    return partial(nn.init.kaiming_normal_, nonlinearity=nonlinearity)
 
 
-def kaiming_uniform(gain: float = 1.) -> InitFn:
-    return partial(nn.init.kaiming_uniform_, gain=gain)
+def kaiming_uniform(nonlinearity: str = 'relu') -> InitFn:
+    return partial(nn.init.kaiming_uniform_, nonlinearity=nonlinearity)
 
 
 def constant(val: float) -> InitFn:
@@ -45,9 +45,10 @@ class Initializer:
         """
         self.weight_init = weight_init
         if nonlinearity:
-            gain = nn.init.calculate_gain(nonlinearity)
             if 'gain' in self.weight_init.keywords:
-                self.weight_init.keywords['gain'] = gain
+                self.weight_init.keywords['gain'] = nn.init.calculate_gain(nonlinearity)
+            elif 'nonlinearity' in self.weight_init.keywords:
+                self.weight_init.keywords['nonlinearity'] = nonlinearity
             else:
                 raise ValueError('{} doesn\'t have gain', self.weight_init)
         self.bias_init = bias_init
