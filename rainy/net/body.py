@@ -50,7 +50,7 @@ class ConvBody(NetworkBody):
         return self.fc.out_features
 
     @property
-    def hidden_dim(self) -> int:
+    def hidden_dim(self) -> Tuple[int, int, int]:
         return self._hidden_dim
 
     def forward(self, x: Tensor) -> Tensor:

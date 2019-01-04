@@ -63,8 +63,8 @@ class RndActorCriticNet(ActorCriticNet):
     It's used in https://arxiv.org/abs/1810.12894,
     but might be used with other internal reward algorithms.
     """
-    def __init__(*args, **kwargs) -> None:
-        super.__init__(*args, **kwargs)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(self, *args, **kwargs)
         self.internal_critic_head = copy.deepcopy(self.critic_head)
 
     def internal_value(self, states: Union[ndarray, Tensor]) -> Tensor:
@@ -73,7 +73,7 @@ class RndActorCriticNet(ActorCriticNet):
 
 
 class RndSoftmaxActorCriticNet(RndActorCriticNet):
-    def forward(self, states: Union[ndarray, Tensor]) -> Tuple[Policy, Tensor]:
+    def forward(self, states: Union[ndarray, Tensor]) -> Tuple[Policy, Tensor, Tensor]:
         features = self.body(self.device.tensor(states))
         policy = self.actor_head(features)
         ext_value = self.critic_head(features).squeeze()

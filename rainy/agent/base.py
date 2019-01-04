@@ -39,7 +39,7 @@ class Agent(ABC):
         pass
 
     @abstractmethod
-    def train_episodes(self, max_steps: int) -> Iterable[List[float]]:
+    def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
         """Train the agent.
         """
         pass
@@ -95,7 +95,7 @@ class Agent(ABC):
             info: dict,
             total_reward: float,
             episode_length: int,
-    ) -> Optional[Tuple[float, int]]:
+    ) -> Optional[EpisodeResult]:
         if self.config.use_reward_monitor:
             if 'episode' in info:
                 return EpisodeResult(info['episode']['r'], info['episode']['l'])
@@ -218,7 +218,7 @@ class NStepAgent(Agent, Generic[State]):
         self.env.close()
         self.penv.close()
 
-    def train_episodes(self, max_steps: int) -> Iterable[List[float]]:
+    def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
         if self.config.seed:
             self.penv.seed(self.config.seed)
         states = self.penv.reset()

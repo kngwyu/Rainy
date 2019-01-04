@@ -46,7 +46,7 @@ class GruHead(NetworkHead):
         super().__init__()
         self._input_dim = input_dim
         self._output_dim = output_dim
-        self.rnn = init(nn.GRU(input_dim, hidden_dim, num_layers=num_layers))
+        self.rnn = init(nn.GRU(input_dim, output_dim, num_layers=num_layers))
 
     @property
     def input_dim(self) -> int:
