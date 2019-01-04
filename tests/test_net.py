@@ -32,6 +32,7 @@ def test_acnet(net: actor_critic.ActorCriticNet, state_dim: tuple, batch_size: i
     ((4, 84, 84), 64, None, (64, 7, 7)),
     ((17, 48, 24), 64, [(8, 1), (4, 1), (3, 1)], (64, 36, 12)),
     ((17, 32, 16), 64, [(8, 1), (4, 1), (3, 1)], (64, 20, 4)),
+    ((17, 32, 16), 64, [(4, 2), (3, 1), (3, 1)], (64, 11, 3)),
 ])
 def test_dqnconv(
         input_dim: Tuple[int, int, int],
