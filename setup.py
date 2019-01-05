@@ -15,7 +15,7 @@ requirements = [
 ]
 test_requirements = ['pytest>=3.0']
 extra_requirements = {
-    'ipython': ['ipython>=7.0', 'ptpython>=2.0']
+    'ipython': ['ipython>=7.0', 'matplotlib>=3.0', 'ptpython>=2.0']
 }
 
 setup(name='rainy',
