@@ -18,12 +18,14 @@ def rainy_cli(ctx: dict, gpu: Tuple[int]) -> None:
 @click.pass_context
 @click.option('--comment', type=str, default=None)
 @click.option('--prefix', type=str, default='')
-def train(ctx: dict, comment: Optional[str], prefix='') -> None:
+@click.option('--seed', type=int, default=None)
+def train(ctx: dict, comment: Optional[str], prefix: str, seed: Optional[int]) -> None:
     c = ctx.obj['config']
     scr = ctx.obj['script_path']
     if scr:
         c.logger.set_dir_from_script_path(scr, comment=comment, prefix=prefix)
     c.logger.set_stderr()
+    c.seed = seed
     ag = ctx.obj['make_agent'](c)
     train_agent(ag)
     print("random play: {}, trained: {}".format(ag.random_episode(), ag.eval_episode()))
