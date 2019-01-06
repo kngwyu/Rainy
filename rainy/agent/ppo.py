@@ -12,7 +12,7 @@ from ..util.typehack import Array
 class PpoAgent(A2cAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.net = config.device.data_parallel(config.net('actor-critic'))
+        self.net = config.net('actor-critic')
         self.optimizer = config.optimizer(self.net.parameters())
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
         self.clip_cooler = config.clip_cooler()
@@ -45,7 +45,7 @@ class PpoAgent(A2cAgent):
             states = self._one_step(states)
 
         with torch.no_grad():
-            next_value = self.net.module.value(self.penv.states_to_array(states))
+            next_value = self.net.value(self.penv.states_to_array(states))
 
         if self.config.use_gae:
             gamma, tau = self.config.discount_factor, self.config.gae_tau
