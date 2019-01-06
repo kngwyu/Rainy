@@ -150,7 +150,7 @@ class Agent(ABC):
                 warnings.warn('Member {} wasn\'t loaded'.format(member_str))
                 continue
             mem = getattr(self, member_str)
-            if isinstance(value, nn.DataParallel):
+            if isinstance(mem, nn.DataParallel):
                 value.module.load_state_dict(saved_item)
             elif hasattr(mem, 'state_dict'):
                 mem.load_state_dict(saved_item)
