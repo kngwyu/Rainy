@@ -74,7 +74,7 @@ class Agent(ABC):
         total_reward = 0.0
         steps = 0
         env = self.config.eval_env
-        if self.config.seed:
+        if self.config.seed is not None:
             env.seed(self.config.seed)
         state = env.reset()
         while True:
@@ -166,7 +166,7 @@ class OneStepAgent(Agent):
         return self.total_steps
 
     def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
-        if self.config.seed:
+        if self.config.seed is not None:
             self.env.seed(self.config.seed)
         state = self.env.reset()
         total_reward = 0.0
@@ -219,7 +219,7 @@ class NStepAgent(Agent, Generic[State]):
         self.penv.close()
 
     def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
-        if self.config.seed:
+        if self.config.seed is not None:
             self.penv.seed(self.config.seed)
         states = self.penv.reset()
         self.storage.set_initial_state(states)
