@@ -151,7 +151,7 @@ class Agent(ABC):
                 continue
             mem = getattr(self, member_str)
             if isinstance(mem, nn.DataParallel):
-                value.module.load_state_dict(saved_item)
+                mem.module.load_state_dict(saved_item)
             elif hasattr(mem, 'state_dict'):
                 mem.load_state_dict(saved_item)
             else:

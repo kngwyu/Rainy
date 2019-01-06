@@ -11,7 +11,7 @@ from ..util.typehack import Array
 class A2cAgent(NStepAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.net = config.net('actor-critic')
+        self.net = config.device.data_parallel(config.net('actor-critic'))
         self.optimizer = config.optimizer(self.net.parameters())
 
     def members_to_save(self) -> Tuple[str, ...]:
@@ -19,10 +19,10 @@ class A2cAgent(NStepAgent):
 
     def eval_action(self, state_: State) -> Action:
         state = self.env.state_to_array(state_)
-        if len(state.shape) == len(self.net.state_dim):
+        if len(state.shape) == len(self.net.module.state_dim):
             # treat as batch_size == 1
             state = np.stack([state])
-        policy = self.net.policy(state)
+        policy = self.net.module.policy(state)
         if self.config.eval_deterministic:
             return policy.best_action().squeeze().cpu().numpy()
         else:
@@ -42,7 +42,7 @@ class A2cAgent(NStepAgent):
         for _ in range(self.config.nsteps):
             states = self._one_step(states)
         with torch.no_grad():
-            next_value = self.net.value(self.penv.states_to_array(states))
+            next_value = self.net.module.value(self.penv.states_to_array(states))
         if self.config.use_gae:
             gamma, tau = self.config.discount_factor, self.config.gae_tau
             self.storage.calc_gae_returns(next_value, gamma, tau)
