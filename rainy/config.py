@@ -30,7 +30,7 @@ class Config:
         self.train_start = 1000
 
         # For the cases you can't set seed in constructor, like gym.atari
-        self.seed: Optional[int] = 0
+        self.seed: Optional[int] = None
 
         # For DQN-like algorithms
         self.double_q = False
