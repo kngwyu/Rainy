@@ -27,14 +27,9 @@ class ActorCriticNet(nn.Module):
         super(ActorCriticNet, self).__init__()
         self.body = body
         self.device = device
-        if self.device.is_multi_gpu():
-            self.body = nn.DataParallel(body)
-            self.actor_head = nn.DataParallel(actor_head)
-            self.critic_head = nn.DataParallel(critic_head)
-        else:
-            self.body = body
-            self.actor_head = actor_head
-            self.critic_head = critic_head
+        self.body = body
+        self.actor_head = actor_head
+        self.critic_head = critic_head
         self.to(self.device.unwrapped)
 
     @property
