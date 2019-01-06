@@ -50,9 +50,12 @@ def random(ctx: dict, save: bool, fname: str) -> None:
 @click.option('--render', is_flag=True)
 @click.option('--replay', is_flag=True)
 @click.option('--fname', type=str, default='best-actions.json')
+@click.option('--seed', type=int, default=None)
 @click.pass_context
-def eval(ctx: dict, logdir: str, render: bool, replay: bool, fname: str) -> None:
+def eval(ctx: dict, logdir: str, render: bool,
+         replay: bool, fname: str, seed: Optional[int]) -> None:
     c = ctx.obj['config']
+    c.seed = seed
     ag = ctx.obj['make_agent'](c)
     eval_agent(ag, logdir, render=render, replay=replay, action_file=fname)
 
