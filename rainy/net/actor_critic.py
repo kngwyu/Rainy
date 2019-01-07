@@ -18,7 +18,7 @@ class ActorCriticNet(nn.Module):
             body: NetworkBody,
             actor_head: NetworkHead,  # policy
             critic_head: NetworkHead,  # value
-            policy: Callable[[Tensor], Policy] = categorical,
+            policy_head: Callable[[Tensor], Policy] = categorical,
             device: Device = Device(),
     ) -> None:
         assert body.output_dim == actor_head.input_dim, \
@@ -31,7 +31,7 @@ class ActorCriticNet(nn.Module):
         self.body = body
         self.actor_head = actor_head
         self.critic_head = critic_head
-        self.policy = policy
+        self.policy_head = policy_head
         self.to(self.device.unwrapped)
 
     @property
@@ -44,7 +44,7 @@ class ActorCriticNet(nn.Module):
 
     def policy(self, states: Union[ndarray, Tensor]) -> Policy:
         features = self.body(self.device.tensor(states))
-        return self.policy(self.actor_head(features))
+        return self.policy_head(self.actor_head(features))
 
     def value(self, states: Union[ndarray, Tensor]) -> Tensor:
         features = self.body(self.device.tensor(states))
@@ -53,7 +53,7 @@ class ActorCriticNet(nn.Module):
     def forward(self, states: Union[ndarray, Tensor]) -> Tuple[Policy, Tensor]:
         features = self.body(self.device.tensor(states))
         policy, value = self.actor_head(features), self.critic_head(features)
-        return self.policy(policy), value.squeeze()
+        return self.policy_head(policy), value.squeeze()
 
 
 class RndActorCriticNet(ActorCriticNet):
@@ -74,7 +74,7 @@ def ac_conv(
         state_dim: Tuple[int, int, int],
         action_dim: int,
         device: Device,
-        policy: Callable[[Tensor], Policy] = categorical,
+        policy_head: Callable[[Tensor], Policy] = categorical,
 ) -> ActorCriticNet:
     """Convolutuion network used for atari experiments
        in A3C paper(https://arxiv.org/abs/1602.01783)
@@ -82,16 +82,16 @@ def ac_conv(
     body = DqnConv(state_dim, hidden_channels=(32, 64, 32), output_dim=256)
     ac_head = LinearHead(body.output_dim, action_dim, Initializer(weight_init=orthogonal(0.01)))
     cr_head = LinearHead(body.output_dim, 1)
-    return ActorCriticNet(body, ac_head, cr_head, device=device, policy=policy)
+    return ActorCriticNet(body, ac_head, cr_head, device=device, policy_head=policy_head)
 
 
 def fc(state_dim: Tuple[int, ...],
        action_dim: int,
        device: Device = Device(),
-       policy: Callable[[Tensor], Policy] = categorical) -> ActorCriticNet:
+       policy_head: Callable[[Tensor], Policy] = categorical) -> ActorCriticNet:
     """FC body head ActorCritic network
     """
     body = FcBody(state_dim[0])
     ac_head = LinearHead(body.output_dim, action_dim, Initializer(weight_init=orthogonal(0.01)))
     cr_head = LinearHead(body.output_dim, 1)
-    return ActorCriticNet(body, ac_head, cr_head, device=device, policy=policy)
+    return ActorCriticNet(body, ac_head, cr_head, device=device, policy_head=policy_head)

@@ -30,5 +30,5 @@ class Policy:
         self._action = action
 
 
-def categorical(params: Tensor):
+def categorical(params: Tensor) -> Policy:
     return Policy(Categorical(logits=params))

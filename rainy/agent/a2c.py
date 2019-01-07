@@ -22,7 +22,8 @@ class A2cAgent(NStepAgent):
         if len(state.shape) == len(self.net.state_dim):
             # treat as batch_size == 1
             state = np.stack([state])
-        policy = self.net.policy(state)
+        with torch.no_grad():
+            policy = self.net.policy(state)
         if self.config.eval_deterministic:
             return policy.best_action().squeeze().cpu().numpy()
         else:
