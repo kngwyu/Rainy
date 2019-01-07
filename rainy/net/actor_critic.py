@@ -18,7 +18,7 @@ class ActorCriticNet(nn.Module):
             body: NetworkBody,
             actor_head: NetworkHead,  # policy
             critic_head: NetworkHead,  # value
-            policy: Callable[[Tensor], Policy],
+            policy: Callable[[Tensor], Policy] = categorical,
             device: Device = Device(),
     ) -> None:
         assert body.output_dim == actor_head.input_dim, \
