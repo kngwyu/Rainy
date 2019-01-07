@@ -1,4 +1,4 @@
-from .actor_critic import ActorCriticNet, SoftmaxActorCriticNet
+from .actor_critic import ActorCriticNet
 from .body import Activator, ConvBody, DqnConv, FcBody, NetworkBody
 from .head import NetworkHead, LinearHead
 from .init import InitFn, Initializer

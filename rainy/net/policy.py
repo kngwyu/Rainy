@@ -30,5 +30,5 @@ class Policy:
         self._action = action
 
 
-def softmax(params: Tensor):
+def categorical(params: Tensor):
     return Policy(Categorical(logits=params))
