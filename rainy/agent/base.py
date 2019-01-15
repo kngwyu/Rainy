@@ -198,6 +198,25 @@ class NStepAgent(Agent, Generic[State]):
         self.episode_results: List[EpisodeResult] = []
         self.penv = config.parallel_env()
 
+    def eval_parallel(self, n: Optional[int] = None) -> List[EpisodeResult]:
+        if n is None:
+            n = self.config.nworkers
+        if self.config.seed:
+            self.penv.seed(self.config.seed)
+        states = self.penv.reset()
+        while True:
+            states, rewards, done, info = self.penv.step(self.eval_action_parallel())
+            self.episode_length += 1
+            self.rewards += rewards
+            self.report_reward(done, info)
+            if n <= len(self.episode_results):
+                break
+        return self.episode_results
+
+    @abstractmethod
+    def eval_action_parallel(self, states: Array[State]) -> Array[Action]:
+        pass
+
     @abstractmethod
     def nstep(self, states: Array[State]) -> Array[State]:
         pass

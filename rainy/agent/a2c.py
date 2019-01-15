@@ -29,6 +29,14 @@ class A2cAgent(NStepAgent):
         else:
             return policy.action().squeeze().cpu().numpy()
 
+    def eval_action_parallel(self, states: Array[State]) -> Array[Action]:
+        with torch.no_grad():
+            policy = self.net.policy(self.penv.states_to_array(states))
+        if self.config.eval_deterministic:
+            return policy.best_action().squeeze().cpu().numpy()
+        else:
+            return policy.action().squeeze().cpu().numpy()
+
     def _one_step(self, states: Array[State]) -> Array[State]:
         with torch.no_grad():
             policy, value = self.net(self.penv.states_to_array(states))
