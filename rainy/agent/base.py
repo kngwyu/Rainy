@@ -199,6 +199,9 @@ class NStepAgent(Agent, Generic[State]):
         self.penv = config.parallel_env()
 
     def eval_parallel(self, n: Optional[int] = None) -> List[EpisodeResult]:
+        self.rewards = np.zeros(config.nworkers, dtype=np.float32)
+        self.episode_length = np.zeros(config.nworkers, dtype=np.int)
+        self.episode_results = []
         if n is None:
             n = self.config.nworkers
         if self.config.seed:
