@@ -204,7 +204,7 @@ class NStepAgent(Agent, Generic[State]):
         self.episode_results = []
         if n is None:
             n = self.config.nworkers
-        if self.config.seed:
+        if self.config.seed is not None:
             self.penv.seed(self.config.seed)
         states = self.penv.reset()
         while True:
