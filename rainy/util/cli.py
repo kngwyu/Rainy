@@ -4,7 +4,7 @@ from typing import Callable, Optional, Tuple
 from .log import ExperimentLog
 from ..agent import Agent
 from ..config import Config
-from ..run import eval_agent, train_agent
+from ..run import eval_agent, train_agent, random_agent
 
 
 @click.group()
@@ -34,15 +34,15 @@ def train(ctx: dict, comment: Optional[str], prefix: str) -> None:
 @rainy_cli.command()
 @click.option('--save', is_flag=True)
 @click.option('--fname', type=str, default='random-actions.json')
+@click.option('--replay', is_flag=True)
 @click.pass_context
-def random(ctx: dict, save: bool, fname: str) -> None:
+def random(ctx: dict, save: bool, fname: str, replay: bool) -> None:
     c = ctx.obj['config']
     ag = ctx.obj['make_agent'](c)
     if save:
-        r = ag.random_and_save(fname)
+        random_agent(ag, replay=replay, action_file=fname)
     else:
-        r = ag.random_episode()
-    print("random play: {}".format(r))
+        random_agent(ag, replay=replay, action_file=None)
 
 
 @rainy_cli.command()
