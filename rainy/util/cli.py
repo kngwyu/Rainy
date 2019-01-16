@@ -9,23 +9,23 @@ from ..run import eval_agent, train_agent
 
 @click.group()
 @click.option('--gpu', required=False, type=int)
+@click.option('--seed', type=int, default=None)
 @click.pass_context
-def rainy_cli(ctx: dict, gpu: Tuple[int]) -> None:
+def rainy_cli(ctx: dict, gpu: Tuple[int], seed: Optional[int]) -> None:
     ctx.obj['gpu'] = gpu
+    ctx.obj['config'].seed = seed
 
 
 @rainy_cli.command()
 @click.pass_context
 @click.option('--comment', type=str, default=None)
 @click.option('--prefix', type=str, default='')
-@click.option('--seed', type=int, default=None)
-def train(ctx: dict, comment: Optional[str], prefix: str, seed: Optional[int]) -> None:
+def train(ctx: dict, comment: Optional[str], prefix: str) -> None:
     c = ctx.obj['config']
     scr = ctx.obj['script_path']
     if scr:
         c.logger.set_dir_from_script_path(scr, comment=comment, prefix=prefix)
     c.logger.set_stderr()
-    c.seed = seed
     ag = ctx.obj['make_agent'](c)
     train_agent(ag)
     print("random play: {}, trained: {}".format(ag.random_episode(), ag.eval_episode()))
@@ -50,12 +50,9 @@ def random(ctx: dict, save: bool, fname: str) -> None:
 @click.option('--render', is_flag=True)
 @click.option('--replay', is_flag=True)
 @click.option('--fname', type=str, default='best-actions.json')
-@click.option('--seed', type=int, default=None)
 @click.pass_context
-def eval(ctx: dict, logdir: str, render: bool,
-         replay: bool, fname: str, seed: Optional[int]) -> None:
+def eval(ctx: dict, logdir: str, render: bool, replay: bool, fname: str) -> None:
     c = ctx.obj['config']
-    c.seed = seed
     ag = ctx.obj['make_agent'](c)
     eval_agent(ag, logdir, render=render, replay=replay, action_file=fname)
 
