@@ -64,7 +64,7 @@ class Agent(ABC):
         self.env.close()
 
     def random_action(self) -> Action:
-        return np.random.randint(self.env.action_dim)
+        return np.random.randint(self.config.eval_env.action_dim)
 
     def __eval_episode(
             self,
