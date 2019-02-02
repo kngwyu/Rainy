@@ -188,7 +188,7 @@ class OneStepAgent(Agent):
                 break
 
 
-class NStepAgent(Agent, Generic[State]):
+class NStepParallelAgent(Agent, Generic[State]):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self.storage: RolloutStorage[State] = \

@@ -2,13 +2,13 @@ import numpy as np
 import torch
 from torch import nn
 from typing import Tuple
-from .base import NStepAgent
+from .base import NStepParallelAgent
 from ..config import Config
 from ..envs import Action, State
 from ..util.typehack import Array
 
 
-class A2cAgent(NStepAgent):
+class A2cAgent(NStepParallelAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self.net = config.net('actor-critic')
