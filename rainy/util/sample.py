@@ -1,6 +1,5 @@
 # referenced https://github.com/chainer/chainerrl/blob/master/chainerrl/misc/random.py
 import numpy as np
-from typing import Set
 
 
 def sample_indices(n: int, k: int) -> np.ndarray:
