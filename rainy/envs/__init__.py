@@ -32,6 +32,7 @@ class Atari(EnvExt):
             clip_rewards: bool = True,
             episodic_life: bool = True,
             frame_stack: bool = True,
+            fire_reset: bool = False,
     ) -> None:
         name += 'NoFrameskip-v4'
         env = make_atari(name)
@@ -40,7 +41,8 @@ class Atari(EnvExt):
             env,
             episodic_life=episodic_life,
             clip_rewards=clip_rewards,
-            frame_stack=frame_stack
+            frame_stack=frame_stack,
+            fire_reset=fire_reset
         )
         env = TransposeImage(env)
         super().__init__(env)

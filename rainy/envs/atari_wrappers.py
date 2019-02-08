@@ -262,13 +262,16 @@ def wrap_deepmind(
         episodic_life: bool = True,
         clip_rewards: bool = True,
         frame_stack: bool = False,
+        fire_reset: bool = False,
         scale: bool = False
 ) -> gym.Env:
     """Configure environment for DeepMind-style Atari.
+       About FireResetEnv, I recommend to see the discussion at
+       https://github.com/openai/baselines/issues/240.
     """
     if episodic_life:
         env = EpisodicLifeEnv(env)
-    if 'FIRE' in env.unwrapped.get_action_meanings():
+    if fire_rest and 'FIRE' in env.unwrapped.get_action_meanings():
         env = FireResetEnv(env)
     env = WarpFrame(env)
     if scale:
