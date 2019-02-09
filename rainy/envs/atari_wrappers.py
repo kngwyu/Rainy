@@ -1,6 +1,8 @@
 """
 This module provides wrappers of atari environments in openai gym.
-Originaly from openai baselines, but modified for PyTorch.
+Originaly from openai baselines, but modified to:
+- Support PyTorch
+- Support [dopamine](https://github.com/google/dopamine) style setting
 """
 
 import cv2
@@ -200,22 +202,6 @@ class FrameStack(gym.Wrapper):
         return LazyFrames(list(self.frames))
 
 
-class ScaledFloatFrame(gym.ObservationWrapper):
-    def __init__(self, env):
-        gym.ObservationWrapper.__init__(self, env)
-        self.observation_space = gym.spaces.Box(
-            low=0,
-            high=1,
-            shape=env.observation_space.shape,
-            dtype=np.float32
-        )
-
-    def observation(self, observation):
-        # careful! This undoes the memory optimization, use
-        # with smaller replay buffers only.
-        return np.array(observation).astype(np.float32) / 255.0
-
-
 class LazyFrames:
     def __init__(self, frames):
         """This object ensures that common frames between the observations are only stored once.
@@ -247,12 +233,18 @@ class LazyFrames:
         return self._force()[i]
 
 
-def make_atari(env_id: str, timelimit=True) -> gym.Env:
-    env = gym.make(env_id)
+def make_atari(
+        env_id: str,
+        timelimit: bool = True,
+        sticky_actions: bool = False,
+        noop_reset: bool = True,
+) -> gym.Env:
+    version = 'v0' if sticky_actions else 'v4'
+    env = gym.make('{}NoFrameskip-{}'.format(env_id, version))
     if not timelimit:
         env = env.env
-    assert 'NoFrameskip' in env.spec.id
-    env = NoopResetEnv(env, noop_max=30)
+    if noop_reset:
+        env = NoopResetEnv(env, noop_max=30)
     env = MaxAndSkipEnv(env, skip=4)
     return env
 
@@ -261,9 +253,8 @@ def wrap_deepmind(
         env: gym.Env,
         episodic_life: bool = True,
         clip_rewards: bool = True,
-        frame_stack: bool = False,
+        frame_stack: bool = True,
         fire_reset: bool = False,
-        scale: bool = False
 ) -> gym.Env:
     """Configure environment for DeepMind-style Atari.
        About FireResetEnv, I recommend to see the discussion at
@@ -271,14 +262,11 @@ def wrap_deepmind(
     """
     if episodic_life:
         env = EpisodicLifeEnv(env)
-    if fire_rest and 'FIRE' in env.unwrapped.get_action_meanings():
+    if fire_reset and 'FIRE' in env.unwrapped.get_action_meanings():
         env = FireResetEnv(env)
     env = WarpFrame(env)
-    if scale:
-        env = ScaledFloatFrame(env)
     if clip_rewards:
         env = ClipRewardEnv(env)
     if frame_stack:
         env = FrameStack(env, 4)
     return env
-

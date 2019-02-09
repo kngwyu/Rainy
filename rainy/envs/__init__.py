@@ -26,24 +26,22 @@ class ClassicalControl(EnvExt):
 
 
 class Atari(EnvExt):
-    def __init__(
-            self,
-            name: str,
-            clip_rewards: bool = True,
-            episodic_life: bool = True,
-            frame_stack: bool = True,
-            fire_reset: bool = False,
-    ) -> None:
-        name += 'NoFrameskip-v4'
-        env = make_atari(name)
+    STYLES = ["deepmind", "baselines", "dopamine"]
+
+    def __init__(self, name: str, style: str = "deepmind") -> None:
+        assert style in self.STYLES, \
+            'You have to choose a style from {}'.format(self.STYLES)
+        if style is "dopamine":
+            env = make_atari(name, timelimit=False, sticky_actions=True, noop_reset=False)
+        else:
+            env = make_atari(name)
         env = RewardMonitor(env)
-        env = wrap_deepmind(
-            env,
-            episodic_life=episodic_life,
-            clip_rewards=clip_rewards,
-            frame_stack=frame_stack,
-            fire_reset=fire_reset
-        )
+        if style is "dopamine":
+            env = wrap_deepmind(env, episodic_life=False, clip_rewards=False)
+        elif style is "baselines":
+            env = wrap_deepmind(env, fire_reset=True)
+        else:
+            env = wrap_deepmind(env)
         env = TransposeImage(env)
         super().__init__(env)
 
@@ -62,16 +60,17 @@ class Atari(EnvExt):
             return obs
 
 
-# based on
-# https://github.com/ikostrikov/pytorch-a2c-ppo-acktr/blob/master/pytorch-a2c-ppo-acktr/envs.py
 class TransposeImage(gym.ObservationWrapper):
-    def __init__(self, env: gym.Env, frame_stack_parallel: bool = False) -> None:
+    """Transpose & scale image to use with Pytorch's CNN.
+    Based on https://github.com/ikostrikov/pytorch-a2c-ppo-acktr, thanks:)
+    """
+    def __init__(self, env: gym.Env, scale: float = 255.0) -> None:
         super().__init__(env)
         obs_shape = self.observation_space.shape
-        self.scaler = np.vectorize(lambda x: x / 255.0)
+        self.scale = scale
         self.observation_space: gym.Box = Box(
             self.observation_space.low[0, 0, 0],
-            self.observation_space.high[0, 0, 0],
+            self.observation_space.high[0, 0, 0] / self.scale,
             [obs_shape[2], obs_shape[1], obs_shape[0]],
             dtype=self.observation_space.dtype
         )
@@ -82,4 +81,4 @@ class TransposeImage(gym.ObservationWrapper):
             img = np.concatenate(observation._frames, axis=2).transpose(2, 0, 1)
         else:
             img = observation.transpose(2, 0, 1)  # type: ignore
-        return self.scaler(img)
+        return img / self.scale
