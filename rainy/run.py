@@ -97,11 +97,16 @@ def eval_agent(
     ag.close()
 
 
-def random_agent(ag: Agent, replay: bool = False, action_file: Optional[str] = None) -> None:
+def random_agent(
+        ag: Agent,
+        render: bool = False,
+        replay: bool = False,
+        action_file: Optional[str] = None
+) -> None:
     if action_file:
-        res = ag.random_and_save(action_file)
+        res = ag.random_and_save(action_file, render=render)
     else:
-        res = ag.random_episode()
+        res = ag.random_episode(render=render)
     print('{}'.format(res))
     if replay:
         try:

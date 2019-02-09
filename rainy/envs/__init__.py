@@ -26,22 +26,23 @@ class ClassicalControl(EnvExt):
 
 
 class Atari(EnvExt):
-    STYLES = ["deepmind", "baselines", "dopamine"]
+    STYLES = ['deepmind', 'baselines', 'dopamine']
 
-    def __init__(self, name: str, style: str = "deepmind") -> None:
+    def __init__(self, name: str, style: str = 'deepmind', frame_stack: bool = True) -> None:
         assert style in self.STYLES, \
             'You have to choose a style from {}'.format(self.STYLES)
-        if style is "dopamine":
+        if style is 'dopamine':
             env = make_atari(name, timelimit=False, sticky_actions=True, noop_reset=False)
         else:
             env = make_atari(name)
         env = RewardMonitor(env)
-        if style is "dopamine":
-            env = wrap_deepmind(env, episodic_life=False, clip_rewards=False)
-        elif style is "baselines":
-            env = wrap_deepmind(env, fire_reset=True)
+        if style is 'dopamine':
+            env = wrap_deepmind(env, episodic_life=False,
+                                clip_rewards=False, frame_stack=frame_stack)
+        elif style is 'baselines':
+            env = wrap_deepmind(env, fire_reset=True, frame_stack=frame_stack)
         else:
-            env = wrap_deepmind(env)
+            env = wrap_deepmind(env, frame_stack=frame_stack)
         env = TransposeImage(env)
         super().__init__(env)
 

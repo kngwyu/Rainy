@@ -71,6 +71,7 @@ class Agent(ABC):
             select_action: Callable[[State], Action],
             render: bool
     ) -> Tuple[EpisodeResult, EnvExt]:
+        print(render)
         total_reward = 0.0
         steps = 0
         env = self.config.eval_env
@@ -103,23 +104,23 @@ class Agent(ABC):
             return EpisodeResult(total_reward, episode_length)
         return None
 
-    def random_episode(self) -> EpisodeResult:
+    def random_episode(self, render: bool = False) -> EpisodeResult:
         def act(_state) -> Action:
             return self.random_action()
-        return self.__eval_episode(act, False)[0]
+        return self.__eval_episode(act, render)[0]
 
-    def random_and_save(self, fname: str) -> EpisodeResult:
+    def random_and_save(self, fname: str, render: bool = False) -> EpisodeResult:
         def act(_state) -> Action:
             return self.random_action()
-        res, env = self.__eval_episode(act, False)
+        res, env = self.__eval_episode(act, render)
         env.save_history(fname)
         return res
 
     def eval_episode(self, render: bool = False) -> EpisodeResult:
-        return self.__eval_episode(self.eval_action, render=render)[0]
+        return self.__eval_episode(self.eval_action, render)[0]
 
     def eval_and_save(self, fname: str, render: bool = False) -> EpisodeResult:
-        res, env = self.__eval_episode(self.eval_action, render=render)
+        res, env = self.__eval_episode(self.eval_action, render)
         env.save_history(fname)
         return res
 

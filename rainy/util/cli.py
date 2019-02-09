@@ -34,15 +34,14 @@ def train(ctx: dict, comment: Optional[str], prefix: str) -> None:
 @rainy_cli.command()
 @click.option('--save', is_flag=True)
 @click.option('--fname', type=str, default='random-actions.json')
+@click.option('--render', is_flag=True)
 @click.option('--replay', is_flag=True)
 @click.pass_context
-def random(ctx: dict, save: bool, fname: str, replay: bool) -> None:
+def random(ctx: dict, save: bool, fname: str, render: bool, replay: bool) -> None:
     c = ctx.obj['config']
     ag = ctx.obj['make_agent'](c)
-    if save:
-        random_agent(ag, replay=replay, action_file=fname)
-    else:
-        random_agent(ag, replay=replay, action_file=None)
+    action_file = fname if save else None
+    random_agent(ag, render=render, replay=replay, action_file=action_file)
 
 
 @rainy_cli.command()
