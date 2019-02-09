@@ -2,7 +2,9 @@ from enum import Enum
 from functools import reduce
 import numpy as np
 from numpy.testing import assert_array_almost_equal
-from rainy.envs import DummyParallelEnv, EnvExt, MultiProcEnv, ParallelEnv, FrameStackParallel
+from rainy import envs
+from rainy.envs import DummyParallelEnv, EnvExt,\
+    EnvSpec, MultiProcEnv, ParallelEnv, FrameStackParallel
 import pytest
 from typing import Tuple
 
@@ -45,12 +47,8 @@ class DummyEnv(EnvExt):
         return self.state, self.rewards[self.state.value], self.state.is_end(), {}
 
     @property
-    def action_dim(self) -> int:
-        return 1
-
-    @property
-    def state_dim(self) -> Tuple[int, int]:
-        return self.array_dim
+    def spec(self) -> EnvSpec:
+        return EnvSpec(self.array_dim, 1, False)
 
     def close(self) -> None:
         pass
@@ -108,3 +106,13 @@ def test_frame_stack(penv: ParallelEnv, nstack: int) -> None:
     assert_array_almost_equal(obs[:, -1], np.ones((6, 16, 16)))
     assert_array_almost_equal(penv.reset(), obs)
     penv.close()
+
+
+@pytest.mark.parametrize('style', ['dopamine', 'deepmind', 'baselines'])
+def test_atari(style: str):
+    atari = envs.Atari('Pong', style=style)
+    STATE_DIM = (4, 84, 84)
+    assert atari.state_dim == STATE_DIM
+    assert atari.action_dim == 6
+    s = atari.reset()
+    assert s.shape == STATE_DIM

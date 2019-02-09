@@ -5,7 +5,7 @@ import numpy as np
 from numpy import ndarray
 from typing import Any, Callable, Generic, Iterable, Tuple
 from ..util.typehack import Array
-from . import Action, EnvExt, State
+from . import Action, EnvExt, EnvSpec, State
 
 
 class ParallelEnv(ABC, Generic[Action, State]):
@@ -34,36 +34,33 @@ class ParallelEnv(ABC, Generic[Action, State]):
 
     @property
     @abstractmethod
-    def action_dim(self) -> int:
+    def spec(self) -> EnvSpec:
         pass
 
     @property
-    @abstractmethod
+    def action_dim(self) -> int:
+        return self.spec.action_dim
+
+    @property
     def state_dim(self) -> Tuple[int, ...]:
-        pass
+        return self.spec.state_dim
+
+    @property
+    def use_reward_monitor(self) -> bool:
+        return self.spec.use_reward_monitor
 
     @abstractmethod
     def states_to_array(self, states: Iterable[State]) -> Array:
         pass
 
 
-def make_parallel_env(env_gen: Callable[[], EnvExt], nworkers: int) -> ParallelEnv:
-    e = env_gen()
-    if not isinstance(e, EnvExt):
-        raise ValueError('Needs EnvExt, but given {}'.format(type(e)))
-    if nworkers < 1:
-        raise ValueError('nworkers must be larger than 0')
-    elif nworkers == 1:
-        return DummyParallelEnv(e, 1)
-    else:
-        return MultiProcEnv(env_gen, nworkers)
-
-
 class MultiProcEnv(ParallelEnv):
     def __init__(self, env_gen: Callable[[], EnvExt], nworkers: int) -> None:
         assert nworkers >= 2
-        self.envs = [_ProcHandler(env_gen()) for _ in range(nworkers)]
-        self._reserved = env_gen()
+        envs_tmp = [env_gen() for _ in range(nworkers)]
+        self.to_array = envs_tmp[0].state_to_array
+        self._spec = envs_tmp[0].spec
+        self.envs = [_ProcHandler(e) for e in envs_tmp]
 
     def close(self) -> None:
         for env in self.envs:
@@ -91,15 +88,11 @@ class MultiProcEnv(ParallelEnv):
         return len(self.envs)
 
     @property
-    def action_dim(self) -> int:
-        return self._reserved.action_dim
-
-    @property
-    def state_dim(self) -> Tuple[int, ...]:
-        return self._reserved.state_dim
+    def spec(self) -> EnvSpec:
+        return self._spec
 
     def states_to_array(self, states: Iterable[State]) -> ndarray:
-        return np.asarray([self._reserved.state_to_array(s) for s in states])
+        return np.asarray([self.to_array(s) for s in states])
 
 
 class _ProcHandler:
@@ -176,12 +169,8 @@ class DummyParallelEnv(ParallelEnv):
         return len(self.envs)
 
     @property
-    def action_dim(self) -> int:
-        return self.envs[0].action_dim
-
-    @property
-    def state_dim(self) -> Tuple[int, ...]:
-        return self.envs[0].state_dim
+    def spec(self) -> int:
+        return self.envs[0].spec
 
     def states_to_array(self, states: Iterable[State]) -> ndarray:
         return np.asarray([e.state_to_array(s) for (s, e) in zip(states, self.envs)])
@@ -210,12 +199,8 @@ class ParallelEnvWrapper(ParallelEnv):
         return self.penv.num_envs()
 
     @property
-    def action_dim(self) -> int:
-        return self.penv.action_dim
-
-    @property
-    def state_dim(self) -> Tuple[int, ...]:
-        return self.penv.state_dim
+    def spec(self) -> EnvSpec:
+        return self.penv.spec
 
     def states_to_array(self, states: Iterable[State]) -> ndarray:
         return self.penv.states_to_array(states)

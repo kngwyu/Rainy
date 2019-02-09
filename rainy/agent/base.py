@@ -96,7 +96,7 @@ class Agent(ABC):
             total_reward: float,
             episode_length: int,
     ) -> Optional[EpisodeResult]:
-        if self.config.use_reward_monitor:
+        if self.env.use_reward_monitor:
             if 'episode' in info:
                 return EpisodeResult(info['episode']['r'], info['episode']['l'])
         elif done:
@@ -229,7 +229,7 @@ class NStepParallelAgent(Agent, Generic[State]):
         return self.total_steps // (self.config.nsteps * self.config.nworkers)
 
     def report_reward(self, done: Array[bool], info: Array[dict]) -> None:
-        if self.config.use_reward_monitor:
+        if self.penv.use_reward_monitor:
             for i in filter(lambda i: 'episode' in i, info):
                 self.episode_results.append(EpisodeResult(i['episode']['r'], i['episode']['l']))
         else:

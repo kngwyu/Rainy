@@ -252,7 +252,6 @@ def make_atari(
 def wrap_deepmind(
         env: gym.Env,
         episodic_life: bool = True,
-        clip_rewards: bool = True,
         frame_stack: bool = True,
         fire_reset: bool = False,
 ) -> gym.Env:
@@ -264,9 +263,7 @@ def wrap_deepmind(
         env = EpisodicLifeEnv(env)
     if fire_reset and 'FIRE' in env.unwrapped.get_action_meanings():
         env = FireResetEnv(env)
-    env = WarpFrame(env)
-    if clip_rewards:
-        env = ClipRewardEnv(env)
+    env = ClipRewardEnv(WarpFrame(env))
     if frame_stack:
         env = FrameStack(env, 4)
     return env

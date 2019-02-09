@@ -1,16 +1,29 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 import gym
 from numpy import ndarray
-from typing import Any, Generic, Tuple, TypeVar
+from typing import Any, Generic, NamedTuple, Tuple, TypeVar
 
 
 Action = TypeVar('Action', bound=int)
 State = TypeVar('State')
 
 
+class EnvSpec(NamedTuple):
+    """Properties which are common both in EnvExt and ParallelEnv
+    """
+    state_dim: Tuple[int, ...]
+    action_dim: int
+    use_reward_monitor: bool
+
+
 class EnvExt(gym.Env, ABC, Generic[Action, State]):
     def __init__(self, env: gym.Env) -> None:
         self._env = env
+        self.spec = EnvSpec(
+            self._env.observation_space.shape,
+            self._env.action_space.n,
+            False
+        )
 
     def close(self):
         """
@@ -56,22 +69,26 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
         return self._env.unwrapped
 
     @property
-    @abstractmethod
     def action_dim(self) -> int:
         """
         Extended method.
         Returns a ndim of action space.
         """
-        pass
+        return self.spec.action_dim
 
     @property
-    @abstractmethod
     def state_dim(self) -> Tuple[int, ...]:
         """
         Extended method.
         Returns a shape of observation space.
         """
-        pass
+        return self.spec.state_dim
+
+    @property
+    def use_reward_monitor(self) -> bool:
+        """Atari wrappers need RewardMonitor for evaluation.
+        """
+        return self.spec.use_reward_monitor
 
     @property
     def observation_space(self) -> gym.Space:

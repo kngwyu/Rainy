@@ -1,7 +1,7 @@
 from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
-from .ext import Action, EnvExt, State
+from .ext import Action, EnvExt, EnvSpec, State
 from .monitor import RewardMonitor
-from .parallel import DummyParallelEnv, make_parallel_env, MultiProcEnv, ParallelEnv
+from .parallel import DummyParallelEnv, MultiProcEnv, ParallelEnv
 from .parallel import FrameStackParallel, ParallelEnvWrapper
 import numpy as np
 from numpy import ndarray
@@ -16,14 +16,6 @@ class ClassicalControl(EnvExt):
         super().__init__(gym.make(name))
         self._env._max_episode_steps = max_steps
 
-    @property
-    def action_dim(self) -> int:
-        return self._env.action_space.n
-
-    @property
-    def state_dim(self) -> Tuple[int]:
-        return self._env.observation_space.shape
-
 
 class Atari(EnvExt):
     STYLES = ['deepmind', 'baselines', 'dopamine']
@@ -36,23 +28,15 @@ class Atari(EnvExt):
         else:
             env = make_atari(name)
         env = RewardMonitor(env)
-        if style is 'dopamine':
-            env = wrap_deepmind(env, episodic_life=False,
-                                clip_rewards=False, frame_stack=frame_stack)
-        elif style is 'baselines':
-            env = wrap_deepmind(env, fire_reset=True, frame_stack=frame_stack)
-        else:
-            env = wrap_deepmind(env, frame_stack=frame_stack)
-        env = TransposeImage(env)
+        env = wrap_deepmind(
+            env,
+            episodic_life=style is 'dopamine',
+            fire_reset=style is 'baselines',
+            frame_stack=frame_stack
+        )
+        env = TransposeObs(env)
         super().__init__(env)
-
-    @property
-    def action_dim(self) -> int:
-        return self._env.action_space.n
-
-    @property
-    def state_dim(self) -> Tuple[int]:
-        return self._env.observation_space.shape
+        self.spec = EnvSpec(*self.spec[:2], True)
 
     def state_to_array(self, obs: State) -> ndarray:
         if type(obs) is LazyFrames:
@@ -61,25 +45,30 @@ class Atari(EnvExt):
             return obs
 
 
-class TransposeImage(gym.ObservationWrapper):
-    """Transpose & scale image to use with Pytorch's CNN.
-    Based on https://github.com/ikostrikov/pytorch-a2c-ppo-acktr, thanks:)
+class TransposeObs(gym.ObservationWrapper):
+    """Transpose & Scale image
     """
-    def __init__(self, env: gym.Env, scale: float = 255.0) -> None:
+    def __init__(
+            self,
+            env: gym.Env,
+            transpose: Tuple[int, int, int] = (2, 0, 1),
+            scale: float = 255.0
+    ) -> None:
         super().__init__(env)
         obs_shape = self.observation_space.shape
-        self.scale = scale
         self.observation_space: gym.Box = Box(
-            self.observation_space.low[0, 0, 0],
-            self.observation_space.high[0, 0, 0] / self.scale,
-            [obs_shape[2], obs_shape[1], obs_shape[0]],
+            low=self.observation_space.low[0, 0, 0],
+            high=self.observation_space.high[0, 0, 0] / scale,
+            shape=[obs_shape[i] for i in transpose],
             dtype=self.observation_space.dtype
         )
+        self.scale = scale
+        self.transpose = transpose
 
     def observation(self, observation: Union[ndarray, LazyFrames]):
         t = type(observation)
         if t is LazyFrames:
             img = np.concatenate(observation._frames, axis=2).transpose(2, 0, 1)
         else:
-            img = observation.transpose(2, 0, 1)  # type: ignore
+            img = observation.transpose(*self.transpose)  # type: ignore
         return img / self.scale
