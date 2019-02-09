@@ -71,7 +71,6 @@ class Agent(ABC):
             select_action: Callable[[State], Action],
             render: bool
     ) -> Tuple[EpisodeResult, EnvExt]:
-        print(render)
         total_reward = 0.0
         steps = 0
         env = self.config.eval_env
