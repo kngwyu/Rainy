@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from rainy.net import actor_critic, DqnConv
 from rainy.net.init import Initializer, kaiming_normal, kaiming_uniform
-from rainy.util import Device
+from rainy.utils import Device
 from test_env import DummyEnv
 import torch
 from typing import Optional, Tuple

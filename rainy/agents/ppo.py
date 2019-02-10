@@ -2,11 +2,11 @@ import torch
 from torch import nn, Tensor
 from typing import Tuple
 from .a2c import A2cAgent
-from .rollout import FeedForwardSampler, lr_decay
+from ..lib.rollout import FeedForwardSampler
 from ..config import Config
 from ..envs import State
 from ..net import Policy
-from ..util.typehack import Array
+from ..utils.typehack import Array
 
 
 class PpoAgent(A2cAgent):
@@ -74,7 +74,7 @@ class PpoAgent(A2cAgent):
                 self.optimizer.step()
                 p, v, e = p + policy_loss.item(), v + value_loss.item(), e + entropy_loss.item()
 
-        lr_decay(self.optimizer, self.lr_cooler)
+        self.lr_cooler.lr_decay(self.optimizer)
         self.clip_eps = self.clip_cooler(self.clip_eps)
         self.storage.reset()
 

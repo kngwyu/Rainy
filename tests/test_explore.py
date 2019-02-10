@@ -1,8 +1,7 @@
-from .strategies import EpsGreedy
-from .cooler import LinearCooler
 import numpy as np
-from ..net import value
-from ..util import Device
+from rainy.lib.explore import EpsGreedy, LinearCooler
+from rainy.net import value
+from rainy.utils import Device
 
 
 def test_eps_greedy():

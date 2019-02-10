@@ -1,5 +1,5 @@
 from rainy import Config
-from rainy.agent import PpoAgent
+from rainy.agents import PpoAgent
 from rainy.envs import MultiProcEnv
 from pathlib import Path
 import pytest

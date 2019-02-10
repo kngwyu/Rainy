@@ -6,7 +6,7 @@ from .body import DqnConv, FcBody, NetworkBody
 from .head import LinearHead, NetworkHead
 from .init import Initializer, orthogonal
 from .policy import categorical, Policy
-from ..util import Device
+from ..utils import Device
 
 
 class ActorCriticNet(nn.Module):

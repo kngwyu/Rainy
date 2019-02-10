@@ -1,4 +1,4 @@
-from .agent import Agent, EpisodeResult
+from .agents import Agent, EpisodeResult
 import numpy as np
 from pathlib import Path
 from typing import List, Optional

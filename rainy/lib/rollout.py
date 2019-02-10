@@ -1,14 +1,12 @@
 import numpy as np
 import torch
 from torch import Tensor
-from torch.optim import Optimizer
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 from typing import Any, Generic, Iterable, Iterator, List, NamedTuple, Optional, Tuple
 from ..envs import ParallelEnv, State
 from ..net import Policy
-from ..explore import Cooler
-from ..util import Device
-from ..util.typehack import Array
+from ..utils import Device
+from ..utils.typehack import Array
 
 
 class RolloutStorage(Generic[State]):
@@ -155,9 +153,4 @@ class FeedForwardSampler:
                 self.old_log_probs,
                 self.advantages
             )))
-
-
-def lr_decay(optimizer: Optimizer, cooler: Cooler) -> None:
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = cooler(param_group['lr'])
 

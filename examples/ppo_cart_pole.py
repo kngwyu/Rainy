@@ -1,7 +1,7 @@
 import os
 from rainy import Config
-from rainy.agent import PpoAgent
-import rainy.util.cli as cli
+from rainy.agents import PpoAgent
+import rainy.utils.cli as cli
 from rainy.envs import MultiProcEnv
 from torch.optim import Adam
 

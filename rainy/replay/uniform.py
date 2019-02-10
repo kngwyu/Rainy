@@ -2,9 +2,9 @@ from numpy import ndarray
 from typing import Callable, Generic, List, NamedTuple, Tuple
 from .array_deque import ArrayDeque
 from .base import ReplayFeed, ReplayBuffer
-from ..envs import State
-from ..util import sample_indices
-from ..util.typehack import GenericNamedMeta
+from ..envs.ext import State
+from ..utils import sample_indices
+from ..utils.typehack import GenericNamedMeta
 
 
 class UniformReplayBuffer(ReplayBuffer, Generic[ReplayFeed]):

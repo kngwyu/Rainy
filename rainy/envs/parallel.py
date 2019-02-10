@@ -4,7 +4,7 @@ from multiprocessing.connection import Connection
 import numpy as np
 from numpy import ndarray
 from typing import Any, Callable, Generic, Iterable, Tuple
-from ..util.typehack import Array
+from ..utils.typehack import Array
 from . import Action, EnvExt, EnvSpec, State
 
 

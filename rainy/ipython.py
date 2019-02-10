@@ -1,6 +1,6 @@
 import click
 from typing import Optional
-from .util.log import ExperimentLog
+from .utils.log import ExperimentLog
 
 
 @click.command()

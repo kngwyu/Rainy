@@ -5,7 +5,7 @@ from torch import nn, Tensor
 from typing import Tuple, Union
 from .body import DqnConv, FcBody, NetworkBody
 from .head import LinearHead, NetworkHead
-from ..util import Device
+from ..utils import Device
 
 
 class ValuePredictor(ABC):

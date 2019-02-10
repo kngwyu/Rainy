@@ -6,9 +6,9 @@ from torch import nn
 from typing import Callable, Generic, Iterable, List, NamedTuple, Optional, Tuple
 import warnings
 from ..config import Config
-from .rollout import RolloutStorage
+from ..lib.rollout import RolloutStorage
 from ..envs import Action, EnvExt, State
-from ..util.typehack import Array
+from ..utils.typehack import Array
 
 
 class EpisodeResult(NamedTuple):

@@ -1,10 +1,10 @@
 import pytest
 from test_env import DummyEnv
 import torch
-from rainy.agent.rollout import FeedForwardSampler, RolloutStorage
+from rainy.lib.rollout import FeedForwardSampler, RolloutStorage
 from rainy.envs import DummyParallelEnv, MultiProcEnv, ParallelEnv
 from rainy.net.policy import categorical
-from rainy.util import Device
+from rainy.utils import Device
 
 
 @pytest.mark.parametrize('penv', [

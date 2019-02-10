@@ -2,7 +2,7 @@ import click
 from typing import Callable, Optional, Tuple
 
 from .log import ExperimentLog
-from ..agent import Agent
+from ..agents import Agent
 from ..config import Config
 from ..run import eval_agent, train_agent, random_agent
 

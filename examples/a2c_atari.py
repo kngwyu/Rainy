@@ -3,9 +3,9 @@ Some hyper parametes are from https://github.com/openai/baselines/blob/master/ba
 """
 import os
 from rainy import Config, net
-from rainy.agent import A2cAgent
+from rainy.agents import A2cAgent
 from rainy.envs import Atari
-import rainy.util.cli as cli
+import rainy.utils.cli as cli
 from rainy.envs import FrameStackParallel, MultiProcEnv
 from torch.optim import RMSprop
 

@@ -2,11 +2,11 @@ import torch
 from torch import nn, Tensor
 from typing import Tuple
 from .ppo import PpoAgent
-from .rollout import FeedForwardSampler, lr_decay
+from ..lib.rollout import FeedForwardSampler, lr_decay
 from ..config import Config
 from ..envs import State
 from ..net import Policy
-from ..util.typehack import Array
+from ..utils.typehack import Array
 
 
 class RndPpoAgent(PpoAgent):

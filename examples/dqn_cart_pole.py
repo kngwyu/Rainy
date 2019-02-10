@@ -1,7 +1,7 @@
 import os
 from rainy import Config
-from rainy.agent import DqnAgent
-import rainy.util.cli as cli
+from rainy.agents import DqnAgent
+import rainy.utils.cli as cli
 
 
 def config() -> Config:

@@ -2,7 +2,7 @@
 """
 from collections.abc import Sequence
 from typing import Any, List, Optional
-from ..util.sample import sample_indices
+from ..utils.sample import sample_indices
 
 
 class ArrayDeque(Sequence):
