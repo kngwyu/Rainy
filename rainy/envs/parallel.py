@@ -169,7 +169,7 @@ class DummyParallelEnv(ParallelEnv):
         return len(self.envs)
 
     @property
-    def spec(self) -> int:
+    def spec(self) -> EnvSpec:
         return self.envs[0].spec
 
     def states_to_array(self, states: Iterable[State]) -> ndarray:

@@ -1,6 +1,6 @@
 import os
 from rainy import Config, net
-from rainy.agents imports DqnAgent
+from rainy.agents import DqnAgent
 from rainy.envs import Atari
 from rainy.lib.explore import EpsGreedy, LinearCooler
 import rainy.utils.cli as cli
@@ -13,9 +13,7 @@ def config() -> Config:
     c.set_optimizer(
         lambda params: RMSprop(params, lr=0.00025, alpha=0.95, eps=0.01, centered=True)
     )
-    c.set_explorer(
-        lambda net: EpsGreedy(1.0, LinearCooler(1.0, 0.1, int(1e6)), net)
-    )
+    c.set_explorer(lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, int(1e6))))
     c.double_q = True
     c.set_net_fn('value', net.value.dqn_conv)
     c.replay_size = int(1e6)

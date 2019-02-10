@@ -1,7 +1,7 @@
 from torch import nn, Tensor
 from torch.optim import Optimizer, RMSprop
 from typing import Callable, Dict, Iterable, Optional, Tuple, Union
-from .net import actor_critic, ValuePredictor, value
+from .net import actor_critic, value
 from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
 from .replay import DqnReplayFeed, ReplayBuffer, UniformReplayBuffer
 from .utils import Device, Logger
@@ -35,6 +35,11 @@ class Config:
         # For DQN-like algorithms
         self.double_q = False
         self.sync_freq = 200
+        self.__explore: Callable[[], Explorer] = \
+            lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000))
+        self.__eval_explore: Callable[[], Explorer] = lambda: EpsGreedy(0.01, DummyCooler())
+        self.__replay: Callable[[int], ReplayBuffer] = \
+            lambda capacity: UniformReplayBuffer(DqnReplayFeed, capacity=capacity)
 
         # For multi worker algorithms
         self.nworkers = 8
@@ -67,17 +72,18 @@ class Config:
         self.save_freq = 10000
         self.save_eval_actions = False
 
-        self.__env = lambda: ClassicalControl()
-        self.__eval_env: Optional[EnvExt] = None
-        self.__exp: Callable[[ValuePredictor], Explorer] = \
-            lambda net: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000), net)
+        # Optimizer
         self.__optim = lambda params: RMSprop(params, 0.001)
-        self.__replay: Callable[[int], ReplayBuffer] = \
-            lambda capacity: UniformReplayBuffer(DqnReplayFeed, capacity=capacity)
+
+        # Network
         self.__net: Dict[str, NetFn] = {
             'value': value.fc,
             'actor-critic': actor_critic.fc,
         }
+
+        # Environments
+        self.__env = lambda: ClassicalControl()
+        self.__eval_env: Optional[EnvExt] = None
         self.__paralle_env = lambda env_gen, num_w: DummyParallelEnv(env_gen, num_w)
 
     def env(self) -> EnvExt:
@@ -103,11 +109,17 @@ class Config:
             self.state_dim = env.state_dim
         self.__eval_env = env
 
-    def explorer(self, value_pred: ValuePredictor) -> Explorer:
-        return self.__exp(value_pred)
+    def explorer(self) -> Explorer:
+        return self.__explore()
 
-    def set_explorer(self, exp: Callable[[ValuePredictor], Explorer]) -> None:
-        self.__exp = exp
+    def set_explorer(self, exp: Callable[[], Explorer]) -> None:
+        self.__explore = exp
+
+    def eval_explorer(self) -> Explorer:
+        return self.__eval_explore()
+
+    def set_eval_explorer(self, eval_exp: Callable[[], Explorer]) -> None:
+        self.__eval_explore = eval_exp
 
     def optimizer(self, params: Params) -> Optimizer:
         return self.__optim(params)

@@ -45,7 +45,7 @@ class Agent(ABC):
         pass
 
     @abstractmethod
-    def eval_action(self, state: State) -> Action:
+    def eval_action(self, state: Array) -> Action:
         """Return the best action according to training results.
         """
         pass
@@ -68,7 +68,7 @@ class Agent(ABC):
 
     def __eval_episode(
             self,
-            select_action: Callable[[State], Action],
+            select_action: Callable[[Array], Action],
             render: bool
     ) -> Tuple[EpisodeResult, EnvExt]:
         total_reward = 0.0

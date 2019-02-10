@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 import numpy as np
-from numpy import ndarray
-from ..net.value import ValuePredictor
 from torch.optim import Optimizer
+from ..net.value import ValuePredictor
+from ..utils.typehack import Array
 
 
 class Cooler(ABC):
@@ -39,42 +39,28 @@ class DummyCooler(Cooler):
 
 class Explorer(ABC):
     @abstractmethod
-    def select_action(self, state: ndarray) -> int:
+    def select_action(self, state: Array, value_pred: ValuePredictor) -> int:
         pass
 
 
 class Greedy(Explorer):
     """deterministic greedy policy
     """
-    def __init__(self, value_pred: ValuePredictor) -> None:
-        self.value_pred = value_pred
-
-    def select_action(self, state: ndarray) -> int:
-        action_values = self.value_pred.action_values(state).detach()
-        return action_values.argmax()
+    def select_action(self, state: Array, value_pred: ValuePredictor) -> int:
+        return value_pred.action_values(state).detach().argmax().item()
 
 
 class EpsGreedy(Explorer):
     """ε-greedy policy
     """
-    def __init__(self, epsilon: float, cooler: Cooler, value_pred: ValuePredictor) -> None:
+    def __init__(self, epsilon: float, cooler: Cooler) -> None:
         self.epsilon = epsilon
         self.cooler = cooler
-        self.value_pred = value_pred
 
-    def select_action(self, state: ndarray) -> int:
+    def select_action(self, state: Array, value_pred: ValuePredictor) -> int:
         old_eps = self.epsilon
         self.epsilon = self.cooler(self.epsilon)
         if np.random.rand() < old_eps:
-            action_dim = self.value_pred.action_dim
+            action_dim = value_pred.action_dim
             return np.random.randint(0, action_dim)
-        action_values = self.value_pred.action_values(state).detach()
-        return action_values.argmax().item()
-
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        del state['value_pred']
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
+        return value_pred.action_values(state).detach().argmax().item()

@@ -1,26 +1,21 @@
 from torch import nn, Tensor, torch
-from typing import Iterable, List, Optional, Union
+from typing import List, Union
 from numpy import ndarray
 
 
-class Device():
+class Device:
     """Utilities for handling devices
     """
-    def __init__(self, gpu_indices: Optional[Iterable[int]] = None) -> None:
+    def __init__(self, use_cpu: bool = False, gpu_indices: List[int] = []) -> None:
         """
         :param gpu_limits: list of gpus you allow PyTorch to use
         """
         super().__init__()
-        if gpu_indices is None:
-            if torch.cuda.is_available():
-                self.__use_all_gpu()
-            else:
-                self.__use_cpu()
-        elif not gpu_indices:
+        if use_cpu or not torch.cuda.is_available():
             self.__use_cpu()
         else:
-            self.gpu_indices = [idx for idx in gpu_indices]
-            self.device = torch.device('cuda:%d' % self.gpu_indices[0])
+            self.gpu_indices = gpu_indices if gpu_indices else self.__all_gpu()
+            self.device = torch.device('cuda:{}'.format(self.gpu_indices[0]))
 
     @property
     def unwrapped(self) -> torch.device:
@@ -32,9 +27,9 @@ class Device():
         :return: Tensor
         """
         t = type(arr)
-        if t == Tensor:
+        if t is Tensor:
             return arr.to(device=self.device)  # type: ignore
-        elif t == ndarray or t == list:
+        elif t is ndarray or t is list:
             return torch.tensor(arr, device=self.device, dtype=dtype)
         else:
             raise ValueError('arr must be ndarray or list or tensor')
@@ -45,9 +40,8 @@ class Device():
     def is_multi_gpu(self) -> bool:
         return len(self.gpu_indices) > 1
 
-    def __use_all_gpu(self) -> None:
-        self.gpu_indices = list(range(torch.cuda.device_count()))
-        self.device = torch.device('cuda:0')
+    def __all_gpu(self) -> List[int]:
+        return list(range(torch.cuda.device_count()))
 
     def __use_cpu(self) -> None:
         self.gpu_indices = []

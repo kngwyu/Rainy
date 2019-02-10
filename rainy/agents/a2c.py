@@ -17,7 +17,7 @@ class A2cAgent(NStepParallelAgent):
     def members_to_save(self) -> Tuple[str, ...]:
         return ("net",)
 
-    def eval_action(self, state_: State) -> Action:
+    def eval_action(self, state_: Array) -> Action:
         state = self.env.state_to_array(state_)
         if len(state.shape) == len(self.net.state_dim):
             # treat as batch_size == 1

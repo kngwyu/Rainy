@@ -1,11 +1,12 @@
 import numpy as np
 import torch
-from torch import nn
+from torch import nn, Tensor
 from typing import Tuple
 from .base import OneStepAgent
 from ..config import Config
 from ..envs import Action, State
 from ..replay import DqnReplayFeed
+from ..utils.typehack import Array
 
 
 class DqnAgent(OneStepAgent):
@@ -15,7 +16,8 @@ class DqnAgent(OneStepAgent):
         self.target_net = config.net('value')
         self.optimizer = config.optimizer(self.net.parameters())
         self.criterion = nn.MSELoss()
-        self.policy = config.explorer(self.net)
+        self.policy = config.explorer()
+        self.eval_policy = config.eval_explorer()
         self.replay = config.replay_buffer()
         assert self.replay.feed == DqnReplayFeed
         self.batch_indices = torch.arange(
@@ -27,13 +29,15 @@ class DqnAgent(OneStepAgent):
     def members_to_save(self) -> Tuple[str, ...]:
         return "net", "target_net", "policy", "total_steps"
 
-    def eval_action(self, state: State) -> Action:
-        return self.net.action_values(state).detach().argmax().item()
+    def eval_action(self, state: Array) -> Action:
+        with torch.no_grad():
+            res = self.eval_policy.select_action(state, self.net)
+        return res  # type: ignore
 
     def step(self, state: State) -> Tuple[State, float, bool, dict]:
         train_started = self.total_steps > self.config.train_start
         if train_started:
-            action = self.policy.select_action(self.env.state_to_array(state))
+            action = self.policy.select_action(self.env.state_to_array(state), self.net)
         else:
             action = self.random_action()
         next_state, reward, done, info = self.env.step(action)
@@ -42,17 +46,20 @@ class DqnAgent(OneStepAgent):
             self._train()
         return next_state, reward, done, info
 
+    def _q_next(self, next_states: Array) -> Tensor:
+        q_next = self.target_net(next_states)
+        if self.config.double_q:
+            action_values = self.net.action_values(next_states, nostack=True).detach()
+            return q_next[self.batch_indices, action_values.argmax(dim=-1)]
+        else:
+            return q_next.max(1)[0]
+
     def _train(self) -> None:
         obs = self.replay.sample(self.config.replay_batch_size)
         obs = [ob.to_ndarray(self.env.state_to_array) for ob in obs]
         states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
-        q_next = self.target_net(next_states).detach()
-        if self.config.double_q:
-            # Here supposes action_values is replay_batch_size×(action_dim) array
-            action_values = self.net.action_values(next_states, nostack=True).detach()
-            q_next = q_next[self.batch_indices, action_values.argmax(dim=-1)]
-        else:
-            q_next, _ = q_next.max(1)
+        with torch.no_grad():
+            q_next = self._q_next(next_states)
         q_next *= self.config.device.tensor(1.0 - done) * self.config.discount_factor
         q_next += self.config.device.tensor(rewards)
         q_current = self.net(states)[self.batch_indices, actions]
@@ -63,7 +70,4 @@ class DqnAgent(OneStepAgent):
         self.optimizer.step()
         self.report_loss(value_loss=loss.item())
         if self.total_steps % self.config.sync_freq == 0:
-            self.sync_target_net()
-
-    def sync_target_net(self) -> None:
-        self.target_net.load_state_dict(self.net.state_dict())
+            self.target_net.load_state_dict(self.net.state_dict())

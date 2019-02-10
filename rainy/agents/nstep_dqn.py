@@ -17,7 +17,7 @@ class NStepDqnAgent(NStepAgent):
         self.target_net.load_state_dict(self.net.state_dict())
 
         self.criterion = nn.MSELoss()
-        self.policy = config.explorer(self.net)
+        self.policy = config.explorer()
 
     def members_to_save(self) -> Tuple[str, ...]:
         return "net", "target_net", "policy", "total_steps"
