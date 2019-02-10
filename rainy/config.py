@@ -17,17 +17,19 @@ class Config:
         self.action_dim = 0
         self.state_dim: Tuple[int, ...] = (0,)
 
-        # common parameters
+        # Common parameters
         self.discount_factor = 0.99
         self.device = Device()
         self.grad_clip = 5.0  # I recommend 0.5 for A2C
         self.max_steps = 10000
         self.eval_deterministic = True
 
-        # For replay buffer algorithms
+        # Replay buffer
         self.replay_batch_size = 10
         self.replay_size = 10000
         self.train_start = 1000
+        self.__replay: Callable[[int], ReplayBuffer] = \
+            lambda capacity: UniformReplayBuffer(DqnReplayFeed, capacity=capacity)
 
         # For the cases you can't set seed in constructor, like gym.atari
         self.seed: Optional[int] = None
@@ -38,8 +40,6 @@ class Config:
         self.__explore: Callable[[], Explorer] = \
             lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000))
         self.__eval_explore: Callable[[], Explorer] = lambda: EpsGreedy(0.01, DummyCooler())
-        self.__replay: Callable[[int], ReplayBuffer] = \
-            lambda capacity: UniformReplayBuffer(DqnReplayFeed, capacity=capacity)
 
         # For multi worker algorithms
         self.nworkers = 8
