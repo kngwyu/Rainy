@@ -11,7 +11,7 @@ class Cooler(ABC):
         pass
 
     def lr_decay(self, optim: Optimizer) -> None:
-        for param_group in Optimizer.param_groups:
+        for param_group in optim.param_groups:
             if 'lr' in param_group:
                 param_group['lr'] = self.__call__(param_group['lr'])
 

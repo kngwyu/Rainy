@@ -3,7 +3,7 @@ Some hyper parametes are from https://github.com/openai/baselines/blob/master/ba
 """
 import os
 from rainy import Config, net
-from rainy.agents import A2cAgent
+from rainy.agents import AcktrAgent
 from rainy.envs import Atari
 import rainy.utils.cli as cli
 from rainy.envs import FrameStackParallel, MultiProcEnv
@@ -32,4 +32,4 @@ def config() -> Config:
 
 
 if __name__ == '__main__':
-    cli.run_cli(config(), A2cAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config(), AcktrAgent, script_path=os.path.realpath(__file__))

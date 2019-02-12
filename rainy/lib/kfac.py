@@ -180,7 +180,7 @@ class KfacPreConditioner(PreConditioner):
         else:
             state[param].addmm_(
                 mat1=mat,
-                mat2=x.t(),
+                mat2=mat.t(),
                 beta=self.beta,
                 alpha=(1 - self.beta) / scale,
             )
