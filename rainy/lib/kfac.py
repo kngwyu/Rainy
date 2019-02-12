@@ -1,4 +1,7 @@
+from abc import ABC
 from enum import Enum
+import math
+import torch
 from torch import nn, Tensor
 from torch.nn import functional as F
 from torch.optim import Optimizer
@@ -9,9 +12,6 @@ import warnings
 class Layer(Enum):
     LINEAR = 1
     CONV2D = 2
-
-    def is_conv(self) -> bool:
-        return self.value == self.LINEAR
 
 
 def get_layer(mod: nn.Module) -> Union[Layer, str]:
@@ -24,19 +24,25 @@ def get_layer(mod: nn.Module) -> Union[Layer, str]:
         return name
 
 
-class KfacPreConditioner(Optimizer):
+class PreConditioner(ABC, Optimizer):
+    pass
+
+
+class KfacPreConditioner(PreConditioner):
     def __init__(
             self,
             net: nn.Module,
-            eps: float,
-            alpha: float = 1.0,
-            update_freq: int = 1,
-            use_trace_norm_pi: bool = False,
+            gamma: float = 1.0e-3,
+            weight_decay: float = 0.0,
+            tau: float = 100.0,
+            update_freq: int = 10,
+            use_trace_norm_pi: bool = True,
             use_sua: bool = False,
             constraint_norm: bool = False,
     ) -> None:
-        self.eps = eps
-        self.alpha = alpha
+        self.gamma = gamma
+        self.weight_decay = weight_decay
+        self.beta = math.exp(-1.0 / tau)
         self.update_freq = update_freq
         self.use_trace_norm_pi = use_trace_norm_pi
         self.use_sua = use_sua
@@ -74,19 +80,27 @@ class KfacPreConditioner(Optimizer):
             weight, bias = group['params']
             state = self.state[weight]
             self._update_stats(group, state)
+            fisher_norm += self._update_params(weight, bias, group['layer_type'], state)
+            del self.state[group['mod']]['x']
+            del self.state[group['mod']]['g']
+        if self.constraint_norm:
+            scale = (1. / fisher_norm) ** 0.5
+            for group in self.param_groups:
+                for param in filter(lambda p: p, group['params']):
+                    param.grad.data *= scale
         self._counter += 1
 
     def _update_stats(self, group: dict, state: dict) -> None:
         """Updates E[xxT], E[ggT], and their invs
         """
-        xxt = self._compute_xxt(group, state)
-        ggt = self._compute_ggt(group, state)
-        if self.counter % self.update_freq != 0:
+        xxt = self.__xxt(group, state)
+        ggt = self.__ggt(group, state)
+        if self._counter % self.update_freq != 0:
             return
-        pi = self._compute_pi(xxt, ggt)
-        eps = self.eps / state['num_locations']
-        state['ixxt'] = self._compute_inv(xxt, (eps * pi) ** 0.5)
-        state['iggt'] = self._compute_inv(ggt, (eps / pi) ** 0.5)
+        pi = self.__pi(xxt, ggt)
+        eps = (self.gamma + self.weight_decay) ** 0.5
+        state['ixxt'] = self.__inv(xxt, eps * pi)
+        state['iggt'] = self.__inv(ggt, eps / pi)
 
     def _update_params(
             self,
@@ -95,20 +109,45 @@ class KfacPreConditioner(Optimizer):
             layer: Layer,
             state: dict
     ) -> float:
-        if layer.is_conv() and self.use_sua:
-            pass
+        if layer is Layer.CONV2D and self.use_sua:
+            raise NotImplementedError('SUA fisher is not yet implemented.')
+        else:
+            gw, gb = self.__fisher_grad(weight, bias, layer, state)
+        fisher_norm = (weight.grad * gw).sum().item()
+        weight.grad.data = gw
+        if bias is not None:
+            fisher_norm += (bias.grad * gb).sum().item()
+            bias.grad.data = gb
+        return fisher_norm
 
-    def _computes_fisher(self, weight: Tensor, bias: Tensor, layer: Layer, state: dict):
-        g = weight.grad.data
-        if layer.is_conv():
-            g = reshape(g.size(0), -1)
+    def __fisher_grad(
+            self,
+            weight: Tensor,
+            bias: Optional[Tensor],
+            layer: Layer,
+            state: dict
+    ) -> Tuple[Tensor, Optional[Tensor]]:
+        """Computes F^{-1}∇h
+        """
+        gw = weight.grad.data
+        wshape = gw.shape
+        if layer is Layer.CONV2D:
+            gw = gw.reshape(wshape[0], -1)
+        if bias is not None:
+            gw = torch.cat([gw, bias.grad.data.view(-1, 1)], dim=1)
+        gw = torch.mm(torch.mm(state['iggt'], gw), state['ixxt'])
+        gb = None
+        if bias is not None:
+            gb = gw[:, -1].reshape(bias.shape)
+            gw = gw[:, :-1]
+        return gw.reshape(wshape), gb
 
-    def _compute_xxt(self, group: dict, state: dict) -> Tensor:
+    def __xxt(self, group: dict, state: dict) -> Tensor:
         """Computes E[x_i x_j^T] and memorize it
         """
         mod = group['mod']
         x = self.state[mod]['x']
-        if group['layer_type'].is_conv():
+        if group['layer_type'] is Layer.CONV2D:
             if self.use_sua:
                 x = x.view(*x.shape[:2], -1)
             else:
@@ -118,47 +157,47 @@ class KfacPreConditioner(Optimizer):
             x = x.data.t()
         if mod.bias is not None:
             x = torch.cat([x, torch.ones_like(x[:1])])
-        return self._average(state, 'xxt', x)
+        return self.__average(state, 'xxt', x, float(x.size(1)))
 
-    def _compute_ggt(self, group: dict, state: dict) -> Tensor:
+    def __ggt(self, group: dict, state: dict) -> Tensor:
         """Computes E[g_i g_j^T] and memorize it
         """
         g = self.state[group['mod']]['g']
-        if group['layer_type'].is_conv():
+        scale = float(g.size(1))
+        if group['layer_type'] is Layer.CONV2D:
             g = g.data.transpose(1, 0)
-            state['num_locations'] = g.size(2) * g.size(3)
+            scale *= g.size(2) * g.size(3)
             g = g.reshape(g.size(0), -1)
         else:
-            state['num_locations'] = 1
             g = g.data.t()
-        return self._average(state, 'ggt', g)
+        return self.__average(state, 'ggt', g, float(scale))
 
-    def _average(self, state: dict, param: str, mat: Tensor) -> Tensor:
-        """Computes the moving average X <- (1 - α)X + αX' of E[xxT] or E[ggT]
+    def __average(self, state: dict, param: str, mat: Tensor, scale: float) -> Tensor:
+        """Computes the moving average X <- βX + (1-β)X'
         """
         if self._counter == 0:
-            state[param] = torch.mm(mat, mat.t()) / float(mat.size(1))
+            state[param] = torch.mm(mat, mat.t()) / scale
         else:
             state[param].addmm_(
                 mat1=mat,
                 mat2=x.t(),
-                beta=(1. - self.alpha),
-                alpha=self.alpha / float(mat.size(1))
+                beta=self.beta,
+                alpha=(1 - self.beta) / scale,
             )
         return state[param]
 
-    def _compute_pi(self, xxt: Tensor, ggt: Tensor) -> float:
+    def __pi(self, xxt: Tensor, ggt: Tensor) -> float:
         """Computes π-correction for Tikhonov regularization
            TODO: Use different π for xxt & ggt
         """
         if self.use_trace_norm_pi:
-            tx = torch.trace(xxt) * xxt.size(0)
-            tg = torch.trace(ggt) * ggt.size(0)
+            tx = torch.trace(xxt) * ggt.size(0)
+            tg = torch.trace(ggt) * xxt.size(0)
             return tx.item() / tg.item()
         return 1.0
 
-    def _compute_inv(self, mat: Tensor, eps: float) -> Tensor:
-        """Computes (mat + πλ**0.5I) ^-1
+    def __inv(self, mat: Tensor, eps: float) -> Tensor:
+        """Computes (mat + εI) ^-1
         """
         diag = mat.new_full((mat.size(0),), eps)
         return (mat + torch.diag(diag)).inverse()

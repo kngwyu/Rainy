@@ -56,6 +56,8 @@ https://github.com/ShangtongZhang/DeepRL
 
 https://github.com/chainer/chainerrl
 
+https://github.com/Thrandis/EKFAC-pytorch (ACKTR)
+
 # License
 This project is licensed under Apache License, Version 2.0
 ([LICENSE-APACHE](LICENSE) or http://www.apache.org/licenses/LICENSE-2.0).

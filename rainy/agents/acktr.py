@@ -1,16 +1,12 @@
-import numpy as np
-from torch import nn, Tensor
-from torch.optim import Optimizer
-from typing import Iterable, Union
 from .a2c import A2cAgent
 from ..config import Config
-from ..envs import Action, State
-from ..utils.typehack import Array
 
 
 class AcktrAgent(A2cAgent):
-    """STUB
-    """
-    def nstep(self, states: Array[State]) -> Array[State]:
-        pass
+    def __init__(self, config: Config) -> None:
+        super().__init__(config)
+        self.precond = config.preconditiner(self.net)
 
+    def _step_optimizer(self) -> None:
+        self.precond.step()
+        self.optimizer.step()

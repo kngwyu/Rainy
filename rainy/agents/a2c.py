@@ -13,6 +13,7 @@ class A2cAgent(NStepParallelAgent):
         super().__init__(config)
         self.net = config.net('actor-critic')
         self.optimizer = config.optimizer(self.net.parameters())
+        self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
 
     def members_to_save(self) -> Tuple[str, ...]:
         return ("net",)
@@ -47,6 +48,11 @@ class A2cAgent(NStepParallelAgent):
         self.storage.push(next_states, rewards, done, policy=policy, value=value)
         return next_states
 
+    def _step_optimizer(self) -> None:
+        nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
+        self.optimizer.step()
+        self.lr_cooler.lr_decay(self.optimizer)
+
     def nstep(self, states: Array[State]) -> Array[State]:
         for _ in range(self.config.nsteps):
             states = self._one_step(states)
@@ -69,12 +75,11 @@ class A2cAgent(NStepParallelAgent):
         (policy_loss
          + self.config.value_loss_weight * value_loss
          - self.config.entropy_weight * entropy_loss).backward()
-        nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
+        self._step_optimizer()
         self.report_loss(
             policy_loss=policy_loss.item(),
             value_loss=value_loss.item(),
             entropy_loss=entropy_loss.item(),
         )
-        self.optimizer.step()
         self.storage.reset()
         return states

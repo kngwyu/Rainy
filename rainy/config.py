@@ -3,6 +3,7 @@ from torch.optim import Optimizer, RMSprop
 from typing import Callable, Dict, Iterable, Optional, Tuple, Union
 from .net import actor_critic, value
 from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
+from .lib.kfac import KfacPreConditioner, PreConditioner
 from .replay import DqnReplayFeed, ReplayBuffer, UniformReplayBuffer
 from .utils import Device, Logger
 from .envs import ClassicalControl, DummyParallelEnv, EnvExt, ParallelEnv
@@ -52,8 +53,6 @@ class Config:
         self.value_loss_weight = 1.0
         self.use_gae = False
         self.gae_tau = 1.0
-
-        # For acktr and ppo
         self.lr_decay = False
 
         # For ppo
@@ -72,8 +71,9 @@ class Config:
         self.save_freq = 10000
         self.save_eval_actions = False
 
-        # Optimizer
+        # Optimizer and preconditioner
         self.__optim = lambda params: RMSprop(params, 0.001)
+        self.__precond = lambda net: KfacPreConditioner(net)
 
         # Network
         self.__net: Dict[str, NetFn] = {
@@ -126,6 +126,12 @@ class Config:
 
     def set_optimizer(self, optim: Callable[[Params], Optimizer]) -> None:
         self.__optim = optim
+
+    def preconditioner(self, net: nn.Module) -> PreConditioner:
+        return self.__precond(net)
+
+    def set_preconditioner(self, precond: Callable[[nn.Module], PreConditioner]) -> None:
+        self.__precond = precond
 
     def replay_buffer(self) -> ReplayBuffer:
         return self.__replay(self.replay_size)
