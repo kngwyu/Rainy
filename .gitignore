@@ -1,8 +1,6 @@
 .agent
 .save
 log.txt
-Pipfile.lock
-rainy-env/
 .tox/
 *.pyc
 **/__pycache__/

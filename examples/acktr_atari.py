@@ -10,8 +10,8 @@ from rainy.lib import kfac
 def config() -> Config:
     c = Config()
     c.set_env(lambda: Atari('Breakout', frame_stack=False))
-    c.set_optimizer(kfac.default_sgd(eta_max=0.4))
-    c.set_preconditioner(lambda net: kfac.KfacPreConditioner(net, eta_max=0.4))
+    c.set_optimizer(kfac.default_sgd(eta_max=0.2))
+    c.set_preconditioner(lambda net: kfac.KfacPreConditioner(net, eta_max=0.2, tau=480.))
     c.set_net_fn('actor-critic', net.actor_critic.ac_conv)
     c.nworkers = 32
     c.nsteps = 20
