@@ -35,18 +35,22 @@ class KfacPreConditioner(PreConditioner):
             gamma: float = 1.0e-3,
             weight_decay: float = 0.0,
             tau: float = 100.0,
+            eta_max: float = 0.25,
+            delta: float = 0.001,
             update_freq: int = 10,
             use_trace_norm_pi: bool = True,
+            constraint_norm: bool = True,
             use_sua: bool = False,
-            constraint_norm: bool = False,
     ) -> None:
         self.gamma = gamma
         self.weight_decay = weight_decay
         self.beta = math.exp(-1.0 / tau)
+        self.eta_max = eta_max
+        self.delta = delta
         self.update_freq = update_freq
         self.use_trace_norm_pi = use_trace_norm_pi
-        self.use_sua = use_sua
         self.constraint_norm = constraint_norm
+        self.use_sua = use_sua
         self.params = []
         self._counter = 0
         for mod in net.modules():
@@ -81,13 +85,9 @@ class KfacPreConditioner(PreConditioner):
             state = self.state[weight]
             self._update_stats(group, state)
             fisher_norm += self._update_params(weight, bias, group['layer_type'], state)
-            del self.state[group['mod']]['x']
-            del self.state[group['mod']]['g']
+            del self.state[group['mod']]['x'], self.state[group['mod']]['g']
         if self.constraint_norm:
-            scale = (1. / fisher_norm) ** 0.5
-            for group in self.param_groups:
-                for param in filter(lambda p: p, group['params']):
-                    param.grad.data *= scale
+            self._scale_norm(fisher_norm)
         self._counter += 1
 
     def _update_stats(self, group: dict, state: dict) -> None:
@@ -114,11 +114,18 @@ class KfacPreConditioner(PreConditioner):
         else:
             gw, gb = self.__fisher_grad(weight, bias, layer, state)
         fisher_norm = (weight.grad * gw).sum().item()
-        weight.grad.data = gw
+        weight.grad.data.copy_(gw)
         if bias is not None:
             fisher_norm += (bias.grad * gb).sum().item()
-            bias.grad.data = gb
+            bias.grad.data.copy_(gb)
         return fisher_norm
+
+    def _scale_norm(self, fisher_norm: float) -> None:
+        fisher_norm *= self.eta_max ** 2
+        scale = min(1.0, math.sqrt(self.delta / fisher_norm))
+        for group in self.param_groups:
+            for param in filter(lambda p: p, group['params']):
+                param.grad.data.mul_(scale)
 
     def __fisher_grad(
             self,
