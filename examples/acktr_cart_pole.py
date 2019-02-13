@@ -3,7 +3,7 @@ from rainy import Config
 from rainy.agents import AcktrAgent
 import rainy.utils.cli as cli
 from rainy.envs import MultiProcEnv
-from torch.optim import Adam
+from rainy.lib import kfac
 
 
 def config() -> Config:
@@ -11,7 +11,7 @@ def config() -> Config:
     c.max_steps = int(1e6)
     c.nworkers = 12
     c.set_parallel_env(lambda env_gen, num_w: MultiProcEnv(env_gen, num_w))
-    c.set_optimizer(lambda params: Adam(params, lr=0.001))
+    c.set_optimizer(kfac.default_sgd())
     c.grad_clip = 0.5
     c.gae_tau = 0.95
     c.use_gae = False

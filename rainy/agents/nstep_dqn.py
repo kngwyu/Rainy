@@ -5,7 +5,7 @@ from torch import nn
 from typing import Tuple
 from .base import NStepParallelAgent
 from ..config import Config
-from ..envs import Action, State
+from ..prelude import Action, State
 
 
 class NStepDqnAgent(NStepAgent):

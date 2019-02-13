@@ -1,13 +1,14 @@
-from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
-from .ext import Action, EnvExt, EnvSpec, State
-from .monitor import RewardMonitor
-from .parallel import DummyParallelEnv, MultiProcEnv, ParallelEnv
-from .parallel import FrameStackParallel, ParallelEnvWrapper
 import numpy as np
 from numpy import ndarray
 import gym
 from gym.spaces import Box
 from typing import Tuple, Union
+from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
+from .ext import EnvExt, EnvSpec
+from .monitor import RewardMonitor
+from .parallel import DummyParallelEnv, MultiProcEnv, ParallelEnv
+from .parallel import FrameStackParallel, ParallelEnvWrapper
+from ..prelude import State
 
 
 class ClassicalControl(EnvExt):

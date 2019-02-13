@@ -4,9 +4,8 @@ from torch import nn, Tensor
 from typing import Tuple
 from .base import OneStepAgent
 from ..config import Config
-from ..envs import Action, State
 from ..replay import DqnReplayFeed
-from ..utils.typehack import Array
+from ..prelude import Action, Array, State
 
 
 class DqnAgent(OneStepAgent):

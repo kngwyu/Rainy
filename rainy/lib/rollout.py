@@ -6,7 +6,7 @@ from typing import Any, Generic, Iterable, Iterator, List, NamedTuple, Optional,
 from ..envs import ParallelEnv, State
 from ..net import Policy
 from ..utils import Device
-from ..utils.typehack import Array
+from ..prelude import Array
 
 
 class RolloutStorage(Generic[State]):

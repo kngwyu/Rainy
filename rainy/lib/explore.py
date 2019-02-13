@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from torch.optim import Optimizer
 from ..net.value import ValuePredictor
-from ..utils.typehack import Array
+from ..prelude import Array
 
 
 class Cooler(ABC):

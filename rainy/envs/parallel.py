@@ -4,8 +4,8 @@ from multiprocessing.connection import Connection
 import numpy as np
 from numpy import ndarray
 from typing import Any, Callable, Generic, Iterable, Tuple
-from ..utils.typehack import Array
-from . import Action, EnvExt, EnvSpec, State
+from . import EnvExt, EnvSpec
+from ..prelude import Action, Array, State
 
 
 class ParallelEnv(ABC, Generic[Action, State]):

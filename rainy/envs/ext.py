@@ -1,11 +1,8 @@
 from abc import ABC
 import gym
 from numpy import ndarray
-from typing import Any, Generic, NamedTuple, Tuple, TypeVar
-
-
-Action = TypeVar('Action', bound=int)
-State = TypeVar('State')
+from typing import Any, Generic, NamedTuple, Tuple
+from ..prelude import Action, State
 
 
 class EnvSpec(NamedTuple):

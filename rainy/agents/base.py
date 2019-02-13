@@ -7,8 +7,8 @@ from typing import Callable, Generic, Iterable, List, NamedTuple, Optional, Tupl
 import warnings
 from ..config import Config
 from ..lib.rollout import RolloutStorage
-from ..envs import Action, EnvExt, State
-from ..utils.typehack import Array
+from ..envs import EnvExt
+from ..prelude import Action, Array, State
 
 
 class EpisodeResult(NamedTuple):

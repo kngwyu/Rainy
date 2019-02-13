@@ -4,9 +4,10 @@ import math
 import torch
 from torch import nn, Tensor
 from torch.nn import functional as F
-from torch.optim import Optimizer
-from typing import Optional, Tuple, Union
+from torch.optim import Optimizer, SGD
+from typing import Callable, Optional, Tuple, Union
 import warnings
+from ..prelude import Params
 
 
 class Layer(Enum):
@@ -22,6 +23,14 @@ def get_layer(mod: nn.Module) -> Union[Layer, str]:
         return Layer.CONV2D
     else:
         return name
+
+
+def default_sgd(eta_max: float = 0.25, momentum: float = 0.9) -> Callable[[Params], Optimizer]:
+    """Returns the SGD optimizer which has the default setting for used with K-FAC.
+    """
+    def _sgd(params: Params) -> Optimizer:
+        return SGD(params, lr=eta_max * (1.0 - momentum), momentum=momentum)
+    return _sgd
 
 
 class PreConditioner(ABC, Optimizer):
@@ -109,6 +118,8 @@ class KfacPreConditioner(PreConditioner):
             layer: Layer,
             state: dict
     ) -> float:
+        """Updates gradients
+        """
         if layer is Layer.CONV2D and self.use_sua:
             raise NotImplementedError('SUA fisher is not yet implemented.')
         else:
@@ -124,7 +135,7 @@ class KfacPreConditioner(PreConditioner):
         fisher_norm *= self.eta_max ** 2
         scale = min(1.0, math.sqrt(self.delta / fisher_norm))
         for group in self.param_groups:
-            for param in filter(lambda p: p, group['params']):
+            for param in filter(lambda p: p is not None, group['params']):
                 param.grad.data.mul_(scale)
 
     def __fisher_grad(

@@ -4,8 +4,7 @@ from torch import nn
 from typing import Tuple
 from .base import NStepParallelAgent
 from ..config import Config
-from ..envs import Action, State
-from ..utils.typehack import Array
+from ..prelude import Action, Array, State
 
 
 class A2cAgent(NStepParallelAgent):

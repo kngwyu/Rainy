@@ -6,7 +6,7 @@ from ..lib.rollout import FeedForwardSampler, lr_decay
 from ..config import Config
 from ..envs import State
 from ..net import Policy
-from ..utils.typehack import Array
+from ..prelude import Array
 
 
 class RndPpoAgent(PpoAgent):

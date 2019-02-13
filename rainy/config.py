@@ -1,15 +1,13 @@
-from torch import nn, Tensor
+from torch import nn
 from torch.optim import Optimizer, RMSprop
-from typing import Callable, Dict, Iterable, Optional, Tuple, Union
+from typing import Callable, Dict, Optional, Tuple
 from .net import actor_critic, value
 from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
 from .lib.kfac import KfacPreConditioner, PreConditioner
 from .replay import DqnReplayFeed, ReplayBuffer, UniformReplayBuffer
 from .utils import Device, Logger
 from .envs import ClassicalControl, DummyParallelEnv, EnvExt, ParallelEnv
-
-Params = Iterable[Union[Tensor, dict]]
-NetFn = Callable[[Tuple[int, ...], int, Device], nn.Module]
+from .prelude import NetFn, Params
 
 
 class Config:
