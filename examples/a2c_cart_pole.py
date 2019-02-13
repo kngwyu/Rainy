@@ -15,6 +15,7 @@ def config() -> Config:
     c.grad_clip = 0.5
     c.gae_tau = 0.95
     c.use_gae = False
+    c.lr_decay = True
     c.eval_deterministic = True
     c.value_loss_weight = 0.1
     c.entropy_weight = 0.001

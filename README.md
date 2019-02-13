@@ -12,24 +12,52 @@ Python >= 3.6.1
 # Run examples
 Though this project is still WIP, all examples are verified to work.
 
-First, clone this repository and create a virtual env.
+First, install [pipenv](https://pipenv.readthedocs.io/en/latest/).
+E.g. you can install it via
+``` bash
+pip install pipenv --user
+```
+
+Then, clone this repository and create a virtual environment in it.
 ```bash
 git clone https://github.com/kngwyu/Rainy.git
 cd Rainy
-mkdir .rainy-env
-virtualenv --system-site-packages -p python3 .rainy-env
-# if you use bash/zsh
-. .rainy_env/bin/activate
-# or if you use fish
-. .rainy_env/bin/activate.fish
-pip install -e .
+pipenv --site-packages --three
+pipenv install --dev
 ```
 
-Then run your favorite example.
+Now you are ready to start!
+
+You can run examples via `pipenv shell` or `pipenv run`.
 ```bash
+pipenv shell
 cd examples
-python a2c_cartpole.py train
+python a2c_cart_pole.py train
 ```
+
+After training, you can run learned agents.
+
+Please replace `(log-directory)` in the below command with your real log file.
+It should be named like `a2c_cart_pole-190213-225317-1bdac1d6`.
+``` bash
+python a2c_cart_pole.py eval (log-directory) --render
+```
+
+You can also plot training results in your log directory.
+This command opens a ipython shell with your log file.
+``` bash
+python a2c_cart_pole.py ipython --log-dir=(log-directory)
+```
+
+``` python
+import matplotlib.pyplot as plt
+x, y = 'update-steps', 'reward-mean'
+plt.plot(tlog[x], tlog[y])
+plt.title('a2c cart pole')
+plt.xlabel(x); plt.ylabel(y)
+plt.show()
+```
+![A2C cart pole](./pictures/a2c-cart-pole.png)
 
 # Implemented Algorithms
 
@@ -39,6 +67,9 @@ python a2c_cartpole.py train
 ## A2C (Advantage Actor Critic)
 - http://proceedings.mlr.press/v48/mniha16.pdf , https://arxiv.org/abs/1602.01783 (Original version)
 - https://blog.openai.com/baselines-acktr-a2c/ (Synchronized version)
+
+## ACKTR (Actor Critic using Kronecker-Factored Trust Region)
+- https://papers.nips.cc/paper/7112-scalable-trust-region-method-for-deep-reinforcement-learning-using-kronecker-factored-approximation
 
 ## PPO (Proximal Policy Optimization)
 - https://arxiv.org/abs/1707.06347
