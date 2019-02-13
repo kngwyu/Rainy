@@ -11,13 +11,14 @@ def config() -> Config:
     c.max_steps = int(1e6)
     c.nworkers = 12
     c.set_parallel_env(lambda env_gen, num_w: MultiProcEnv(env_gen, num_w))
-    c.set_optimizer(kfac.default_sgd())
-    c.grad_clip = 0.5
+    c.set_optimizer(kfac.default_sgd(eta_max=0.4))
+    c.set_preconditioner(lambda net: kfac.KfacPreConditioner(net, eta_max=0.4))
     c.gae_tau = 0.95
-    c.use_gae = False
+    c.use_gae = True
     c.eval_deterministic = True
+    c.lr_decay = True
     c.value_loss_weight = 0.1
-    c.entropy_weight = 0.001
+    c.entropy_weight = 0.0001
     return c
 
 

@@ -10,3 +10,4 @@ class AcktrAgent(A2cAgent):
     def _step_optimizer(self) -> None:
         self.precond.step()
         self.optimizer.step()
+        self.lr_cooler.lr_decay(self.optimizer)

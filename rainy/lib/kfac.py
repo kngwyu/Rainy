@@ -132,8 +132,7 @@ class KfacPreConditioner(PreConditioner):
         return fisher_norm
 
     def _scale_norm(self, fisher_norm: float) -> None:
-        fisher_norm *= self.eta_max ** 2
-        scale = min(1.0, math.sqrt(self.delta / fisher_norm))
+        scale = min(1.0, math.sqrt(self.delta / (fisher_norm * self.eta_max ** 2.0)))
         for group in self.param_groups:
             for param in filter(lambda p: p is not None, group['params']):
                 param.grad.data.mul_(scale)
