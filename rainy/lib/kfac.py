@@ -124,15 +124,15 @@ class KfacPreConditioner(PreConditioner):
             raise NotImplementedError('SUA fisher is not yet implemented.')
         else:
             gw, gb = self.__fisher_grad(weight, bias, layer, state)
-        fisher_norm = (weight.grad * gw).sum().item()
+        fisher_norm = (weight.grad * gw * self.eta_max ** 2).sum().item()
         weight.grad.data.copy_(gw)
         if bias is not None:
-            fisher_norm += (bias.grad * gb).sum().item()
+            fisher_norm += (bias.grad * gb * self.eta_max ** 2).sum().item()
             bias.grad.data.copy_(gb)
         return fisher_norm
 
     def _scale_norm(self, fisher_norm: float) -> None:
-        scale = min(1.0, math.sqrt(self.delta / (fisher_norm * self.eta_max ** 2.0)))
+        scale = min(1.0, math.sqrt(self.delta / fisher_norm))
         for group in self.param_groups:
             for param in filter(lambda p: p is not None, group['params']):
                 param.grad.data.mul_(scale)
@@ -217,3 +217,45 @@ class KfacPreConditioner(PreConditioner):
         """
         diag = mat.new_full((mat.size(0),), eps)
         return (mat + torch.diag(diag)).inverse()
+
+
+class KfacPreConditioner2(KfacPreConditioner):
+    def step(self) -> None:
+        fisher_norm = 0.0
+        for group in self.param_groups:
+            weight, bias = group['params']
+            state = self.state[weight]
+            self._update_stats(group, state)
+            fisher_norm += self._update_params(weight, bias, group['layer_type'], state)
+            del self.state[group['mod']]['x'], self.state[group['mod']]['g']
+        if self.constraint_norm:
+            self._scale_norm(fisher_norm)
+        self._counter += 1
+
+    def _update_stats(self, group: dict, state: dict) -> None:
+        """Updates E[xxT], E[ggT], and their invs
+        """
+        self.__xxt(group, state)
+        self.__ggt(group, state)
+
+    def __fisher_grad(
+            self,
+            weight: Tensor,
+            bias: Optional[Tensor],
+            layer: Layer,
+            state: dict
+    ) -> Tuple[Tensor, Optional[Tensor]]:
+        """Computes F^{-1}∇h
+        """
+        gw = weight.grad.data
+        wshape = gw.shape
+        if layer is Layer.CONV2D:
+            gw = gw.reshape(wshape[0], -1)
+        if bias is not None:
+            gw = torch.cat([gw, bias.grad.data.view(-1, 1)], dim=1)
+        gw = torch.mm(torch.mm(state['iggt'], gw), state['ixxt'])
+        gb = None
+        if bias is not None:
+            gb = gw[:, -1].reshape(bias.shape)
+            gw = gw[:, :-1]
+        return gw.reshape(wshape), gb
