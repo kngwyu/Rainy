@@ -180,7 +180,7 @@ class KfacPreConditioner(PreConditioner):
         """Computes E[g_i g_j^T] and memorize it
         """
         g = self.state[group['mod']]['g']
-        scale = float(g.size(1))
+        scale = float(g.size(0))
         if group['layer_type'] is Layer.CONV2D:
             scale *= g.size(2) * g.size(3)
             g = g.data.transpose(1, 0).reshape(g.size(1), -1)
