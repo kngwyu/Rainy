@@ -46,7 +46,7 @@ class KfacPreConditioner(PreConditioner):
             tau: float = 100.0,
             eta_max: float = 0.25,
             delta: float = 0.001,
-            update_freq: int = 10,
+            update_freq: int = 2,
             use_trace_norm_pi: bool = True,
             constraint_norm: bool = True,
             use_sua: bool = False,
@@ -182,9 +182,8 @@ class KfacPreConditioner(PreConditioner):
         g = self.state[group['mod']]['g']
         scale = float(g.size(1))
         if group['layer_type'] is Layer.CONV2D:
-            g = g.data.transpose(1, 0)
             scale *= g.size(2) * g.size(3)
-            g = g.reshape(g.size(0), -1)
+            g = g.data.transpose(1, 0).reshape(g.size(1), -1)
         else:
             g = g.data.t()
         return self.__average(state, 'ggt', g, float(scale))
@@ -193,7 +192,7 @@ class KfacPreConditioner(PreConditioner):
         """Computes the moving average X <- βX + (1-β)X'
         """
         if self._counter == 0:
-            state[param] = torch.mm(mat, mat.t()) / scale
+            state[param] = torch.mm(mat, mat.t()).div_(scale)
         else:
             state[param].addmm_(
                 mat1=mat,
