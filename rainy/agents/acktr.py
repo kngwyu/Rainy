@@ -8,6 +8,7 @@ class AcktrAgent(A2cAgent):
         self.precond = config.preconditioner(self.net)
 
     def _step_optimizer(self) -> None:
+        """Approximates F^-1∇h and apply it.
+        """
         self.precond.step()
         self.optimizer.step()
-        self.lr_cooler.lr_decay(self.optimizer)

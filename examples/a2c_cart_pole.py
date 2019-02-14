@@ -14,8 +14,8 @@ def config() -> Config:
     c.set_optimizer(lambda params: Adam(params, lr=0.001))
     c.grad_clip = 0.5
     c.gae_tau = 0.95
-    c.use_gae = True
-    c.lr_decay = True
+    c.use_gae = False
+    c.lr_decay = False
     c.eval_deterministic = True
     c.value_loss_weight = 0.1
     c.entropy_weight = 0.001

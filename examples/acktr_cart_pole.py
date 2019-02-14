@@ -24,8 +24,8 @@ def config() -> Config:
     c.set_preconditioner(lambda net: kfac.KfacPreConditioner(net, **KFAC_KWARGS))
     c.gae_tau = 0.95
     c.use_gae = True
+    c.lr_decay = False
     c.eval_deterministic = True
-    c.lr_decay = True
     c.value_loss_weight = 0.1
     c.entropy_weight = 0.01
     return c
