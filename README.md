@@ -51,6 +51,7 @@ python a2c_cart_pole.py ipython --log-dir=(log-directory)
 
 ``` python
 import matplotlib.pyplot as plt
+tlog = log['train']
 x, y = 'update-steps', 'reward-mean'
 plt.plot(tlog[x], tlog[y])
 plt.title('a2c cart pole')
