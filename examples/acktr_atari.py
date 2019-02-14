@@ -6,12 +6,19 @@ import rainy.utils.cli as cli
 from rainy.envs import FrameStackParallel, MultiProcEnv
 from rainy.lib import kfac
 
+KFAC_KWARGS = {
+    'delta': 0.005,
+    'eta_max': 0.2,
+    'tau': 32 * 20 // 2,
+    'update_freq': 4,
+}
+
 
 def config() -> Config:
     c = Config()
     c.set_env(lambda: Atari('Breakout', frame_stack=False))
-    c.set_optimizer(kfac.default_sgd(eta_max=0.2))
-    c.set_preconditioner(lambda net: kfac.KfacPreConditioner(net, eta_max=0.2, tau=480.))
+    c.set_optimizer(kfac.default_sgd(KFAC_KWARGS['eta_max']))
+    c.set_preconditioner(lambda net: kfac.KfacPreConditioner(net, **KFAC_KWARGS))
     c.set_net_fn('actor-critic', net.actor_critic.ac_conv)
     c.nworkers = 32
     c.nsteps = 20
