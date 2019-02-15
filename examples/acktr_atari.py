@@ -16,7 +16,7 @@ def config() -> Config:
     c = Config()
     c.set_env(lambda: Atari('Breakout', frame_stack=False))
     c.set_optimizer(kfac.default_sgd(KFAC_KWARGS['eta_max']))
-    c.set_preconditioner(lambda net: kfac.KfacPreConditioner(net, **KFAC_KWARGS))
+    c.set_preconditioner(lambda net: kfac.KFAC(net, eps=0.01, pi=True, constraint_norm=True))
     c.set_net_fn('actor-critic', net.actor_critic.ac_conv)
     c.nworkers = 32
     c.nsteps = 20
