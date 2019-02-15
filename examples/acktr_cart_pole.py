@@ -21,7 +21,7 @@ def config() -> Config:
     c.nsteps = 10
     c.set_parallel_env(lambda env_gen, num_w: MultiProcEnv(env_gen, num_w))
     c.set_optimizer(kfac.default_sgd(KFAC_KWARGS['eta_max']))
-    c.set_preconditioner(lambda net: kfac.KfacPreConditioner(net, **KFAC_KWARGS))
+    c.set_preconditioner(lambda net: kfac.KFAC(net, eps=0.01, pi=True, constraint_norm=True))
     c.gae_tau = 0.95
     c.use_gae = True
     c.lr_decay = False
