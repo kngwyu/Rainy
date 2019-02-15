@@ -124,15 +124,15 @@ class KfacPreConditioner(PreConditioner):
             raise NotImplementedError('SUA fisher is not yet implemented.')
         else:
             gw, gb = self.__fisher_grad(weight, bias, layer, state)
-        fisher_norm = (weight.grad * gw * self.eta_max ** 2).sum().item()
+        fisher_norm = (weight.grad * gw).sum().item()
         weight.grad.data.copy_(gw)
         if bias is not None:
-            fisher_norm += (bias.grad * gb * self.eta_max ** 2).sum().item()
+            fisher_norm += (bias.grad * gb).sum().item()
             bias.grad.data.copy_(gb)
         return fisher_norm
 
     def _scale_norm(self, fisher_norm: float) -> None:
-        scale = min(1.0, math.sqrt(self.delta / fisher_norm))
+        scale = (1.0 / fisher_norm) ** 0.5
         for group in self.param_groups:
             for param in filter(lambda p: p is not None, group['params']):
                 param.grad.data.mul_(scale)
