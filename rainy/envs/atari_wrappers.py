@@ -266,7 +266,7 @@ def wrap_deepmind(
         env = FireResetEnv(env)
     env = WarpFrame(env)
     if clip_reward:
-        env = ClipRewardEnv(WarpFrame(env))
+        env = ClipRewardEnv(env)
     if frame_stack:
         env = FrameStack(env, 4)
     return env
