@@ -106,10 +106,10 @@ class KfacPreConditioner(PreConditioner):
         ggt = self.__ggt(group, state)
         if self._counter % self.update_freq != 0:
             return
-        pi = self.__pi(xxt, ggt)
-        eps = (self.gamma + self.weight_decay) ** 0.5
-        state['ixxt'] = self.__inv(xxt, eps * pi)
-        state['iggt'] = self.__inv(ggt, eps / pi)
+        pi2 = self.__pi(xxt, ggt)
+        eps = self.gamma + self.weight_decay
+        state['ixxt'] = self.__inv(xxt, (eps * pi2) ** 0.5)
+        state['iggt'] = self.__inv(ggt, (eps / pi2) ** 0.5)
 
     def _update_params(
             self,
@@ -203,7 +203,7 @@ class KfacPreConditioner(PreConditioner):
         return state[param]
 
     def __pi(self, xxt: Tensor, ggt: Tensor) -> float:
-        """Computes π-correction for Tikhonov regularization
+        """Computes π^2 for Tikhonov regularization
            TODO: Use different π for xxt & ggt
         """
         if self.use_trace_norm_pi:
