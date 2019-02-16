@@ -127,8 +127,8 @@ class KfacPreConditioner(PreConditioner):
 
     def __fisher_grad(
             self,
-            weight: Tensor,
-            bias: Optional[Tensor],
+            weight: nn.Parameter,
+            bias: Optional[nn.Parameter],
             layer: Layer,
             state: dict
     ) -> Tuple[Tensor, Optional[Tensor]]:
@@ -140,7 +140,7 @@ class KfacPreConditioner(PreConditioner):
         if bias is not None:
             grad = torch.cat([grad, bias.grad.data.view(-1, 1)], dim=1)
         v1 = torch.chain_matmul(state['vg'].t(), grad, state['vx'])
-        v2 = v1.div_(state['eg*ex'].add_(self.delta + self.weight_decay))
+        v2 = v1.div_(state['eg*ex'].add(self.delta + self.weight_decay))
         grad = torch.chain_matmul(state['vg'], v2, state['vx'].t())
         gb = None
         if bias is not None:
@@ -173,13 +173,11 @@ class KfacPreConditioner(PreConditioner):
         """Computes E[gi gj]^T and memorize it
         """
         g = self.state[group['mod']]['g']
-        scale = float(g.size(0))
         if group['layer_type'] is Layer.CONV2D:
-            scale *= g.size(2) * g.size(3)
             g = g.data.transpose(1, 0).reshape(g.size(1), -1)
         else:
             g = g.data.t()
-        self.__average(state, 'ggt', g, float(scale))
+        self.__average(state, 'ggt', g, float(g.size(1)))
 
     def __average(self, state: dict, param: str, mat: Tensor, scale: float) -> None:
         """Computes the moving average X <- βX + (1-β)X'
