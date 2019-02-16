@@ -5,7 +5,7 @@ import torch
 from torch import nn, Tensor
 from torch.nn import functional as F
 from torch.optim import Optimizer, SGD
-from typing import Callable, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Tuple, Union
 import warnings
 from ..prelude import Params
 
@@ -59,6 +59,7 @@ class KfacPreConditioner(PreConditioner):
         self.constraint_norm = constraint_norm
         self.params = []
         self._counter = 0
+        self._save_grad = False
         for mod in net.modules():
             layer_type = get_layer(mod)
             if not isinstance(layer_type, Layer):
@@ -73,6 +74,12 @@ class KfacPreConditioner(PreConditioner):
             self.params.append({'params': params, 'mod': mod, 'layer_type': layer_type})
         super().__init__(self.params, {})
 
+    def with_save_grad(self, f: Callable[[], Any]) -> Any:
+        self._save_grad = True
+        res = f()
+        self._save_grad = False
+        return res
+
     def _save_x(self, mod: nn.Module, input_: Tuple[Tensor, ...]) -> None:
         """Save the inputs of the layer
         """
@@ -82,7 +89,7 @@ class KfacPreConditioner(PreConditioner):
     def _save_g(self, mod: nn.Module, _grad_in: tuple, grad_out: Tuple[Tensor, ...]) -> None:
         """Save the output gradients of the layer
         """
-        if mod.training:
+        if mod.training and self._save_grad:
             grad_out, *_ = grad_out
             self.state[mod]['g'] = grad_out * grad_out.size(0)
 

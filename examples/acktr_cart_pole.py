@@ -8,9 +8,9 @@ from rainy.lib import kfac
 
 KFAC_KWARGS = {
     'delta': 0.001,
-    'eta_max': 0.2,
-    'tau': 120,
-    'update_freq': 4,
+    'eta_max': 0.1,
+    'tau': 12 * 20,
+    'update_freq': 10,
 }
 
 
@@ -18,13 +18,13 @@ def config() -> Config:
     c = Config()
     c.max_steps = int(4e5)
     c.nworkers = 12
-    c.nsteps = 10
+    c.nsteps = 20
     c.set_parallel_env(lambda env_gen, num_w: MultiProcEnv(env_gen, num_w))
     c.set_optimizer(kfac.default_sgd(KFAC_KWARGS['eta_max']))
     c.set_preconditioner(lambda net: kfac.KfacPreConditioner(net, **KFAC_KWARGS))
     c.gae_tau = 0.95
     c.use_gae = True
-    c.lr_decay = False
+    c.lr_decay = True
     c.eval_deterministic = True
     c.value_loss_weight = 0.1
     c.entropy_weight = 0.01

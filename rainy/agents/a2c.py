@@ -4,6 +4,7 @@ from torch import nn
 from typing import Tuple
 from .base import NStepParallelAgent
 from ..config import Config
+from ..net import Policy
 from ..prelude import Action, Array, State
 
 
@@ -47,6 +48,9 @@ class A2cAgent(NStepParallelAgent):
         self.storage.push(next_states, rewards, done, policy=policy, value=value)
         return next_states
 
+    def _pre_backward(self, _policy: Policy, _value: torch.Tensor) -> None:
+        pass
+
     def _step_optimizer(self) -> None:
         nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
         self.optimizer.step()
@@ -70,6 +74,7 @@ class A2cAgent(NStepParallelAgent):
         policy_loss = -(policy.log_prob() * advantage.detach()).mean()
         value_loss = advantage.pow(2).mean()
         entropy_loss = policy.entropy().mean()
+        self._pre_backward(policy, value)
         self.optimizer.zero_grad()
         (policy_loss
          + self.config.value_loss_weight * value_loss
