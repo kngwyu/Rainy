@@ -41,7 +41,7 @@ class KfacPreConditioner(PreConditioner):
     def __init__(
             self,
             net: nn.Module,
-            gamma: float = 1.0e-3,
+            damping: float = 1.0e-4,
             weight_decay: float = 0.0,
             tau: float = 100.0,
             eta_max: float = 0.25,
@@ -50,8 +50,7 @@ class KfacPreConditioner(PreConditioner):
             update_freq: int = 2,
             constraint_norm: bool = True,
     ) -> None:
-        self.gamma = gamma
-        self.weight_decay = weight_decay
+        self.gamma = (damping + weight_decay) ** 0.5
         self.beta = math.exp(-1.0 / tau)
         self.eta_max = eta_max
         self.delta = delta
@@ -140,7 +139,7 @@ class KfacPreConditioner(PreConditioner):
         if bias is not None:
             grad = torch.cat([grad, bias.grad.data.view(-1, 1)], dim=1)
         v1 = torch.chain_matmul(state['vg'].t(), grad, state['vx'])
-        v2 = v1.div_(state['eg*ex'].add(self.delta + self.weight_decay))
+        v2 = v1.div_(state['eg*ex'].add(self.gamma))
         grad = torch.chain_matmul(state['vg'], v2, state['vx'].t())
         gb = None
         if bias is not None:
