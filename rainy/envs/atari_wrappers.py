@@ -254,6 +254,7 @@ def wrap_deepmind(
         episodic_life: bool = True,
         frame_stack: bool = True,
         fire_reset: bool = False,
+        clip_reward: bool = True,
 ) -> gym.Env:
     """Configure environment for DeepMind-style Atari.
        About FireResetEnv, I recommend to see the discussion at
@@ -263,7 +264,9 @@ def wrap_deepmind(
         env = EpisodicLifeEnv(env)
     if fire_reset and 'FIRE' in env.unwrapped.get_action_meanings():
         env = FireResetEnv(env)
-    env = ClipRewardEnv(WarpFrame(env))
+    env = WarpFrame(env)
+    if clip_reward:
+        env = ClipRewardEnv(WarpFrame(env))
     if frame_stack:
         env = FrameStack(env, 4)
     return env
