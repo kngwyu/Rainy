@@ -7,9 +7,9 @@ from rainy.envs import FrameStackParallel, MultiProcEnv
 from rainy.lib import kfac
 
 KFAC_KWARGS = {
-    'delta': 0.005,
+    'delta': 0.001,
     'eta_max': 0.2,
-    'tau': 32 * 20 // 2,
+    'tau': 120,
     'update_freq': 4,
 }
 

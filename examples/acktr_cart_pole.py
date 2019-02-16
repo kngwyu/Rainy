@@ -7,8 +7,8 @@ from rainy.lib import kfac
 
 
 KFAC_KWARGS = {
-    'delta': 0.005,
-    'eta_max': 0.1,
+    'delta': 0.001,
+    'eta_max': 0.2,
     'tau': 120,
     'update_freq': 4,
 }

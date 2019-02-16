@@ -24,8 +24,6 @@ def test_kfac():
     for group in precond.param_groups:
         state = precond.state[group['params'][0]]
         if group['layer_type'] is Layer.CONV2D:
-            assert state['ixxt'].shape == torch.Size((65, 65))
-            assert state['iggt'].shape == torch.Size((8, 8))
+            assert state['eg*ex'].shape == torch.Size((8, 65))
         else:
-            assert state['ixxt'].shape == torch.Size((201, 201))
-            assert state['iggt'].shape == torch.Size((10, 10))
+            assert state['eg*ex'].shape == torch.Size((10, 201))
