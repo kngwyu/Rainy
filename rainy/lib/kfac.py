@@ -5,7 +5,7 @@ import torch
 from torch import nn, Tensor
 from torch.nn import functional as F
 from torch.optim import Optimizer, SGD
-from typing import Callable, Optional, Tuple, Union
+from typing import Any, Callable, Optional, Tuple, Union
 import warnings
 from ..prelude import Params
 
@@ -41,27 +41,25 @@ class KfacPreConditioner(PreConditioner):
     def __init__(
             self,
             net: nn.Module,
-            gamma: float = 1.0e-3,
+            damping: float = 1.0e-4,
             weight_decay: float = 0.0,
             tau: float = 100.0,
             eta_max: float = 0.25,
             delta: float = 0.001,
+            eps: float = 1.0e-6,
             update_freq: int = 2,
-            use_trace_norm_pi: bool = True,
             constraint_norm: bool = True,
-            use_sua: bool = False,
     ) -> None:
-        self.gamma = gamma
-        self.weight_decay = weight_decay
+        self.gamma = (damping + weight_decay) ** 0.5
         self.beta = math.exp(-1.0 / tau)
         self.eta_max = eta_max
         self.delta = delta
+        self.eps = eps
         self.update_freq = update_freq
-        self.use_trace_norm_pi = use_trace_norm_pi
         self.constraint_norm = constraint_norm
-        self.use_sua = use_sua
         self.params = []
         self._counter = 0
+        self._save_grad = False
         for mod in net.modules():
             layer_type = get_layer(mod)
             if not isinstance(layer_type, Layer):
@@ -70,9 +68,17 @@ class KfacPreConditioner(PreConditioner):
                 continue
             mod.register_forward_pre_hook(self._save_x)
             mod.register_backward_hook(self._save_g)
-            params = [mod.weight, mod.bias]
+            params = [mod.weight]
+            if mod.bias is not None:
+                params.append(mod.bias)
             self.params.append({'params': params, 'mod': mod, 'layer_type': layer_type})
         super().__init__(self.params, {})
+
+    def with_save_grad(self, f: Callable[[], Any]) -> Any:
+        self._save_grad = True
+        res = f()
+        self._save_grad = False
+        return res
 
     def _save_x(self, mod: nn.Module, input_: Tuple[Tensor, ...]) -> None:
         """Save the inputs of the layer
@@ -83,7 +89,7 @@ class KfacPreConditioner(PreConditioner):
     def _save_g(self, mod: nn.Module, _grad_in: tuple, grad_out: Tuple[Tensor, ...]) -> None:
         """Save the output gradients of the layer
         """
-        if mod.training:
+        if mod.training and self._save_grad:
             grad_out, *_ = grad_out
             self.state[mod]['g'] = grad_out * grad_out.size(0)
 
@@ -92,24 +98,15 @@ class KfacPreConditioner(PreConditioner):
         for group in self.param_groups:
             weight, bias = group['params']
             state = self.state[weight]
-            self._update_stats(group, state)
+            self.__xxt(group, state)
+            self.__ggt(group, state)
+            if self._counter % self.update_freq == 0:
+                self.__eigend(state)
             fisher_norm += self._update_params(weight, bias, group['layer_type'], state)
             del self.state[group['mod']]['x'], self.state[group['mod']]['g']
         if self.constraint_norm:
             self._scale_norm(fisher_norm)
         self._counter += 1
-
-    def _update_stats(self, group: dict, state: dict) -> None:
-        """Updates E[xxT], E[ggT], and their invs
-        """
-        xxt = self.__xxt(group, state)
-        ggt = self.__ggt(group, state)
-        if self._counter % self.update_freq != 0:
-            return
-        pi2 = self.__pi(xxt, ggt)
-        eps = self.gamma + self.weight_decay
-        state['ixxt'] = self.__inv(xxt, (eps * pi2) ** 0.5)
-        state['iggt'] = self.__inv(ggt, (eps / pi2) ** 0.5)
 
     def _update_params(
             self,
@@ -120,10 +117,7 @@ class KfacPreConditioner(PreConditioner):
     ) -> float:
         """Updates gradients
         """
-        if layer is Layer.CONV2D and self.use_sua:
-            raise NotImplementedError('SUA fisher is not yet implemented.')
-        else:
-            gw, gb = self.__fisher_grad(weight, bias, layer, state)
+        gw, gb = self.__fisher_grad(weight, bias, layer, state)
         fisher_norm = (weight.grad * gw).sum().item()
         weight.grad.data.copy_(gw)
         if bias is not None:
@@ -139,56 +133,59 @@ class KfacPreConditioner(PreConditioner):
 
     def __fisher_grad(
             self,
-            weight: Tensor,
-            bias: Optional[Tensor],
+            weight: nn.Parameter,
+            bias: Optional[nn.Parameter],
             layer: Layer,
             state: dict
     ) -> Tuple[Tensor, Optional[Tensor]]:
         """Computes F^{-1}∇h
         """
-        gw = weight.grad.data
-        wshape = gw.shape
+        grad = weight.grad.data
         if layer is Layer.CONV2D:
-            gw = gw.reshape(wshape[0], -1)
+            grad = grad.view(grad.size(0), -1)
         if bias is not None:
-            gw = torch.cat([gw, bias.grad.data.view(-1, 1)], dim=1)
-        gw = torch.mm(torch.mm(state['iggt'], gw), state['ixxt'])
+            grad = torch.cat([grad, bias.grad.data.view(-1, 1)], dim=1)
+        v1 = torch.chain_matmul(state['vg'].t(), grad, state['vx'])
+        v2 = v1.div_(state['eg*ex'].add(self.gamma))
+        grad = torch.chain_matmul(state['vg'], v2, state['vx'].t())
         gb = None
         if bias is not None:
-            gb = gw[:, -1].reshape(bias.shape)
-            gw = gw[:, :-1]
-        return gw.reshape(wshape), gb
+            gb = grad[:, -1].reshape(bias.shape)
+            gw = grad[:, :-1]
+        return gw.reshape(weight.shape), gb
 
-    def __xxt(self, group: dict, state: dict) -> Tensor:
-        """Computes E[x_i x_j^T] and memorize it
+    def __eigend(self, state: dict) -> None:
+        """Computes eigen decomposition of E[xx] and E[gg]
+        """
+        ex, state['vx'] = torch.symeig(state['xxt'], eigenvectors=True)
+        eg, state['vg'] = torch.symeig(state['ggt'], eigenvectors=True)
+        state['eg*ex'] = torch.ger(eg.clamp_(min=self.eps), ex.clamp_(min=self.eps))
+
+    def __xxt(self, group: dict, state: dict) -> None:
+        """Computes E[xi xj]^T and memorize it
         """
         mod = group['mod']
         x = self.state[mod]['x']
         if group['layer_type'] is Layer.CONV2D:
-            if self.use_sua:
-                x = x.view(*x.shape[:2], -1)
-            else:
-                x = F.unfold(x, mod.kernel_size, padding=mod.padding, stride=mod.stride)
+            x = F.unfold(x, mod.kernel_size, padding=mod.padding, stride=mod.stride)
             x = x.data.transpose(1, 0).reshape(x.size(1), -1)
         else:
             x = x.data.t()
         if mod.bias is not None:
             x = torch.cat([x, torch.ones_like(x[:1])])
-        return self.__average(state, 'xxt', x, float(x.size(1)))
+        self.__average(state, 'xxt', x, float(x.size(1)))
 
-    def __ggt(self, group: dict, state: dict) -> Tensor:
-        """Computes E[g_i g_j^T] and memorize it
+    def __ggt(self, group: dict, state: dict) -> None:
+        """Computes E[gi gj]^T and memorize it
         """
         g = self.state[group['mod']]['g']
-        scale = float(g.size(0))
         if group['layer_type'] is Layer.CONV2D:
-            scale *= g.size(2) * g.size(3)
             g = g.data.transpose(1, 0).reshape(g.size(1), -1)
         else:
             g = g.data.t()
-        return self.__average(state, 'ggt', g, float(scale))
+        self.__average(state, 'ggt', g, float(g.size(1)))
 
-    def __average(self, state: dict, param: str, mat: Tensor, scale: float) -> Tensor:
+    def __average(self, state: dict, param: str, mat: Tensor, scale: float) -> None:
         """Computes the moving average X <- βX + (1-β)X'
         """
         if self._counter == 0:
@@ -200,20 +197,3 @@ class KfacPreConditioner(PreConditioner):
                 beta=self.beta,
                 alpha=(1 - self.beta) / scale,
             )
-        return state[param]
-
-    def __pi(self, xxt: Tensor, ggt: Tensor) -> float:
-        """Computes π^2 for Tikhonov regularization
-           TODO: Use different π for xxt & ggt
-        """
-        if self.use_trace_norm_pi:
-            tx = torch.trace(xxt) * ggt.size(0)
-            tg = torch.trace(ggt) * xxt.size(0)
-            return tx.item() / tg.item()
-        return 1.0
-
-    def __inv(self, mat: Tensor, eps: float) -> Tensor:
-        """Computes (mat + εI) ^-1
-        """
-        diag = mat.new_full((mat.size(0),), eps)
-        return (mat + torch.diag(diag)).inverse()
