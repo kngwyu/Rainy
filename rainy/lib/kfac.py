@@ -60,8 +60,11 @@ class SquaredFisherScaler(NormScaler):
 class DiagonalScaler(NormScaler):
     """https://arxiv.org/abs/1705.09319
     """
+    def __init__(self, mu: float = 0.01) -> None:
+        self.mu = mu
+
     def scale(self, fisher_norm: float) -> float:
-        return (1.0 / fisher_norm) ** 0.5
+        return math.sqrt(1.0 / (fisher_norm + self.mu))
 
 
 class DummyScaler(NormScaler):
