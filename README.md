@@ -22,17 +22,13 @@ Then, clone this repository and create a virtual environment in it.
 ```bash
 git clone https://github.com/kngwyu/Rainy.git
 cd Rainy
-pipenv --site-packages --three
-pipenv install --dev
+pipenv --site-packages --three install
 ```
 
 Now you are ready to start!
 
-You can run examples via `pipenv shell` or `pipenv run`.
 ```bash
-pipenv shell
-cd examples
-python a2c_cart_pole.py train
+pipenv run python examples/a2c_cart_pole.py train
 ```
 
 After training, you can run learned agents.
@@ -40,13 +36,13 @@ After training, you can run learned agents.
 Please replace `(log-directory)` in the below command with your real log file.
 It should be named like `a2c_cart_pole-190213-225317-1bdac1d6`.
 ``` bash
-python a2c_cart_pole.py eval (log-directory) --render
+pipenv run python a2c_cart_pole.py eval (log-directory) --render
 ```
 
 You can also plot training results in your log directory.
 This command opens a ipython shell with your log file.
 ``` bash
-python a2c_cart_pole.py ipython --log-dir=(log-directory)
+pipenv run python a2c_cart_pole.py ipython --log-dir=(log-directory)
 ```
 
 ``` python

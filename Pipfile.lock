@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "a53523d6b75c2fa819b3cb5f8fbed3fda4a7b61b427d717831adf32ca7b7af75"
+            "sha256": "32b055289e7153beae4d143fd1ff060fad09998383af37af5f67df52f304e791"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -13,8 +13,7 @@
             }
         ]
     },
-    "default": {},
-    "develop": {
+    "default": {
         "atari-py": {
             "hashes": [
                 "sha256:14670d021029355d541c35e28b1f2d075e42716d0b867543c0195707c55452f6",
@@ -454,5 +453,6 @@
             ],
             "version": "==0.1.7"
         }
-    }
+    },
+    "develop": {}
 }
