@@ -60,7 +60,7 @@ class SquaredFisherScaler(NormScaler):
 class DiagonalScaler(NormScaler):
     """https://arxiv.org/abs/1705.09319
     """
-    def __init__(self, mu: float = 0.01) -> None:
+    def __init__(self, mu: float = 0.001) -> None:
         self.mu = mu
 
     def scale(self, fisher_norm: float) -> float:
