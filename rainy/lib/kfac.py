@@ -1,11 +1,11 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from enum import Enum
 import math
 import torch
 from torch import nn, Tensor
 from torch.nn import functional as F
 from torch.optim import Optimizer, SGD
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 import warnings
 from ..prelude import Params
 
@@ -33,6 +33,45 @@ def default_sgd(eta_max: float = 0.25, momentum: float = 0.9) -> Callable[[Param
     return _sgd
 
 
+class NormScaler(ABC):
+    @abstractmethod
+    def scale(self, fisher_norm: float) -> float:
+        pass
+
+    def __call__(self, param_groups: List[dict], fisher_norm: float) -> None:
+        scale = self.scale(fisher_norm)
+        for group in param_groups:
+            for param in group['params']:
+                if param is not None:
+                    param.grad.data.mul_(scale)
+
+
+class SquaredFisherScaler(NormScaler):
+    """Section 5 in https://jimmylba.github.io/papers/nsync.pdf
+    """
+    def __init__(self, eta_max: float = 0.25, delta: float = 0.001) -> None:
+        self.eta_max2 = eta_max ** 2
+        self.delta = delta
+
+    def scale(self, fisher_norm: float) -> float:
+        return min(1.0, math.sqrt(self.delta / (fisher_norm * self.eta_max2)))
+
+
+class DiagonalScaler(NormScaler):
+    """https://arxiv.org/abs/1705.09319
+    """
+    def __init__(self, mu: float = 0.001) -> None:
+        self.mu = mu
+
+    def scale(self, fisher_norm: float) -> float:
+        return math.sqrt(1.0 / (fisher_norm + self.mu))
+
+
+class DummyScaler(NormScaler):
+    def scale(self, fisher_norm: float) -> float:
+        return 1.0
+
+
 class PreConditioner(ABC, Optimizer):
     pass
 
@@ -44,19 +83,15 @@ class KfacPreConditioner(PreConditioner):
             damping: float = 1.0e-4,
             weight_decay: float = 0.0,
             tau: float = 100.0,
-            eta_max: float = 0.25,
-            delta: float = 0.001,
             eps: float = 1.0e-6,
             update_freq: int = 2,
-            constraint_norm: bool = True,
+            norm_scaler: NormScaler = SquaredFisherScaler(),
     ) -> None:
         self.gamma = (damping + weight_decay) ** 0.5
         self.beta = math.exp(-1.0 / tau)
-        self.eta_max = eta_max
-        self.delta = delta
         self.eps = eps
         self.update_freq = update_freq
-        self.constraint_norm = constraint_norm
+        self.norm_scaler = norm_scaler
         self.params = []
         self._counter = 0
         self._save_grad = False
@@ -74,7 +109,7 @@ class KfacPreConditioner(PreConditioner):
             self.params.append({'params': params, 'mod': mod, 'layer_type': layer_type})
         super().__init__(self.params, {})
 
-    def with_save_grad(self, f: Callable[[], Any]) -> Any:
+    def save_grad(self, f: Callable[[], Any]) -> Any:
         self._save_grad = True
         res = f()
         self._save_grad = False
@@ -104,8 +139,7 @@ class KfacPreConditioner(PreConditioner):
                 self.__eigend(state)
             fisher_norm += self._update_params(weight, bias, group['layer_type'], state)
             del self.state[group['mod']]['x'], self.state[group['mod']]['g']
-        if self.constraint_norm:
-            self._scale_norm(fisher_norm)
+        self.norm_scaler(self.param_groups, fisher_norm)
         self._counter += 1
 
     def _update_params(
@@ -124,12 +158,6 @@ class KfacPreConditioner(PreConditioner):
             fisher_norm += (bias.grad * gb).sum().item()
             bias.grad.data.copy_(gb)
         return fisher_norm
-
-    def _scale_norm(self, fisher_norm: float) -> None:
-        scale = min(1.0, math.sqrt(self.delta / (fisher_norm * self.eta_max ** 2.0)))
-        for group in self.param_groups:
-            for param in filter(lambda p: p is not None, group['params']):
-                param.grad.data.mul_(scale)
 
     def __fisher_grad(
             self,
