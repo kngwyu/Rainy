@@ -1,5 +1,6 @@
 from abc import ABC
 import gym
+from gym import spaces
 from numpy import ndarray
 from typing import Any, Generic, NamedTuple, Tuple
 from ..prelude import Action, State
@@ -10,7 +11,14 @@ class EnvSpec(NamedTuple):
     """
     state_dim: Tuple[int, ...]
     action_dim: int
+    action_space: gym.Space
     use_reward_monitor: bool
+
+    def random_action(self) -> Action:
+        return self.action_space.sample()
+
+    def is_discrete(self) -> bool:
+        return isinstance(self.action_space, spaces.Discrete)
 
 
 class EnvExt(gym.Env, ABC, Generic[Action, State]):
@@ -19,6 +27,7 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
         self.spec = EnvSpec(
             self._env.observation_space.shape,
             self._env.action_space.n,
+            self._env.action_space,
             False
         )
 

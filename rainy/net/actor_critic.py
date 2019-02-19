@@ -4,7 +4,7 @@ from torch import nn, Tensor
 from typing import Callable, Tuple, Union
 from .block import DqnConv, FcBody, LinearHead, NetworkBlock
 from .init import Initializer, orthogonal
-from .policy import categorical, Policy
+from .policy import CategoricalHead, Policy
 from ..utils import Device
 from ..utils.misc import iter_prod
 
@@ -18,7 +18,7 @@ class ActorCriticNet(nn.Module):
             body: NetworkBlock,
             actor_head: NetworkBlock,  # policy
             critic_head: NetworkBlock,  # value
-            policy_head: Callable[[Tensor], Policy] = categorical,
+            policy_head: Callable[[Tensor], Policy] = CategoricalHead(),
             device: Device = Device(),
     ) -> None:
         assert body.output_dim == iter_prod(actor_head.input_dim), \
@@ -71,10 +71,10 @@ class RndActorCriticNet(ActorCriticNet):
 
 
 def ac_conv(
-    state_dim: Tuple[int, int, int],
-    action_dim: int,
-    device: Device,
-    policy_head: Callable[[Tensor], Policy] = categorical,
+        state_dim: Tuple[int, int, int],
+        action_dim: int,
+        device: Device,
+        policy_head: Callable[[Tensor], Policy] = CategoricalHead(),
 ) -> ActorCriticNet:
     """Convolutuion network used for atari experiments
        in A3C paper(https://arxiv.org/abs/1602.01783)
@@ -88,7 +88,7 @@ def ac_conv(
 def fc(state_dim: Tuple[int, ...],
        action_dim: int,
        device: Device = Device(),
-       policy_head: Callable[[Tensor], Policy] = categorical) -> ActorCriticNet:
+       policy_head: Callable[[Tensor], Policy] = CategoricalHead()) -> ActorCriticNet:
     """FC body head ActorCritic network
     """
     body = FcBody(state_dim[0])

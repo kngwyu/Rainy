@@ -4,8 +4,10 @@ from multiprocessing.connection import Connection
 import numpy as np
 from numpy import ndarray
 from typing import Any, Callable, Generic, Iterable, Tuple
-from . import EnvExt, EnvSpec
+from .ext import EnvExt, EnvSpec
 from ..prelude import Action, Array, State
+
+EnvGen = Callable[[], EnvExt]
 
 
 class ParallelEnv(ABC, Generic[Action, State]):
@@ -55,7 +57,7 @@ class ParallelEnv(ABC, Generic[Action, State]):
 
 
 class MultiProcEnv(ParallelEnv):
-    def __init__(self, env_gen: Callable[[], EnvExt], nworkers: int) -> None:
+    def __init__(self, env_gen: EnvGen, nworkers: int) -> None:
         assert nworkers >= 2
         envs_tmp = [env_gen() for _ in range(nworkers)]
         self.to_array = envs_tmp[0].state_to_array
@@ -144,8 +146,8 @@ class _ProcWorker(mp.Process):
 
 
 class DummyParallelEnv(ParallelEnv):
-    def __init__(self, gen: Callable[[], EnvExt], nworkers: int) -> None:
-        self.envs = [gen() for _ in range(nworkers)]
+    def __init__(self, env_gen: EnvGen, nworkers: int) -> None:
+        self.envs = [env_gen() for _ in range(nworkers)]
 
     def close(self) -> None:
         for env in self.envs:
@@ -174,68 +176,3 @@ class DummyParallelEnv(ParallelEnv):
 
     def states_to_array(self, states: Iterable[State]) -> ndarray:
         return np.asarray([e.state_to_array(s) for (s, e) in zip(states, self.envs)])
-
-
-class ParallelEnvWrapper(ParallelEnv):
-    def __init__(self, penv: ParallelEnv) -> None:
-        self.penv = penv
-
-    def close(self) -> None:
-        self.penv.close()
-
-    def reset(self) -> Array[State]:
-        return self.penv.reset()
-
-    def step(
-            self,
-            actions: Iterable[Action]
-    ) -> Tuple[Array[State], Array[float], Array[bool], Array[Any]]:
-        return self.penv.step(actions)
-
-    def seed(self, seed: int) -> None:
-        self.penv.seed(seed)
-
-    def num_envs(self) -> int:
-        return self.penv.num_envs()
-
-    @property
-    def spec(self) -> EnvSpec:
-        return self.penv.spec
-
-    def states_to_array(self, states: Iterable[State]) -> ndarray:
-        return self.penv.states_to_array(states)
-
-
-class FrameStackParallel(ParallelEnvWrapper):
-    def __init__(self, penv: ParallelEnv, nstack: int = 4, dtype: type = np.float32) -> None:
-        super().__init__(penv)
-        idx = 0
-        shape = self.penv.state_dim
-        for dim in shape:
-            if dim == 1:
-                idx += 1
-            else:
-                break
-        self.shape = (nstack, *self.penv.state_dim[idx:])
-        self.obs = np.zeros((self.num_envs(), *self.shape), dtype=dtype)
-
-    def step(
-            self,
-            actions: Iterable[Action]
-    ) -> Tuple[ndarray, Array[float], Array[bool], Array[Any]]:
-        state, reward, done, info = self.penv.step(actions)
-        self.obs = np.roll(self.obs, shift=-1, axis=1)
-        for i, _ in filter(lambda t: t[1], enumerate(done)):
-            self.obs[i] = 0.0
-        self.obs[:, -1] = self.states_to_array(state).squeeze()
-        return (self.obs, reward, done, info)
-
-    def reset(self) -> Array[State]:
-        self.obs.fill(0)
-        state = self.penv.reset()
-        self.obs[:, -1] = self.states_to_array(state).squeeze()
-        return self.obs
-
-    @property
-    def state_dim(self) -> Tuple[int, ...]:
-        return self.shape

@@ -4,9 +4,8 @@ Some hyper parametes are from https://github.com/openai/baselines/blob/master/ba
 import os
 from rainy import Config, net
 from rainy.agents import A2cAgent
-from rainy.envs import Atari
+from rainy.envs import Atari, atari_parallel
 import rainy.utils.cli as cli
-from rainy.envs import FrameStackParallel, MultiProcEnv
 from torch.optim import RMSprop
 
 
@@ -18,7 +17,7 @@ def config() -> Config:
     )
     c.set_net_fn('actor-critic', net.actor_critic.ac_conv)
     c.nworkers = 16
-    c.set_parallel_env(lambda env_gen, num_w: FrameStackParallel(MultiProcEnv(env_gen, num_w)))
+    c.set_parallel_env(atari_parallel())
     c.grad_clip = 0.5
     c.value_loss_weight = 0.5
     c.use_gae = False

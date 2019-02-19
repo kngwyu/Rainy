@@ -6,7 +6,7 @@ from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
 from .lib.kfac import KfacPreConditioner, PreConditioner
 from .replay import DqnReplayFeed, ReplayBuffer, UniformReplayBuffer
 from .utils import Device, Logger
-from .envs import ClassicalControl, DummyParallelEnv, EnvExt, ParallelEnv
+from .envs import ClassicalControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEnv
 from .prelude import NetFn, Params
 
 
@@ -90,7 +90,7 @@ class Config:
             self.state_dim = env.state_dim
         return env
 
-    def set_env(self, env: Callable[[], EnvExt]) -> None:
+    def set_env(self, env: EnvGen) -> None:
         self.__env = env
 
     @property
@@ -142,7 +142,7 @@ class Config:
         self.state_dim = penv.state_dim
         return penv
 
-    def set_parallel_env(self, parallel_env: Callable[[Callable[[], EnvExt], int], ParallelEnv]):
+    def set_parallel_env(self, parallel_env: Callable[[EnvGen, int], ParallelEnv]):
         self.__parallel_env = parallel_env
 
     def net(self, name: str) -> nn.Module:

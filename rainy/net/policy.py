@@ -1,5 +1,6 @@
 from torch import Tensor
 from torch.distributions import Categorical, Distribution
+from .block import NetworkBlock
 
 
 class Policy:
@@ -30,5 +31,16 @@ class Policy:
         self._action = action
 
 
-def categorical(params: Tensor) -> Policy:
-    return Policy(Categorical(logits=params))
+class CategoricalHead:
+    """Categorical policy with no learnable parameter
+    """
+    def __call__(self, x: Tensor) -> Policy:
+        return Policy(Categorical(logits=x))
+
+
+class GaussinanHead(NetworkBlock):
+    def __init__(self, input_dim: int, output_dim: int) -> None:
+        pass
+
+    def forward(self, x: Tensor) -> Policy:
+        return Policy(Categorical(logits=x))

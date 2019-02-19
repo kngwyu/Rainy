@@ -11,11 +11,13 @@ requirements = [
     'gym[atari]>=0.11.0',
     'numpy>=1.15.0',
     'opencv-python>=3.4',
+    'Pillow>=5.0',
     'torch>=1.0',
 ]
 test_requirements = ['pytest>=3.0']
 extra_requirements = {
     'ipython': ['ipython>=7.0', 'matplotlib>=3.0', 'ptpython>=2.0'],
+    'bullet': ['pybullet>=2.4']
 }
 
 setup(name='rainy',

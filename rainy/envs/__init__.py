@@ -1,21 +1,14 @@
-import numpy as np
 from numpy import ndarray
 import gym
-from gym.spaces import Box
-from typing import Tuple, Union
+from typing import Callable
 from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
 from .ext import EnvExt, EnvSpec
 from .monitor import RewardMonitor
-from .parallel import DummyParallelEnv, MultiProcEnv, ParallelEnv
-from .parallel import FrameStackParallel, ParallelEnvWrapper
+from .obs_wrappers import AddTimeStep, TransposeObs
+from .parallel import DummyParallelEnv, EnvGen, MultiProcEnv, ParallelEnv
+from .parallel_wrappers import FrameStackParallel, NormalizeObs, \
+    NormalizeReward, ParallelEnvWrapper
 from ..prelude import State
-
-
-class ClassicalControl(EnvExt):
-    def __init__(self, name: str = 'CartPole-v0', max_steps: int = 200) -> None:
-        self.name = name
-        super().__init__(gym.make(name))
-        self._env._max_episode_steps = max_steps
 
 
 class Atari(EnvExt):
@@ -37,7 +30,7 @@ class Atari(EnvExt):
         )
         env = TransposeObs(env)
         super().__init__(env)
-        self.spec = EnvSpec(*self.spec[:2], True)
+        self.spec = EnvSpec(*self.spec[:-1], True)
 
     def state_to_array(self, obs: State) -> ndarray:
         if type(obs) is LazyFrames:
@@ -46,30 +39,56 @@ class Atari(EnvExt):
             return obs
 
 
-class TransposeObs(gym.ObservationWrapper):
-    """Transpose & Scale image
-    """
+def atari_parallel(frame_stack: bool = True) -> Callable[[EnvGen, int], ParallelEnv]:
+    def __wrap(env_gen: EnvGen, num_workers: int) -> ParallelEnv:
+        penv = MultiProcEnv(env_gen, num_workers)
+        if frame_stack:
+            penv = FrameStackParallel(penv)
+        return penv
+    return __wrap
+
+
+class ClassicalControl(EnvExt):
+    def __init__(self, name: str = 'CartPole-v0', max_steps: int = 200) -> None:
+        self.name = name
+        super().__init__(gym.make(name))
+        self._env._max_episode_steps = max_steps
+
+
+class PyBullet(EnvExt):
     def __init__(
             self,
-            env: gym.Env,
-            transpose: Tuple[int, int, int] = (2, 0, 1),
-            scale: float = 255.0
+            name: str = 'Hopper',
+            add_timestep: bool = False,
+            nosuffix: bool = False
     ) -> None:
-        super().__init__(env)
-        obs_shape = self.observation_space.shape
-        self.observation_space: gym.Box = Box(
-            low=self.observation_space.low[0, 0, 0],
-            high=self.observation_space.high[0, 0, 0] / scale,
-            shape=[obs_shape[i] for i in transpose],
-            dtype=self.observation_space.dtype
-        )
-        self.scale = scale
-        self.transpose = transpose
+        self.name = name
+        try:
+            import pybullet_envs  # noqa
+        except ImportError as e:
+            print('PyBullet is not installed.')
+            raise e
+        if not nosuffix:
+            name += 'BulletEnv-v0'
+        if add_timestep:
+            env = AddTimeStep(env)
+        super().__init__(RewardMonitor(env))
+        self.spec = EnvSpec(*self.spec[:-1], True)
 
-    def observation(self, observation: Union[ndarray, LazyFrames]):
-        t = type(observation)
-        if t is LazyFrames:
-            img = np.concatenate(observation._frames, axis=2).transpose(2, 0, 1)
-        else:
-            img = observation.transpose(*self.transpose)  # type: ignore
-        return img / self.scale
+
+def pybullet_parallel(
+        normalize_obs: bool = True,
+        normalize_reward: bool = True,
+        obs_clip: float = 10.0,
+        reward_clip: float = 10.0,
+        gamma: float = 0.99
+) -> Callable[[EnvGen, int], ParallelEnv]:
+    def __wrap(env_gen: EnvGen, num_workers: int) -> ParallelEnv:
+        penv = MultiProcEnv(env_gen, num_workers)
+        if normalize_obs:
+            penv = NormalizeObs(penv, obs_clip=obs_clip)
+        if normalize_reward:
+            penv = NormalizeReward(penv, reward_clip=reward_clip, gamma=gamma)
+        return penv
+    return __wrap
+

@@ -11,6 +11,7 @@ from ..prelude import Action, Array, State
 class DqnAgent(OneStepAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
+        assert self.env.spec.is_discrete(), 'DQN only supports discrete action spaces'
         self.net = config.net('value')
         self.target_net = config.net('value')
         self.optimizer = config.optimizer(self.net.parameters())
@@ -38,7 +39,7 @@ class DqnAgent(OneStepAgent):
         if train_started:
             action = self.policy.select_action(self.env.state_to_array(state), self.net)
         else:
-            action = self.random_action()
+            action = self.env.spec.random_action()
         next_state, reward, done, info = self.env.step(action)
         self.replay.append(state, action, reward, next_state, done)
         if train_started:
