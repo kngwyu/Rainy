@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import logging
+import numpy as np
 import git
 from pathlib import Path
 import sys
@@ -167,6 +168,28 @@ class ExperimentLog:
                 .format(self, key, self.keys())
             )
         return log
+
+    def plot_reward(self, batch_size: int, max_steps: int = int(2e7), title: str = '') -> None:
+        try:
+            import matplotlib.pyplot as plt
+        except ModuleNotFoundError as e:
+            print('plot_reward need matplotlib installed')
+            raise e
+        tlog = self.get('train')
+        x, y = 'update-steps', 'reward-mean'
+        plt.plot(np.array(tlog[x]) * batch_size, tlog[y])
+        tick_fractions = np.array([0.1, 0.2, 0.5, 1.0])
+        ticks = tick_fractions * max_steps
+        MILLION = int(1e6)
+        if max_steps >= MILLION:
+            tick_names = ["{}M".format(int(tick / 1e6)) for tick in ticks]
+        else:
+            tick_names = ["{}".format(int(tick)) for tick in ticks]
+        plt.xticks(ticks, tick_names)
+        plt.title(title)
+        plt.xlabel('Frames used for training')
+        plt.ylabel(y)
+        plt.show()
 
     def __getitem__(self, key: str) -> LogWrapper:
         return self.get(key)

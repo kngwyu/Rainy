@@ -28,33 +28,28 @@ pipenv --site-packages --three install
 Now you are ready to start!
 
 ```bash
-pipenv run python examples/a2c_cart_pole.py train
+pipenv run python examples/acktr_cart_pole.py train
 ```
 
 After training, you can run learned agents.
 
-Please replace `(log-directory)` in the below command with your real log file.
-It should be named like `a2c_cart_pole-190213-225317-1bdac1d6`.
+Please replace `(log-directory)` in the below command with your real log directory.
+It should be named like `acktr_cart_pole-190219-134651-35a14601`.
 ``` bash
-pipenv run python a2c_cart_pole.py eval (log-directory) --render
+pipenv run python acktr_cart_pole.py eval (log-directory) --render
 ```
 
 You can also plot training results in your log directory.
-This command opens a ipython shell with your log file.
+This command opens an ipython shell with your log file.
 ``` bash
-pipenv run python a2c_cart_pole.py ipython --log-dir=(log-directory)
+pipenv run python -m rainy.ipython
 ```
-
-``` python
-import matplotlib.pyplot as plt
-tlog = log['train']
-x, y = 'update-steps', 'reward-mean'
-plt.plot(tlog[x], tlog[y])
-plt.title('a2c cart pole')
-plt.xlabel(x); plt.ylabel(y)
-plt.show()
+Then you can plot training rewards via
+```python
+log = open_log('log-directory')
+log.plot_reward(12 * 20, max_steps=int(4e5), title='ACKTR cart pole')
 ```
-![A2C cart pole](./pictures/a2c-cart-pole.png)
+![ACKTR cart pole](./pictures/acktr-cart-pole.png)
 
 # Implemented Algorithms
 
