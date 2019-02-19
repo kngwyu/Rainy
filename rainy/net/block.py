@@ -1,17 +1,19 @@
-# network bodies
+"""Defines some reusable NN layers, named as 'Block'
+"""
 from abc import ABC, abstractmethod
-from functools import reduce
-import operator
 from torch import nn, Tensor
 import torch.nn.functional as F
 from typing import Callable, List, Tuple
 from .init import Initializer
+from ..utils.misc import iter_prod
 
 
 Activator = Callable[[Tensor], Tensor]
 
 
-class NetworkBody(nn.Module, ABC):
+class NetworkBlock(nn.Module, ABC):
+    """Defines a NN block
+    """
     @property
     @abstractmethod
     def input_dim(self) -> Tuple[int, ...]:
@@ -23,7 +25,30 @@ class NetworkBody(nn.Module, ABC):
         pass
 
 
-class ConvBody(NetworkBody):
+class LinearHead(NetworkBlock):
+    """One FC layer
+    """
+    def __init__(self, input_dim: int, output_dim: int, init: Initializer = Initializer()) -> None:
+        super().__init__()
+        self._input_dim = input_dim
+        self._output_dim = output_dim
+        self.fc = init(nn.Linear(input_dim, output_dim))
+
+    @property
+    def input_dim(self) -> Tuple[int, ...]:
+        return (self._input_dim, )
+
+    @property
+    def output_dim(self) -> int:
+        return self._output_dim
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self.fc(x)
+
+
+class ConvBody(NetworkBlock):
+    """Multiple CNN layers + FC
+    """
     def __init__(
             self,
             activator: Activator,
@@ -61,17 +86,9 @@ class ConvBody(NetworkBody):
         return x
 
 
-def calc_cnn_offset(params: List[Tuple[int, int]], width: int, height: int) -> Tuple[int, int]:
-    for kernel, stride in params:
-        width = (width - kernel) // stride + 1
-        height = (height - kernel) // stride + 1
-    assert width > 0 and height > 0, 'Convolution makes dim < 0!!!'
-    return width, height
-
-
 class DqnConv(ConvBody):
     """Convolutuion Network used in https://www.nature.com/articles/nature14236,
-       but parameterized to use in A2C or else.
+       but is parameterized for other usages.
     """
     def __init__(
             self,
@@ -87,13 +104,13 @@ class DqnConv(ConvBody):
         conv1 = nn.Conv2d(in_channel, hidden1, *kernel_and_strides[0])
         conv2 = nn.Conv2d(hidden1, hidden2, *kernel_and_strides[1])
         conv3 = nn.Conv2d(hidden2, hidden3, *kernel_and_strides[2])
-        hidden = (hidden3, *calc_cnn_offset(kernel_and_strides, width, height))
-        fc = nn.Linear(reduce(operator.mul, hidden), output_dim)
+        hidden = (hidden3, *calc_cnn_hidden(kernel_and_strides, width, height))
+        fc = nn.Linear(iter_prod(hidden), output_dim)
         self._output_dim = output_dim
         super().__init__(F.relu, init, dim, hidden, fc, conv1, conv2, conv3)
 
 
-class FcBody(nn.Module):
+class FcBody(NetworkBlock):
     def __init__(
             self,
             input_dim: int,
@@ -121,3 +138,18 @@ class FcBody(nn.Module):
     def output_dim(self) -> int:
         return self.dims[-1]
 
+
+def calc_cnn_hidden(params: List[tuple], width: int, height: int) -> Tuple[int, int]:
+    """Calcurate hidden dim of a CNN.
+       See https://pytorch.org/docs/stable/nn.html#torch.nn.Conv2d for detail.
+    """
+    for param in params:
+        if len(param) >= 3:
+            padding = param[2]
+        else:
+            padding = 0
+        kernel, stride, *_ = param
+        width = (width - kernel + 2 * padding) // stride + 1
+        height = (height - kernel + 2 * padding) // stride + 1
+    assert width > 0 and height > 0, 'Convolution makes dim < 0!!!'
+    return width, height

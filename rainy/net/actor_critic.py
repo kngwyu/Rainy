@@ -2,11 +2,11 @@ import copy
 from numpy import ndarray
 from torch import nn, Tensor
 from typing import Callable, Tuple, Union
-from .body import DqnConv, FcBody, NetworkBody
-from .head import LinearHead, NetworkHead
+from .block import DqnConv, FcBody, LinearHead, NetworkBlock
 from .init import Initializer, orthogonal
 from .policy import categorical, Policy
 from ..utils import Device
+from ..utils.misc import iter_prod
 
 
 class ActorCriticNet(nn.Module):
@@ -15,15 +15,15 @@ class ActorCriticNet(nn.Module):
     """
     def __init__(
             self,
-            body: NetworkBody,
-            actor_head: NetworkHead,  # policy
-            critic_head: NetworkHead,  # value
+            body: NetworkBlock,
+            actor_head: NetworkBlock,  # policy
+            critic_head: NetworkBlock,  # value
             policy_head: Callable[[Tensor], Policy] = categorical,
             device: Device = Device(),
     ) -> None:
-        assert body.output_dim == actor_head.input_dim, \
+        assert body.output_dim == iter_prod(actor_head.input_dim), \
             'body output and action_head input must have a same dimention'
-        assert body.output_dim == critic_head.input_dim, \
+        assert body.output_dim == iter_prod(critic_head.input_dim), \
             'body output and action_head input must have a same dimention'
         super(ActorCriticNet, self).__init__()
         self.body = body
@@ -71,10 +71,10 @@ class RndActorCriticNet(ActorCriticNet):
 
 
 def ac_conv(
-        state_dim: Tuple[int, int, int],
-        action_dim: int,
-        device: Device,
-        policy_head: Callable[[Tensor], Policy] = categorical,
+    state_dim: Tuple[int, int, int],
+    action_dim: int,
+    device: Device,
+    policy_head: Callable[[Tensor], Policy] = categorical,
 ) -> ActorCriticNet:
     """Convolutuion network used for atari experiments
        in A3C paper(https://arxiv.org/abs/1602.01783)

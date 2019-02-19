@@ -92,7 +92,7 @@ class KfacPreConditioner(PreConditioner):
         self.eps = eps
         self.update_freq = update_freq
         self.norm_scaler = norm_scaler
-        self.params = []
+        self.params: List[dict] = []
         self._counter = 0
         self._save_grad = False
         for mod in net.modules():
@@ -125,8 +125,8 @@ class KfacPreConditioner(PreConditioner):
         """Save the output gradients of the layer
         """
         if mod.training and self._save_grad:
-            grad_out, *_ = grad_out
-            self.state[mod]['g'] = grad_out * grad_out.size(0)
+            grad, *_ = grad_out
+            self.state[mod]['g'] = grad * grad.size(0)
 
     def step(self) -> None:
         fisher_norm = 0.0

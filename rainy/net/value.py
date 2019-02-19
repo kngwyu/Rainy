@@ -3,9 +3,9 @@ import numpy as np
 from numpy import ndarray
 from torch import nn, Tensor
 from typing import Tuple, Union
-from .body import DqnConv, FcBody, NetworkBody
-from .head import LinearHead, NetworkHead
+from .block import DqnConv, FcBody, LinearHead, NetworkBlock
 from ..utils import Device
+from ..utils.misc import iter_prod
 
 
 class ValuePredictor(ABC):
@@ -27,8 +27,8 @@ class ValuePredictor(ABC):
 class ValueNet(ValuePredictor, nn.Module):
     """State -> [Value..]
     """
-    def __init__(self, body: NetworkBody, head: NetworkHead, device: Device = Device()) -> None:
-        assert body.output_dim == head.input_dim, \
+    def __init__(self, body: NetworkBlock, head: NetworkBlock, device: Device = Device()) -> None:
+        assert body.output_dim == iter_prod(head.input_dim), \
             'body output and head input must have a same dimention'
         super(ValueNet, self).__init__()
         self.head = head
