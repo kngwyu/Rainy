@@ -56,6 +56,9 @@ log.plot_reward(12 * 20, max_steps=int(4e5), title='ACKTR cart pole')
 ## DQN (Deep Q Network)
 - https://www.nature.com/articles/nature14236/
 
+## DDQN (Double DQN)
+- https://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/viewPaper/12389
+
 ## A2C (Advantage Actor Critic)
 - http://proceedings.mlr.press/v48/mniha16.pdf , https://arxiv.org/abs/1602.01783 (Original version)
 - https://blog.openai.com/baselines-acktr-a2c/ (Synchronized version)
