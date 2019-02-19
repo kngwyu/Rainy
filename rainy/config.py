@@ -34,7 +34,6 @@ class Config:
         self.seed: Optional[int] = None
 
         # For DQN-like algorithms
-        self.double_q = False
         self.sync_freq = 200
         self.__explore: Callable[[], Explorer] = \
             lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000))

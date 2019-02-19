@@ -46,12 +46,7 @@ class DqnAgent(OneStepAgent):
         return next_state, reward, done, info
 
     def _q_next(self, next_states: Array) -> Tensor:
-        q_next = self.target_net(next_states)
-        if self.config.double_q:
-            action_values = self.net.action_values(next_states, nostack=True).detach()
-            return q_next[self.batch_indices, action_values.argmax(dim=-1)]
-        else:
-            return q_next.max(1)[0]
+        return self.target_net(next_states).max(1)[0]
 
     def _train(self) -> None:
         obs = self.replay.sample(self.config.replay_batch_size)
