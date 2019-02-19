@@ -60,8 +60,8 @@ log.plot_reward(12 * 20, max_steps=int(4e5), title='ACKTR cart pole')
 - https://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/viewPaper/12389
 
 ## A2C (Advantage Actor Critic)
-- http://proceedings.mlr.press/v48/mniha16.pdf , https://arxiv.org/abs/1602.01783 (Original version)
-- https://blog.openai.com/baselines-acktr-a2c/ (Synchronized version)
+- http://proceedings.mlr.press/v48/mniha16.pdf , https://arxiv.org/abs/1602.01783 (A3C, original version)
+- https://blog.openai.com/baselines-acktr-a2c/ (A2C, synchronized version)
 
 ## ACKTR (Actor Critic using Kronecker-Factored Trust Region)
 - https://papers.nips.cc/paper/7112-scalable-trust-region-method-for-deep-reinforcement-learning-using-kronecker-factored-approximation
@@ -82,7 +82,7 @@ https://github.com/ShangtongZhang/DeepRL
 
 https://github.com/chainer/chainerrl
 
-https://github.com/Thrandis/EKFAC-pytorch (ACKTR)
+https://github.com/Thrandis/EKFAC-pytorch (for ACKTR)
 
 # License
 This project is licensed under Apache License, Version 2.0
