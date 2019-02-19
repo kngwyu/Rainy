@@ -22,3 +22,4 @@ class AcktrAgent(A2cAgent):
         """
         self.precond.step()
         self.optimizer.step()
+        self.lr_cooler.lr_decay(self.optimizer)

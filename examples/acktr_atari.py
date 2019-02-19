@@ -24,7 +24,7 @@ def config() -> Config:
     c.set_parallel_env(lambda env_gen, num_w: FrameStackParallel(MultiProcEnv(env_gen, num_w)))
     c.value_loss_weight = 0.5
     c.use_gae = True
-    c.lr_decay = False
+    c.lr_decay = True
     c.max_steps = int(2e7)
     c.eval_env = Atari('Breakout')
     c.eval_freq = None
