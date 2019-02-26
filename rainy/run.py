@@ -8,6 +8,20 @@ SAVE_FILE_DEFAULT = 'rainy-agent.save'
 ACTION_FILE_DEFAULT = 'actions.json'
 
 
+def default_eval_fn(episodes: int, agent: Agent) -> EpisodeResult:
+    log_dir = ag.logger.log_dir
+    if ag.config.save_eval_actions and log_dir:
+        fname = log_dir.joinpath('{}-{}{}'.format(
+            action_file.stem,
+            episodes,
+            action_file.suffix
+        ))
+        res = ag.eval_and_save(fname.as_posix())
+    else:
+        res = ag.eval_episode()
+    return res
+
+
 def train_agent(
         ag: Agent,
         save_file_name: str = SAVE_FILE_DEFAULT,
@@ -32,16 +46,6 @@ def train_agent(
         })
 
     def log_eval(episodes: int):
-        log_dir = ag.logger.log_dir
-        if ag.config.save_eval_actions and log_dir:
-            fname = log_dir.joinpath('{}-{}{}'.format(
-                action_file.stem,
-                episodes,
-                action_file.suffix
-            ))
-            res = ag.eval_and_save(fname.as_posix())
-        else:
-            res = ag.eval_episode()
         ag.logger.exp('eval', {
             'episodes': episodes,
             'update-steps': ag.update_steps,

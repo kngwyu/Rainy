@@ -1,13 +1,14 @@
 from torch import nn
 from torch.optim import Optimizer, RMSprop
 from typing import Callable, Dict, Optional, Tuple
-from .net import actor_critic, value
+from .envs import ClassicalControl, DummyParallelEnv, EnvExt, ParallelEnv
 from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
 from .lib.kfac import KfacPreConditioner, PreConditioner
-from .replay import DqnReplayFeed, ReplayBuffer, UniformReplayBuffer
-from .utils import Device, Logger
-from .envs import ClassicalControl, DummyParallelEnv, EnvExt, ParallelEnv
+from .net import actor_critic, value
 from .prelude import NetFn, Params
+from .replay import DqnReplayFeed, ReplayBuffer, UniformReplayBuffer
+from .run import default_eval_fn
+from .utils import Device, Logger
 
 
 class Config:
@@ -83,6 +84,9 @@ class Config:
         self.__eval_env: Optional[EnvExt] = None
         self.__paralle_env = lambda env_gen, num_w: DummyParallelEnv(env_gen, num_w)
 
+        # Custom evaluation function
+        self.__eval_fn = default_eval_fn
+
     def env(self) -> EnvExt:
         env = self.__env()
         if self.state_dim == (0,):
@@ -105,6 +109,9 @@ class Config:
             self.action_dim = env.action_dim
             self.state_dim = env.state_dim
         self.__eval_env = env
+
+    def eval(self):
+        pass
 
     def explorer(self) -> Explorer:
         return self.__explore()

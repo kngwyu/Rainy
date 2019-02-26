@@ -5,6 +5,7 @@ from .utils.device import Device
 
 Action = TypeVar('Action', bound=int)
 State = TypeVar('State')
+
 NetFn = Callable[[Tuple[int, ...], int, Device], nn.Module]
 Params = Iterable[Union[Tensor, dict]]
 
