@@ -49,7 +49,7 @@ class DummyEnv(EnvExt):
 
     @property
     def spec(self) -> EnvSpec:
-        return EnvSpec(self.array_dim, 1, Discrete(1), False)
+        return EnvSpec(self.array_dim, Discrete(1))
 
     def close(self) -> None:
         pass

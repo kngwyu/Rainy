@@ -19,7 +19,7 @@ class A2cAgent(NStepParallelAgent):
         return ("net",)
 
     def eval_action(self, state_: Array) -> Action:
-        state = self.eval_env.state_to_array(state_)
+        state = self.config.eval_env.state_to_array(state_)
         if len(state.shape) == len(self.net.state_dim):
             # treat as batch_size == 1
             state = np.stack([state])

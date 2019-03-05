@@ -118,5 +118,5 @@ class NormalizeReward(ParallelEnvWrapper[State, Action]):
         return state, reward, done, info
 
     def reset(self) -> Array[State]:
-        self.ret = np.zeros(self.num_envs)
+        self.ret = np.zeros(self.num_envs())
         return self.penv.reset()

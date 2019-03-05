@@ -30,7 +30,7 @@ class Atari(EnvExt):
         )
         env = TransposeObs(env)
         super().__init__(env)
-        self.spec = EnvSpec(*self.spec[:-1], True)
+        self.spec.use_reward_monitor = True
 
     def state_to_array(self, obs: State) -> ndarray:
         if type(obs) is LazyFrames:
@@ -70,10 +70,11 @@ class PyBullet(EnvExt):
             raise e
         if not nosuffix:
             name += 'BulletEnv-v0'
+        env = gym.make(name)
         if add_timestep:
             env = AddTimeStep(env)
         super().__init__(RewardMonitor(env))
-        self.spec = EnvSpec(*self.spec[:-1], True)
+        self.spec.use_reward_monitor = True
 
 
 def pybullet_parallel(
