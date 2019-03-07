@@ -84,8 +84,8 @@ class GaussinanHead(PolicyHead):
         return action_dim * 2
 
     def forward(self, x: Tensor) -> Policy:
-        size = x.size(0) // 2
-        mean, stddev = x[:size], x[size:]
+        size = x.size(1) // 2
+        mean, stddev = x[:, :size], x[:, size:]
         return GaussianPolicy(Normal(mean, F.softplus(stddev)))
 
 
