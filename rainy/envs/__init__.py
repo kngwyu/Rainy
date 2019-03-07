@@ -1,6 +1,6 @@
 from numpy import ndarray
 import gym
-from typing import Callable
+from typing import Callable, Optional
 from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
 from .ext import EnvExt, EnvSpec
 from .monitor import RewardMonitor
@@ -74,7 +74,21 @@ class PyBullet(EnvExt):
         if add_timestep:
             env = AddTimeStep(env)
         super().__init__(RewardMonitor(env))
+        self.viewer = None
         self.spec.use_reward_monitor = True
+
+    def render(self, mode: str = 'human') -> Optional[ndarray]:
+        if mode == 'human':
+            arr = self._env.render('rgb_array')
+            if self.viewer is None:
+                self.__init_viewer()
+            self.viewer.imshow(arr)
+        else:
+            return self._env.render(mode)
+
+    def __init_viewer(self) -> None:
+        from gym.envs.classic_control.rendering import SimpleImageViewer
+        self.viewer = SimpleImageViewer()
 
 
 def pybullet_parallel(
