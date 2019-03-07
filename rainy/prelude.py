@@ -3,11 +3,6 @@ from torch import nn, Tensor
 from typing import Callable, Iterable, Tuple, TypeVar, Union
 from .utils.device import Device
 
-Action = TypeVar('Action', bound=int)
-State = TypeVar('State')
-NetFn = Callable[[Tuple[int, ...], int, Device], nn.Module]
-Params = Iterable[Union[Tensor, dict]]
-
 
 try:
     from typing import GenericMeta, NamedTupleMeta  # type: ignore
@@ -28,3 +23,8 @@ except ImportError:
     class Array(Sequence[T], extra=ndarray):  # type: ignore
         __slots__ = ()
 
+
+Action = TypeVar('Action', int, Array)
+State = TypeVar('State')
+NetFn = Callable[[Tuple[int, ...], int, Device], nn.Module]
+Params = Iterable[Union[Tensor, dict]]

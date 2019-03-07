@@ -1,5 +1,6 @@
 from enum import Enum
 from functools import reduce
+from gym.spaces import Discrete
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 from rainy import envs
@@ -48,7 +49,7 @@ class DummyEnv(EnvExt):
 
     @property
     def spec(self) -> EnvSpec:
-        return EnvSpec(self.array_dim, 1, False)
+        return EnvSpec(self.array_dim, Discrete(1))
 
     def close(self) -> None:
         pass

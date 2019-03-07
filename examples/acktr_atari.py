@@ -1,9 +1,8 @@
 import os
 from rainy import Config, net
 from rainy.agents import AcktrAgent
-from rainy.envs import Atari
+from rainy.envs import Atari, atari_parallel
 import rainy.utils.cli as cli
-from rainy.envs import FrameStackParallel, MultiProcEnv
 from rainy.lib import kfac
 
 KFAC_KWARGS = {
@@ -21,7 +20,7 @@ def config() -> Config:
     c.set_net_fn('actor-critic', net.actor_critic.ac_conv)
     c.nworkers = 32
     c.nsteps = 20
-    c.set_parallel_env(lambda env_gen, num_w: FrameStackParallel(MultiProcEnv(env_gen, num_w)))
+    c.set_parallel_env(atari_parallel())
     c.value_loss_weight = 0.5
     c.use_gae = True
     c.lr_decay = True

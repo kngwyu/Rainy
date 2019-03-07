@@ -7,3 +7,6 @@ verify_ssl = true
 editable = true
 extras=['ipython']
 path = '.'
+
+[dev-packages]
+pybullet = '>=2.4'

@@ -3,7 +3,7 @@ from test_env import DummyEnv
 import torch
 from rainy.lib.rollout import FeedForwardSampler, RolloutStorage
 from rainy.envs import DummyParallelEnv, MultiProcEnv, ParallelEnv
-from rainy.net.policy import categorical
+from rainy.net.policy import CategoricalHead
 from rainy.utils import Device
 
 
@@ -21,7 +21,7 @@ def test_storage(penv: ParallelEnv) -> None:
     for _ in range(NSTEP):
         state, reward, done, _ = penv.step([None] * NWORKERS)
         value = torch.rand(NWORKERS, dtype=torch.float32)
-        policy = categorical(torch.rand(NWORKERS, ACTION_DIM))
+        policy = CategoricalHead()(torch.rand(NWORKERS, ACTION_DIM))
         storage.push(state, reward, done, value=value, policy=policy)
     batch = storage.batch_states(penv)
     batch_shape = torch.Size((NSTEP * NWORKERS,))
@@ -50,7 +50,7 @@ def test_sampler(penv: ParallelEnv) -> None:
     for _ in range(NSTEP):
         state, reward, done, _ = penv.step([None] * NWORKERS)
         value = torch.rand(NWORKERS, dtype=torch.float32)
-        policy = categorical(torch.rand(NWORKERS, ACTION_DIM))
+        policy = CategoricalHead()(torch.rand(NWORKERS, ACTION_DIM))
         storage.push(state, reward, done, policy=policy, value=value)
     MINIBATCH = 10
     for batch in FeedForwardSampler(storage, penv, MINIBATCH):

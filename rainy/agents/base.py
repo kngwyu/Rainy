@@ -63,9 +63,6 @@ class Agent(ABC):
     def close(self) -> None:
         self.env.close()
 
-    def random_action(self) -> Action:
-        return np.random.randint(self.config.eval_env.action_dim)
-
     def __eval_episode(
             self,
             select_action: Callable[[Array], Action],
@@ -105,12 +102,12 @@ class Agent(ABC):
 
     def random_episode(self, render: bool = False) -> EpisodeResult:
         def act(_state) -> Action:
-            return self.random_action()
+            return self.config.eval_env.spec.random_action()
         return self.__eval_episode(act, render)[0]
 
     def random_and_save(self, fname: str, render: bool = False) -> EpisodeResult:
         def act(_state) -> Action:
-            return self.random_action()
+            return self.config.eval_env.spec.random_action()
         res, env = self.__eval_episode(act, render)
         env.save_history(fname)
         return res
