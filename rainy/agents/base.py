@@ -7,6 +7,7 @@ from typing import Callable, Generic, Iterable, List, NamedTuple, Optional, Tupl
 import warnings
 from ..config import Config
 from ..lib.rollout import RolloutStorage
+from ..net import RnnState
 from ..envs import EnvExt
 from ..prelude import Action, Array, State
 
@@ -158,7 +159,7 @@ class Agent(ABC):
                 setattr(self, member_str, saved_item)
 
 
-class OneStepAgent(Agent):
+class OneStepAgent(Agent, Generic[State]):
     @abstractmethod
     def step(self, state: State) -> Tuple[State, float, bool, dict]:
         pass
@@ -188,10 +189,10 @@ class OneStepAgent(Agent):
                 break
 
 
-class NStepParallelAgent(Agent, Generic[State]):
+class NStepParallelAgent(Agent, Generic[RnnState, State]):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.storage: RolloutStorage[State] = \
+        self.storage: RolloutStorage[RnnState, State] = \
             RolloutStorage(config.nsteps, config.nworkers, config.device)
         self.rewards = np.zeros(config.nworkers, dtype=np.float32)
         self.episode_length = np.zeros(config.nworkers, dtype=np.int)

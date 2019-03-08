@@ -2,18 +2,19 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
-from typing import Any, Generic, Iterable, Iterator, List, NamedTuple, Optional, Tuple
+from typing import Generic, NamedTuple, Iterable, Iterator, List, Optional, Tuple
 from ..envs import ParallelEnv, State
-from ..net import Policy
+from ..net import Policy, recurrent, RnnBlock, RnnState
 from ..utils import Device
-from ..prelude import Array
+from ..prelude import Array, GenericNamedMeta
 
 
-class RolloutStorage(Generic[State]):
+class RolloutStorage(Generic[RnnState, State]):
     def __init__(self, nsteps: int, nworkers: int, device: Device) -> None:
         self.states: List[Array[State]] = []
         self.rewards: List[Array[float]] = []
         self.masks: List[Array[float]] = [np.ones(nworkers)]
+        self.rnn_states: List[RnnState] = []
         self.policies: List[Policy] = []
         self.values: List[Tensor] = []
         self.returns: Tensor = torch.zeros(nsteps + 1, nworkers, device=device.unwrapped)
@@ -32,6 +33,7 @@ class RolloutStorage(Generic[State]):
             state: Array[State],
             reward: Array[float],
             mask: Array[bool],
+            rnn_state: Optional[RnnState] = None,
             policy: Optional[Policy] = None,
             value: Optional[Tensor] = None,
     ) -> None:
@@ -39,14 +41,17 @@ class RolloutStorage(Generic[State]):
         self.states.append(state)
         self.rewards.append(reward)
         self.masks.append(1.0 - mask)
+        if rnn_state is not None:
+            self.rnn_states.append(rnn_state)
         if policy is not None:
             self.policies.append(policy)
         if value is not None:
-            self.values.append(value.to(self.device.unwrapped))  # for testing
+            self.values.append(value.to(self.device.unwrapped))
 
     def reset(self) -> None:
         self.masks = [self.masks[-1]]
         self.states = [self.states[-1]]
+        self.rnn_states = []
         self.rewards = []
         self.policies = []
         self.values = []
@@ -54,6 +59,9 @@ class RolloutStorage(Generic[State]):
     def batch_states(self, penv: ParallelEnv) -> Tensor:
         states = [self.device.tensor(penv.states_to_array(s)) for s in self.states[:-1]]
         return torch.cat(states, dim=0)
+
+    def batch_rnn_states(self, rnn: RnnBlock) -> RnnState:
+        return rnn.make_batch(self.rnn_states, self.masks)
 
     def batch_actions(self) -> Tensor:
         return torch.cat([p.action() for p in self.policies], dim=0)
@@ -94,7 +102,7 @@ class RolloutStorage(Generic[State]):
             self.returns[i] = gae + self.values[i]
 
 
-class FeedForwardBatch(NamedTuple):
+class RolloutBatch(NamedTuple, Generic[RnnState], metaclass=GenericNamedMeta):
     states: Tensor
     actions: Tensor
     masks: Tensor
@@ -103,14 +111,16 @@ class FeedForwardBatch(NamedTuple):
     values: Tensor
     old_log_probs: Tensor
     advantages: Tensor
+    rnn_state: RnnState
 
 
-class FeedForwardSampler:
+class RolloutSampler(Generic[RnnState]):
     def __init__(
             self,
-            storage: RolloutStorage[Any],
+            storage: RolloutStorage,
             penv: ParallelEnv,
             minibatch_size: int,
+            rnn: RnnBlock = recurrent.DummyRnn(),
             adv_normalize_eps: Optional[float] = None,
     ) -> None:
         """Create a batch sampler from storage for feed forward network.
@@ -131,19 +141,20 @@ class FeedForwardSampler:
         self.returns = storage.batch_returns()
         self.values = storage.batch_values()
         self.old_log_probs = storage.batch_log_probs()
+        self.rnn_states = storage.batch_rnn_states(rnn)
         self.advantages = self.returns - self.values
         if adv_normalize_eps:
             adv = self.advantages
             self.advantages = (adv - adv.mean()) / (adv.std() + adv_normalize_eps)
 
-    def __iter__(self) -> Iterator[FeedForwardBatch]:
+    def __iter__(self) -> Iterator[RolloutBatch]:
         samplar = BatchSampler(
             SubsetRandomSampler(range(self.batch_size)),
             batch_size=self.minibatch_size,
             drop_last=False
         )
         for indices in samplar:
-            yield FeedForwardBatch(*map(lambda t: t[indices], (
+            yield RolloutBatch(*map(lambda t: t[indices], (
                 self.states,
                 self.actions,
                 self.masks,
@@ -151,6 +162,7 @@ class FeedForwardSampler:
                 self.returns,
                 self.values,
                 self.old_log_probs,
-                self.advantages
+                self.advantages,
+                self.rnn_states
             )))
 

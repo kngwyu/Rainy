@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from rainy.net import actor_critic, DqnConv
+from rainy.net import actor_critic, DqnConv, GruBlock
 from rainy.net.init import Initializer, kaiming_normal, kaiming_uniform
 from rainy.utils import Device
 from test_env import DummyEnv
@@ -12,8 +12,9 @@ ACTION_DIM = 10
 
 
 @pytest.mark.parametrize('net, state_dim, batch_size', [
-    (actor_critic.fc()((4,), ACTION_DIM, Device()), (4,), 32),
+    (actor_critic.fc_shared()((4,), ACTION_DIM, Device()), (4,), 32),
     (actor_critic.ac_conv()((4, 84, 84), ACTION_DIM, Device()), (4, 84, 84), 32),
+    (actor_critic.ac_conv(rnn=GruBlock)((4, 84, 84), ACTION_DIM, Device()), (4, 84, 84), 32),
     (actor_critic.impala_conv()((4, 84, 84), ACTION_DIM, Device()), (4, 84, 84), 32),
 ])
 def test_acnet(net: actor_critic.ActorCriticNet, state_dim: tuple, batch_size: int) -> None:
@@ -21,7 +22,7 @@ def test_acnet(net: actor_critic.ActorCriticNet, state_dim: tuple, batch_size: i
     assert net.action_dim == ACTION_DIM
     env = DummyEnv()
     states = np.stack([env.step(None)[0].to_array(state_dim) for _ in range(batch_size)])
-    policy, values = net(states)
+    policy, values, _ = net(states)
     batch_size = torch.Size([batch_size])
     assert policy.action().shape == batch_size
     assert policy.log_prob().shape == batch_size

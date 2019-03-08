@@ -1,7 +1,7 @@
 import pytest
 from test_env import DummyEnv
 import torch
-from rainy.lib.rollout import FeedForwardSampler, RolloutStorage
+from rainy.lib.rollout import RolloutSampler, RolloutStorage
 from rainy.envs import DummyParallelEnv, MultiProcEnv, ParallelEnv
 from rainy.net.policy import CategoricalHead
 from rainy.utils import Device
@@ -27,7 +27,7 @@ def test_storage(penv: ParallelEnv) -> None:
     batch = storage.batch_states(penv)
     batch_shape = torch.Size((NSTEP * NWORKERS,))
     assert batch.shape == torch.Size((*batch_shape, 16, 16))
-    sampler = FeedForwardSampler(storage, penv, 10)
+    sampler = RolloutSampler(storage, penv, 10)
     assert sampler.actions.shape == batch_shape
     assert sampler.returns.shape == batch_shape
     assert sampler.masks.shape == batch_shape
@@ -55,7 +55,7 @@ def test_sampler(penv: ParallelEnv) -> None:
         policy = policy_head(torch.rand(NWORKERS, ACTION_DIM))
         storage.push(state, reward, done, policy=policy, value=value)
     MINIBATCH = 10
-    for batch in FeedForwardSampler(storage, penv, MINIBATCH):
+    for batch in RolloutSampler(storage, penv, MINIBATCH):
         length = len(batch.states)
         assert length == MINIBATCH or length == (NSTEP * NWORKERS) % MINIBATCH
     penv.close()

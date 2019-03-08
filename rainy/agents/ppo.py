@@ -2,7 +2,7 @@ import torch
 from torch import nn, Tensor
 from typing import Tuple
 from .a2c import A2cAgent
-from ..lib.rollout import FeedForwardSampler
+from ..lib.rollout import RolloutSampler
 from ..config import Config
 from ..envs import State
 from ..net import Policy
@@ -54,10 +54,11 @@ class PpoAgent(A2cAgent):
             self.storage.calc_ac_returns(next_value, self.config.discount_factor)
         p, v, e = (0.0, 0.0, 0.0)
         for _ in range(self.config.ppo_epochs):
-            sampler = FeedForwardSampler(
+            sampler = RolloutSampler(
                 self.storage,
                 self.penv,
                 self.config.ppo_minibatch_size,
+                rnn=self.net.recurrent_block,
                 adv_normalize_eps=self.config.adv_normalize_eps,
             )
             for batch in sampler:

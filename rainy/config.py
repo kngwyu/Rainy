@@ -75,7 +75,7 @@ class Config:
         # Network
         self.__net: Dict[str, NetFn] = {
             'value': value.fc(),
-            'actor-critic': actor_critic.fc(),
+            'actor-critic': actor_critic.fc_shared(),
         }
 
         # Environments

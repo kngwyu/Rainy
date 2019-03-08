@@ -48,12 +48,12 @@ class A2cAgent(NStepParallelAgent):
 
     def _one_step(self, states: Array[State]) -> Array[State]:
         with torch.no_grad():
-            policy, value = self.net(self.penv.states_to_array(states))
+            policy, value, rnns = self.net(self.penv.states_to_array(states))
         next_states, rewards, done, info = self.penv.step(policy.action().squeeze().cpu().numpy())
         self.episode_length += 1
         self.rewards += rewards
         self.report_reward(done, info)
-        self.storage.push(next_states, rewards, done, policy=policy, value=value)
+        self.storage.push(next_states, rewards, done, rnn_state=rnns, policy=policy, value=value)
         return next_states
 
     def _pre_backward(self, _policy: Policy, _value: torch.Tensor) -> None:
@@ -75,7 +75,10 @@ class A2cAgent(NStepParallelAgent):
         else:
             self.storage.calc_ac_returns(next_value, self.config.discount_factor)
 
-        policy, value = self.net(self.storage.batch_states(self.penv))
+        policy, value, _ = self.net(
+            self.storage.batch_states(self.penv),
+            self.storage.batch_rnn_states(self.net.recurrent_body)
+        )
         policy.set_action(self.storage.batch_actions())
 
         advantage = self.storage.batch_returns() - value
