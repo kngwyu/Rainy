@@ -79,6 +79,8 @@ class Config:
         }
 
         # Environments
+        self.eval_parallel = False
+        self.eval_times = 1
         self.__env = lambda: ClassicalControl()
         self.__eval_env: Optional[EnvExt] = None
         self.__paralle_env = lambda env_gen, num_w: DummyParallelEnv(env_gen, num_w)

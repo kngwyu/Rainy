@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 import torch
 from torch import nn
-from typing import Callable, Generic, Iterable, List, NamedTuple, Optional, Tuple
+from typing import Any, Callable, Generic, Iterable, List, NamedTuple, Optional, Tuple
 import warnings
 from ..config import Config
 from ..lib.rollout import RolloutStorage
@@ -16,7 +16,7 @@ class EpisodeResult(NamedTuple):
     length: np.int32
 
     def __repr__(self) -> str:
-        return 'EpisodeResult(reward: {}, episode_length: {})'.format(self.reward, self.length)
+        return 'Result: reward: {}, length: {}'.format(self.reward, self.length)
 
 
 class Agent(ABC):
@@ -53,6 +53,9 @@ class Agent(ABC):
     @property
     @abstractmethod
     def update_steps(self) -> int:
+        pass
+
+    def set_mode(self, train: bool = True) -> None:
         pass
 
     def report_loss(self, **kwargs) -> None:
