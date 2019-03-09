@@ -2,7 +2,7 @@ import copy
 from numpy import ndarray
 from torch import nn, Tensor
 from typing import Callable, Tuple, Union
-from .block import DqnConv, FcBody, LinearHead, NetworkBlock
+from .block import DqnConv, FcBody, ResNetBody, LinearHead, NetworkBlock
 from .init import Initializer, orthogonal
 from .policy import CategoricalHead, Policy, PolicyHead
 from ..utils import Device
@@ -80,6 +80,22 @@ def ac_conv(
        in A3C paper(https://arxiv.org/abs/1602.01783)
     """
     body = DqnConv(state_dim, hidden_channels=(32, 64, 32), output_dim=256)
+    policy_head = policy(action_dim, device)
+    policy_dim = policy_head.calc_input_dim(action_dim)
+    ac_head = LinearHead(body.output_dim, policy_dim, Initializer(weight_init=orthogonal(0.01)))
+    cr_head = LinearHead(body.output_dim, 1)
+    return ActorCriticNet(body, ac_head, cr_head, device=device, policy_head=policy_head)
+
+
+def impala_conv(
+        state_dim: Tuple[int, int, int],
+        action_dim: int,
+        device: Device,
+        policy: Callable[[int], PolicyHead] = CategoricalHead,
+) -> ActorCriticNet:
+    """Convolutuion network used in IMPALA
+    """
+    body = ResNetBody(state_dim, channels=[16, 32, 32], use_batch_norm=False)
     policy_head = policy(action_dim, device)
     policy_dim = policy_head.calc_input_dim(action_dim)
     ac_head = LinearHead(body.output_dim, policy_dim, Initializer(weight_init=orthogonal(0.01)))
