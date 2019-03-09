@@ -27,8 +27,8 @@ def _eval_common(
 
 
 def _reward_and_length(results: List[EpisodeResult]) -> Tuple[Array[float], Array[float]]:
-    rewards = np.array(list(map(lambda t: t.reward, res)))
-    length = np.array(list(map(lambda t: t.length, res)))
+    rewards = np.array(list(map(lambda t: t.reward, results)))
+    length = np.array(list(map(lambda t: t.length, results)))
     return rewards, length
 
 
