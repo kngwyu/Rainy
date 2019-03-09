@@ -123,22 +123,23 @@ class ResBlock(nn.Module):
             use_batch_norm: bool = True,
     ) -> None:
         super().__init__()
-
         self.net = nn.Sequential(
             nn.ReLU(inplace=True),
-            conv3x3(channel, channel, stride),
+            self._conv3x3(channel, channel, stride),
             self._batch_norm(use_batch_norm),
             nn.ReLU(inplace=True),
-            conv3x3(channel, channel, stride),
+            self._conv3x3(channel, channel, stride),
             self._batch_norm(use_batch_norm),
         )
 
+    @staticmethod
     def _batch_norm(use_batch_norm: bool) -> nn.Module:
         if use_batch_norm:
             return nn.BatchNorm2d(out_channel)
         else:
             return DummyBlock()
 
+    @staticmethod
     def _conv3x3(in_channel: int, out_channel: int, stride: int = 1) -> nn.Conv2d:
         return nn.Conv2d(
             in_channel,
@@ -163,6 +164,7 @@ class ResNetBody(NetworkBlock):
             input_dim: Tuple[int, int, int],
             channels: List[int],
             use_batch_norm: bool = True,
+            fc_out: int = 256,
             init: Initializer = Initializer(nonlinearity = 'relu'),
     ) -> None:
         def make_layer(in_channel: int, out_channel: int) -> nn.Sequential:
@@ -174,11 +176,13 @@ class ResNetBody(NetworkBlock):
                 ResBlock(out_channel, use_batch_norm=use_batch_norm)
             )
 
+        super().__init__()
         self._input_dim = input_dim
-        channels = zip([input_dim[0]] + channels, channels)
-        self.res_blocks = init.make_list(*[make_layer(*c) for c in channels])
-        fc_in = iter_prod(channels[-1], *input_dim[1:])
+        _channels = zip([input_dim[0]] + channels, channels)
+        self.res_blocks = init.make_list(*[make_layer(*c) for c in _channels])
         self.relu = nn.ReLU(inplace=True)
+        width, height = calc_cnn_hidden([(3, 2, 1)] * len(channels), *input_dim[1:])
+        fc_in = iter_prod([channels[-1], width, height])
         self.fc = nn.Linear(fc_in, fc_out)
 
     def forward(self, x: Tensor) -> Tensor:
