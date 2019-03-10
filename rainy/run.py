@@ -1,7 +1,7 @@
 import numpy as np
 from pathlib import Path
 from typing import List, Optional, Tuple
-from .agents import Agent, EpisodeResult
+from .agents import Agent, EpisodeResult, NStepParallelAgent
 from .prelude import Array
 
 
@@ -17,11 +17,11 @@ def _eval_common(
     n = ag.config.eval_times
     ag.set_mode(train=False)
     if save_file is not None:
-        res = [ag.eval_and_save(save_file, render=render) for _ in range(n)]
-    elif not ag.config.eval_parallel:
-        res = [ag.eval_episode(render=render) for _ in range(n)]
-    else:
+        res = [ag.eval_and_save(save_file.as_posix(), render=render) for _ in range(n)]
+    elif ag.config.eval_parallel and isinstance(ag, NStepParallelAgent):
         res = ag.eval_parallel(n)
+    else:
+        res = [ag.eval_episode(render=render) for _ in range(n)]
     ag.set_mode(train=True)
     return res
 
@@ -107,7 +107,7 @@ def eval_agent(
     path = Path(log_dir)
     ag.load(path.joinpath(load_file_name).as_posix())
     if action_file is not None and len(action_file) > 0:
-        res = _eval_common(ag, path.joinpath(action_file).as_posix(), render=render)
+        res = _eval_common(ag, path.joinpath(action_file), render=render)
     else:
         res = _eval_common(ag, None, render=render)
     print('{}'.format(res))

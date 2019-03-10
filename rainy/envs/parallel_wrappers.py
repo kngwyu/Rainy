@@ -73,7 +73,7 @@ class FrameStackParallel(ParallelEnvWrapper):
         return self.shape
 
 
-class NormalizeObs(ParallelEnvWrapper[Array[float], Action]):
+class NormalizeObs(ParallelEnvWrapper[Action, Array[float]]):
     def __init__(self, penv: ParallelEnv, obs_clip: float = 10.) -> None:
         super().__init__(penv)
         self.obs_clip = obs_clip
@@ -83,22 +83,22 @@ class NormalizeObs(ParallelEnvWrapper[Array[float], Action]):
     def step(
             self,
             actions: Iterable[Action]
-    ) -> Tuple[Array[float], Array[float], Array[bool], Array[Any]]:
+    ) -> Tuple[Array[Array[float]], Array[float], Array[bool], Array[Any]]:
         state, reward, done, info = self.penv.step(actions)
         return self._filter_obs(state), reward, done, info
 
-    def _filter_obs(self, obs: Array[float]) -> Array[float]:
+    def _filter_obs(self, obs: Array[Array[float]]) -> Array[Array[float]]:
         if self.training_mode:
-            self._rms.update(obs)
+            self._rms.update(obs)  # type: ignore
         obs = np.clip((obs - self._rms.mean) / self._rms.std(), -self.obs_clip, self.obs_clip)
         return obs
 
-    def reset(self) -> Array[float]:
+    def reset(self) -> Array[Array[float]]:
         obs = self.penv.reset()
         return self._filter_obs(obs)
 
 
-class NormalizeReward(ParallelEnvWrapper[State, Action]):
+class NormalizeReward(ParallelEnvWrapper[Action, State]):
     def __init__(self, penv: ParallelEnv, reward_clip: float = 10., gamma: float = 0.99) -> None:
         super().__init__(penv)
         self.reward_clip = reward_clip

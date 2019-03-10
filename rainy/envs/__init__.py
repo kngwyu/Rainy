@@ -41,7 +41,7 @@ class Atari(EnvExt):
 
 def atari_parallel(frame_stack: bool = True) -> Callable[[EnvGen, int], ParallelEnv]:
     def __wrap(env_gen: EnvGen, num_workers: int) -> ParallelEnv:
-        penv = MultiProcEnv(env_gen, num_workers)
+        penv: ParallelEnv = MultiProcEnv(env_gen, num_workers)
         if frame_stack:
             penv = FrameStackParallel(penv)
         return penv
@@ -81,14 +81,12 @@ class PyBullet(EnvExt):
         if mode == 'human':
             arr = self._env.render('rgb_array')
             if self.viewer is None:
-                self.__init_viewer()
-            self.viewer.imshow(arr)
+                from gym.envs.classic_control.rendering import SimpleImageViewer
+                self.viewer = SimpleImageViewer()
+            self.viewer.imshow(arr)  # type: ignore
+            return None
         else:
             return self._env.render(mode)
-
-    def __init_viewer(self) -> None:
-        from gym.envs.classic_control.rendering import SimpleImageViewer
-        self.viewer = SimpleImageViewer()
 
 
 def pybullet_parallel(
@@ -99,7 +97,7 @@ def pybullet_parallel(
         gamma: float = 0.99
 ) -> Callable[[EnvGen, int], ParallelEnv]:
     def __wrap(env_gen: EnvGen, num_workers: int) -> ParallelEnv:
-        penv = MultiProcEnv(env_gen, num_workers)
+        penv: ParallelEnv = MultiProcEnv(env_gen, num_workers)
         if normalize_obs:
             penv = NormalizeObs(penv, obs_clip=obs_clip)
         if normalize_reward:

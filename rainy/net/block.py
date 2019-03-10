@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from torch import nn, Tensor
 import torch.nn.functional as F
-from typing import Callable, List, Tuple
+from typing import Callable, List, Sequence, Tuple
 from .init import Initializer
 from ..utils.misc import iter_prod
 
@@ -97,14 +97,14 @@ class DqnConv(ConvBody):
     """
     def __init__(
             self,
-            dim: Tuple[int, int, int],
+            input_dim: Tuple[int, int, int],
             kernel_and_strides: List[Tuple[int, int]] = [(8, 4), (4, 2), (3, 1)],
             hidden_channels: Tuple[int, int, int] = (32, 64, 64),
             output_dim: int = 512,
             activator: Activator = F.relu,
             init: Initializer = Initializer(nonlinearity = 'relu')
     ) -> None:
-        in_channel, width, height = dim
+        in_channel, width, height = input_dim
         hidden1, hidden2, hidden3 = hidden_channels
         conv1 = nn.Conv2d(in_channel, hidden1, *kernel_and_strides[0])
         conv2 = nn.Conv2d(hidden1, hidden2, *kernel_and_strides[1])
@@ -112,7 +112,7 @@ class DqnConv(ConvBody):
         hidden = (hidden3, *calc_cnn_hidden(kernel_and_strides, width, height))
         fc = nn.Linear(iter_prod(hidden), output_dim)
         self._output_dim = output_dim
-        super().__init__(F.relu, init, dim, hidden, fc, conv1, conv2, conv3)
+        super().__init__(F.relu, init, input_dim, hidden, fc, conv1, conv2, conv3)
 
 
 class ResBlock(nn.Sequential):
@@ -161,12 +161,13 @@ class ResNetBody(NetworkBlock):
     def __init__(
             self,
             input_dim: Tuple[int, int, int],
-            channels: List[int],
+            channels: List[int] = [16, 32, 32],
             use_batch_norm: bool = True,
             fc_out: int = 256,
             init: Initializer = Initializer(nonlinearity = 'relu'),
     ) -> None:
-        def make_layer(in_channel: int, out_channel: int) -> nn.Sequential:
+        def layer(channels: Tuple[int, int]) -> nn.Sequential:
+            in_channel, out_channel = channels
             return nn.Sequential(
                 ResBlock._conv3x3(in_channel, out_channel),
                 ResBlock._batch_norm(use_batch_norm, out_channel),
@@ -178,10 +179,10 @@ class ResNetBody(NetworkBlock):
         super().__init__()
         self._input_dim = input_dim
         _channels = zip([input_dim[0]] + channels, channels)
-        self.res_blocks = init.make_list(*[make_layer(*c) for c in _channels])
+        self.res_blocks = init.make_list(*[layer(c) for c in _channels])
         self.relu = nn.ReLU(inplace=True)
-        width, height = calc_cnn_hidden([(3, 2, 1)] * len(channels), *input_dim[1:])
-        fc_in = iter_prod([channels[-1], width, height])
+        conved = calc_cnn_hidden([(3, 2, 1)] * len(channels), *input_dim[1:])
+        fc_in = iter_prod((channels[-1], *conved))
         self.fc = nn.Linear(fc_in, fc_out)
 
     def forward(self, x: Tensor) -> Tensor:
@@ -229,16 +230,12 @@ class FcBody(NetworkBlock):
         return self.dims[-1]
 
 
-def calc_cnn_hidden(params: List[tuple], width: int, height: int) -> Tuple[int, int]:
+def calc_cnn_hidden(params: Sequence[tuple], width: int, height: int) -> Tuple[int, int]:
     """Calcurate hidden dim of a CNN.
        See https://pytorch.org/docs/stable/nn.html#torch.nn.Conv2d for detail.
     """
     for param in params:
-        if len(param) >= 3:
-            padding = param[2]
-        else:
-            padding = 0
-        kernel, stride, *_ = param
+        kernel, stride, padding = param if len(param) > 3 else (*param, 0)
         width = (width - kernel + 2 * padding) // stride + 1
         height = (height - kernel + 2 * padding) // stride + 1
     assert width > 0 and height > 0, 'Convolution makes dim < 0!!!'

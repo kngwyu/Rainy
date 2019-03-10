@@ -84,7 +84,7 @@ def _make_ac_net(body: NetworkBlock, policy_head: PolicyHead, device: Device) ->
 
 
 def ac_conv(
-        policy: Callable[[int], PolicyHead] = CategoricalHead,
+        policy: Callable[[int, Device], PolicyHead] = CategoricalHead,
         hidden_channels: Tuple[int, int, int] = (32, 64, 32),
         **kwargs
 ) -> NetFn:
@@ -95,13 +95,13 @@ def ac_conv(
         body = DqnConv(state_dim, hidden_channels=hidden_channels, **kwargs)
         policy_head = policy(action_dim, device)
         return _make_ac_net(body, policy_head, device)
-    return _net
+    return _net  # type: ignore
 
 
-def fc(policy: Callable[[int], PolicyHead] = CategoricalHead, **kwargs) -> NetFn:
+def fc(policy: Callable[[int, Device], PolicyHead] = CategoricalHead, **kwargs) -> NetFn:
     """FC body head ActorCritic network
     """
-    def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> ActorCriticNet:
+    def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> ActorCriticNet:
         body = FcBody(state_dim[0], **kwargs)
         policy_head = policy(action_dim, device)
         return _make_ac_net(body, policy_head, device)
@@ -109,7 +109,7 @@ def fc(policy: Callable[[int], PolicyHead] = CategoricalHead, **kwargs) -> NetFn
 
 
 def impala_conv(
-        policy: Callable[[int], PolicyHead] = CategoricalHead,
+        policy: Callable[[int, Device], PolicyHead] = CategoricalHead,
         channels: List[int] = [16, 32, 32],
         **kwargs
 ) -> NetFn:
@@ -119,4 +119,4 @@ def impala_conv(
         body = ResNetBody(state_dim, channels, **kwargs)
         policy_head = policy(action_dim, device)
         return _make_ac_net(body, policy_head, device)
-    return _net
+    return _net  # type: ignore

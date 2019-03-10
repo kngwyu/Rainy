@@ -31,7 +31,7 @@ class TransposeObs(gym.ObservationWrapper):
         if isinstance(observation, LazyFrames):
             img = np.concatenate(observation._frames, axis=2).transpose(2, 0, 1)
         else:
-            img = observation.transpose(*self.transpose)  # type: ignore
+            img = observation.transpose(*self.transpose)
         return img / self.scale
 
 

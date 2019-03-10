@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 import torch
 from torch import nn
-from typing import Any, Callable, Generic, Iterable, List, NamedTuple, Optional, Tuple
+from typing import Callable, Generic, Iterable, List, NamedTuple, Optional, Tuple
 import warnings
 from ..config import Config
 from ..lib.rollout import RolloutStorage

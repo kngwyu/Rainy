@@ -38,7 +38,7 @@ class RolloutStorage(Generic[State]):
         assert self.states, '[RolloutStorage.push] Call set_initial_state first'
         self.states.append(state)
         self.rewards.append(reward)
-        self.masks.append(1.0 - mask)  # type: ignore
+        self.masks.append(1.0 - mask)
         if policy is not None:
             self.policies.append(policy)
         if value is not None:

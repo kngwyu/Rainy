@@ -95,7 +95,7 @@ class SeparateStdGaussinanHead(PolicyHead):
        independent with states, as a lernable parameter.
     """
     def __init__(self, action_dim: int, device: Device) -> None:
-        super().__init__()
+        super().__init__(action_dim)
         self.stddev = nn.Parameter(device.zeros(action_dim))
 
     def forward(self, x: Tensor) -> Policy:

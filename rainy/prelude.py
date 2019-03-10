@@ -1,6 +1,5 @@
-from numpy import ndarray
 from torch import nn, Tensor
-from typing import Callable, Iterable, Tuple, TypeVar, Union
+from typing import Any, Callable, Iterable, Sequence, Tuple, TypeVar, Union
 from .utils.device import Device
 
 
@@ -14,14 +13,24 @@ except ImportError:
     GenericNamedMeta = NamedTupleMeta  # type: ignore
 
 T = TypeVar('T')
-try:
-    from typing import _alias  # type: ignore
-    Array = _alias(ndarray, T, inst=False)
-except ImportError:
-    from typing import Sequence
 
-    class Array(Sequence[T], extra=ndarray):  # type: ignore
-        __slots__ = ()
+
+class Array(Sequence[T]):
+    @property
+    def shape(self) -> tuple:
+        ...
+
+    def squeeze(self) -> Any:
+        ...
+
+    def transpose(self, *args) -> Any:
+        ...
+
+    def __rsub__(self, value: Any) -> Any:
+        ...
+
+    def __truediv__(self, rvalue: Any) -> Any:
+        ...
 
 
 Action = TypeVar('Action', int, Array)

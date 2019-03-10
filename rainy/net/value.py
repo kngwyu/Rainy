@@ -66,7 +66,7 @@ def dqn_conv(*args, **kwargs) -> NetFn:
         body = DqnConv(state_dim, *args, **kwargs)
         head = LinearHead(body.output_dim, action_dim)
         return ValueNet(body, head, device=device)
-    return _net
+    return _net  # type: ignore
 
 
 def fc(*args, **kwargs) -> NetFn:
