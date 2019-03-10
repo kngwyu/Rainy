@@ -12,7 +12,7 @@ Activator = Callable[[Tensor], Tensor]
 
 
 class NetworkBlock(nn.Module, ABC):
-    """Defines a NN block
+    """Defines a NN block which returns 1-dimension Tensor
     """
     @property
     @abstractmethod
@@ -23,6 +23,11 @@ class NetworkBlock(nn.Module, ABC):
     @abstractmethod
     def output_dim(self) -> int:
         pass
+
+
+class DummyBlock(nn.Module):
+    def forward(self, x: Tensor) -> Tensor:
+        return x
 
 
 class LinearHead(NetworkBlock):
@@ -108,6 +113,92 @@ class DqnConv(ConvBody):
         fc = nn.Linear(iter_prod(hidden), output_dim)
         self._output_dim = output_dim
         super().__init__(F.relu, init, dim, hidden, fc, conv1, conv2, conv3)
+
+
+class ResBlock(nn.Module):
+    def __init__(
+            self,
+            channel: int,
+            stride: int = 1,
+            use_batch_norm: bool = True,
+    ) -> None:
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.ReLU(inplace=True),
+            self._conv3x3(channel, channel, stride),
+            self._batch_norm(use_batch_norm),
+            nn.ReLU(inplace=True),
+            self._conv3x3(channel, channel, stride),
+            self._batch_norm(use_batch_norm),
+        )
+
+    @staticmethod
+    def _batch_norm(use_batch_norm: bool) -> nn.Module:
+        if use_batch_norm:
+            return nn.BatchNorm2d(out_channel)
+        else:
+            return DummyBlock()
+
+    @staticmethod
+    def _conv3x3(in_channel: int, out_channel: int, stride: int = 1) -> nn.Conv2d:
+        return nn.Conv2d(
+            in_channel,
+            out_channel,
+            kernel_size=3,
+            stride=stride,
+            padding=1,
+            bias=False,
+        )
+
+    def forward(self, x: Tensor) -> Tensor:
+        residual = x
+        out = self.net(x)
+        return out + residual
+
+
+class ResNetBody(NetworkBlock):
+    """Convolutuion Network used in IMPALA
+    """
+    def __init__(
+            self,
+            input_dim: Tuple[int, int, int],
+            channels: List[int],
+            use_batch_norm: bool = True,
+            fc_out: int = 256,
+            init: Initializer = Initializer(nonlinearity = 'relu'),
+    ) -> None:
+        def make_layer(in_channel: int, out_channel: int) -> nn.Sequential:
+            return nn.Sequential(
+                ResBlock._conv3x3(in_channel, out_channel),
+                ResBlock._batch_norm(use_batch_norm),
+                nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+                ResBlock(out_channel, use_batch_norm=use_batch_norm),
+                ResBlock(out_channel, use_batch_norm=use_batch_norm)
+            )
+
+        super().__init__()
+        self._input_dim = input_dim
+        _channels = zip([input_dim[0]] + channels, channels)
+        self.res_blocks = init.make_list(*[make_layer(*c) for c in _channels])
+        self.relu = nn.ReLU(inplace=True)
+        width, height = calc_cnn_hidden([(3, 2, 1)] * len(channels), *input_dim[1:])
+        fc_in = iter_prod([channels[-1], width, height])
+        self.fc = nn.Linear(fc_in, fc_out)
+
+    def forward(self, x: Tensor) -> Tensor:
+        for block in self.res_blocks:
+            x = block(x)
+        x = self.relu(x)
+        x = self.fc(x.view(x.size(0), -1))
+        return self.relu(x)
+
+    @property
+    def input_dim(self) -> Tuple[int, ...]:
+        return self._input_dim
+
+    @property
+    def output_dim(self) -> int:
+        return self.fc.out_features
 
 
 class FcBody(NetworkBlock):

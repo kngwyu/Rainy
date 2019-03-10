@@ -18,6 +18,9 @@ class A2cAgent(NStepParallelAgent):
     def members_to_save(self) -> Tuple[str, ...]:
         return ("net",)
 
+    def set_mode(self, train: bool = True) -> None:
+        self.net.train(mode=train)
+
     def eval_action(self, state_: Array) -> Action:
         state = self.config.eval_env.state_to_array(state_)
         if len(state.shape) == len(self.net.state_dim):

@@ -1,11 +1,35 @@
-from .agents import Agent, EpisodeResult
 import numpy as np
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
+from .agents import Agent, EpisodeResult
+from .prelude import Array
 
 
 SAVE_FILE_DEFAULT = 'rainy-agent.save'
 ACTION_FILE_DEFAULT = 'actions.json'
+
+
+def _eval_common(
+        ag: Agent,
+        save_file: Optional[Path],
+        render: bool = False
+) -> List[EpisodeResult]:
+    n = ag.config.eval_times
+    ag.set_mode(train=False)
+    if save_file is not None:
+        res = [ag.eval_and_save(save_file, render=render) for _ in range(n)]
+    elif not ag.config.eval_parallel:
+        res = [ag.eval_episode(render=render) for _ in range(n)]
+    else:
+        res = ag.eval_parallel(n)
+    ag.set_mode(train=True)
+    return res
+
+
+def _reward_and_length(results: List[EpisodeResult]) -> Tuple[Array[float], Array[float]]:
+    rewards = np.array(list(map(lambda t: t.reward, results)))
+    length = np.array(list(map(lambda t: t.length, results)))
+    return rewards, length
 
 
 def train_agent(
@@ -19,8 +43,7 @@ def train_agent(
     action_file = Path(action_file_name)
 
     def log_episode(episodes: int, res: List[EpisodeResult]) -> None:
-        rewards = np.array(list(map(lambda t: t.reward, res)))
-        length = np.array(list(map(lambda t: t.length, res)))
+        rewards, length = _reward_and_length(res)
         ag.logger.exp('train', {
             'episodes': episodes,
             'update-steps': ag.update_steps,
@@ -39,14 +62,15 @@ def train_agent(
                 episodes,
                 action_file.suffix
             ))
-            res = ag.eval_and_save(fname.as_posix())
+            res = _eval_common(ag, fname)
         else:
-            res = ag.eval_episode()
+            res = _eval_common(ag, None)
+        rewards, length = _reward_and_length(res)
         ag.logger.exp('eval', {
             'episodes': episodes,
             'update-steps': ag.update_steps,
-            'reward': res.reward,
-            'length': res.length,
+            'reward-mean': float(np.mean(rewards)),
+            'length-mean': float(np.mean(length)),
         })
 
     def interval(turn: int, width: int, freq: Optional[int]) -> bool:
@@ -82,10 +106,10 @@ def eval_agent(
 ) -> None:
     path = Path(log_dir)
     ag.load(path.joinpath(load_file_name).as_posix())
-    if action_file:
-        res = ag.eval_and_save(path.joinpath(action_file).as_posix(), render=render)
+    if action_file is not None and len(action_file) > 0:
+        res = _eval_common(ag, path.joinpath(action_file).as_posix(), render=render)
     else:
-        res = ag.eval_episode(render=render)
+        res = _eval_common(ag, None, render=render)
     print('{}'.format(res))
     if render:
         input('--Press Enter to exit--')

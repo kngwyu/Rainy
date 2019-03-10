@@ -26,6 +26,9 @@ class DqnAgent(OneStepAgent):
             dtype=torch.long
         )
 
+    def set_mode(self, train: bool = True) -> None:
+        self.net.train(mode=train)
+
     def members_to_save(self) -> Tuple[str, ...]:
         return "net", "target_net", "policy", "total_steps"
 
