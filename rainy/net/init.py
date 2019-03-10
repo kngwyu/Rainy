@@ -55,29 +55,36 @@ class Initializer:
         self.scale = scale
 
     def __call__(self, mod: Union[nn.Module, nn.Sequential, Iterable[nn.Module]]) -> nn.Module:
-        if hasattr(mod, '__iter__'):
-            self.__init_list(mod)
+        return self.__init_dispatch(mod)
+
+    def make_list(self, *args) -> nn.ModuleList:
+        return nn.ModuleList([self.__init_dispatch(mod) for mod in args])
+
+    def make_seq(self, *args) -> nn.Sequential:
+        return nn.Sequential(*map(lambda mod: self.__init_dispatch(mod), args))
+
+
+    def __init_dispatch(self, mod: nn.Module) -> nn.Module:
+        if isinstance(mod, nn.Sequential) or isinstance(mod, nn.ModuleList):
+            for child in mod.children():
+                self.__init_dispatch(child)
         else:
             self.__init_mod(mod)
         return mod
 
-    def make_list(self, *args) -> nn.ModuleList:
-        return nn.ModuleList([self.__init_mod(mod) for mod in args])
-
-    def make_seq(self, *args) -> nn.Sequential:
-        return nn.Sequential(*map(lambda mod: self.__init_mod(mod), args))
-
     def __init_mod(self, mod: nn.Module) -> nn.Module:
+        if isinstance(mod, nn.BatchNorm2d):
+            return self.__init_batch_norm(mod)
         for name, param in mod.named_parameters():
             if 'weight' in name:
                 self.weight_init(param)
-            if 'bias' in name:
+            elif 'bias' in name:
                 self.bias_init(param)
         return mod
 
-    def __init_list(self, mods: Iterable[nn.Module]) -> Iterable[nn.Module]:
-        for mod in mods:
-            self.__init_mod(mod)
-        return mods
+    def __init_batch_norm(self, mod: nn.BatchNorm2d) -> nn.Module:
+        mod.weight.data.fill_(1)
+        mod.bias.data.zero_()
+        return mod
 
 

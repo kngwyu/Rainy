@@ -115,27 +115,26 @@ class DqnConv(ConvBody):
         super().__init__(F.relu, init, dim, hidden, fc, conv1, conv2, conv3)
 
 
-class ResBlock(nn.Module):
+class ResBlock(nn.Sequential):
     def __init__(
             self,
             channel: int,
             stride: int = 1,
             use_batch_norm: bool = True,
     ) -> None:
-        super().__init__()
-        self.net = nn.Sequential(
+        super().__init__(
             nn.ReLU(inplace=True),
             self._conv3x3(channel, channel, stride),
-            self._batch_norm(use_batch_norm),
+            self._batch_norm(use_batch_norm, channel),
             nn.ReLU(inplace=True),
             self._conv3x3(channel, channel, stride),
-            self._batch_norm(use_batch_norm),
+            self._batch_norm(use_batch_norm, channel),
         )
 
     @staticmethod
-    def _batch_norm(use_batch_norm: bool) -> nn.Module:
+    def _batch_norm(use_batch_norm: bool, channel: int) -> nn.Module:
         if use_batch_norm:
-            return nn.BatchNorm2d(out_channel)
+            return nn.BatchNorm2d(channel)
         else:
             return DummyBlock()
 
@@ -152,7 +151,7 @@ class ResBlock(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         residual = x
-        out = self.net(x)
+        out = super().forward(x)
         return out + residual
 
 
@@ -170,7 +169,7 @@ class ResNetBody(NetworkBlock):
         def make_layer(in_channel: int, out_channel: int) -> nn.Sequential:
             return nn.Sequential(
                 ResBlock._conv3x3(in_channel, out_channel),
-                ResBlock._batch_norm(use_batch_norm),
+                ResBlock._batch_norm(use_batch_norm, out_channel),
                 nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
                 ResBlock(out_channel, use_batch_norm=use_batch_norm),
                 ResBlock(out_channel, use_batch_norm=use_batch_norm)
