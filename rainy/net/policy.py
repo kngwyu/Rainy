@@ -57,12 +57,13 @@ class GaussianPolicy(Policy):
 
 
 class PolicyHead(ABC, nn.Module):
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, action_dim: int, *args, **kwargs) -> None:
         super().__init__()
+        self.action_dim = action_dim
 
-    @staticmethod
-    def calc_input_dim(action_dim: int) -> int:
-        return action_dim
+    @property
+    def input_dim(self) -> int:
+        return self.action_dim
 
     @abstractmethod
     def forward(self, t: Tensor) -> Policy:
@@ -79,9 +80,9 @@ class CategoricalHead(PolicyHead):
 class GaussinanHead(PolicyHead):
     """Gaussian policy which takes both mean and stdev as inputs
     """
-    @staticmethod
-    def calc_input_dim(action_dim: int) -> int:
-        return action_dim * 2
+    @property
+    def input_dim(self) -> int:
+        return self.action_dim * 2
 
     def forward(self, x: Tensor) -> Policy:
         size = x.size(1) // 2

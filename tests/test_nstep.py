@@ -18,10 +18,11 @@ def test_storage(penv: ParallelEnv) -> None:
     states = penv.reset()
     storage = RolloutStorage(NSTEP, NWORKERS, Device())
     storage.set_initial_state(states)
+    policy_head = CategoricalHead(ACTION_DIM)
     for _ in range(NSTEP):
         state, reward, done, _ = penv.step([None] * NWORKERS)
         value = torch.rand(NWORKERS, dtype=torch.float32)
-        policy = CategoricalHead()(torch.rand(NWORKERS, ACTION_DIM))
+        policy = policy_head(torch.rand(NWORKERS, ACTION_DIM))
         storage.push(state, reward, done, value=value, policy=policy)
     batch = storage.batch_states(penv)
     batch_shape = torch.Size((NSTEP * NWORKERS,))
@@ -47,10 +48,11 @@ def test_sampler(penv: ParallelEnv) -> None:
     states = penv.reset()
     storage = RolloutStorage(NSTEP, NWORKERS, Device())
     storage.set_initial_state(states)
+    policy_head = CategoricalHead(ACTION_DIM)
     for _ in range(NSTEP):
         state, reward, done, _ = penv.step([None] * NWORKERS)
         value = torch.rand(NWORKERS, dtype=torch.float32)
-        policy = CategoricalHead()(torch.rand(NWORKERS, ACTION_DIM))
+        policy = policy_head(torch.rand(NWORKERS, ACTION_DIM))
         storage.push(state, reward, done, policy=policy, value=value)
     MINIBATCH = 10
     for batch in FeedForwardSampler(storage, penv, MINIBATCH):

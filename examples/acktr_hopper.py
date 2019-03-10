@@ -1,4 +1,3 @@
-from functools import partial
 import os
 from rainy import Config, net
 from rainy.agents import AcktrAgent
@@ -21,10 +20,7 @@ def config() -> Config:
     c.nworkers = 12
     c.nsteps = 20
     c.set_env(lambda: PyBullet('Hopper'))
-    c.set_net_fn(
-        'actor-critic',
-        partial(net.actor_critic.fc, policy=SeparateStdGaussinanHead)
-    )
+    c.set_net_fn('actor-critic', net.actor_critic.fc(policy=SeparateStdGaussinanHead))
     c.set_parallel_env(pybullet_parallel())
     c.set_optimizer(kfac.default_sgd(eta_max=0.1))
     c.set_preconditioner(lambda net: kfac.KfacPreConditioner(net, **KFAC_KWARGS))

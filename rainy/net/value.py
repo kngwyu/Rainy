@@ -4,6 +4,7 @@ from numpy import ndarray
 from torch import nn, Tensor
 from typing import Tuple, Union
 from .block import DqnConv, FcBody, LinearHead, NetworkBlock
+from ..prelude import NetFn
 from ..utils import Device
 from ..utils.misc import iter_prod
 
@@ -60,14 +61,17 @@ class ValueNet(ValuePredictor, nn.Module):
         return self.head.output_dim
 
 
-def dqn_conv(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> ValueNet:
-    body = DqnConv(state_dim)
-    head = LinearHead(body.output_dim, action_dim)
-    return ValueNet(body, head, device=device)
+def dqn_conv(*args, **kwargs) -> NetFn:
+    def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> ValueNet:
+        body = DqnConv(state_dim, *args, **kwargs)
+        head = LinearHead(body.output_dim, action_dim)
+        return ValueNet(body, head, device=device)
+    return _net
 
 
-def fc(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> ValueNet:
-    body = FcBody(state_dim[0])
-    head = LinearHead(body.output_dim, action_dim)
-    return ValueNet(body, head, device=device)
-
+def fc(*args, **kwargs) -> NetFn:
+    def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> ValueNet:
+        body = FcBody(state_dim[0], *args, **kwargs)
+        head = LinearHead(body.output_dim, action_dim)
+        return ValueNet(body, head, device=device)
+    return _net

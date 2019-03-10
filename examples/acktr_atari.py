@@ -17,7 +17,7 @@ def config() -> Config:
     c.set_env(lambda: Atari('Breakout', frame_stack=False))
     c.set_optimizer(kfac.default_sgd(eta_max=0.2))
     c.set_preconditioner(lambda net: kfac.KfacPreConditioner(net, **KFAC_KWARGS))
-    c.set_net_fn('actor-critic', net.actor_critic.ac_conv)
+    c.set_net_fn('actor-critic', net.actor_critic.ac_conv())
     c.nworkers = 32
     c.nsteps = 20
     c.set_parallel_env(atari_parallel())

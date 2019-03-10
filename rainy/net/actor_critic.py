@@ -1,10 +1,11 @@
 import copy
 from numpy import ndarray
 from torch import nn, Tensor
-from typing import Callable, Tuple, Union
+from typing import Callable, List, Tuple, Union
 from .block import DqnConv, FcBody, ResNetBody, LinearHead, NetworkBlock
 from .init import Initializer, orthogonal
 from .policy import CategoricalHead, Policy, PolicyHead
+from ..prelude import NetFn
 from ..utils import Device
 from ..utils.misc import iter_prod
 
@@ -18,7 +19,7 @@ class ActorCriticNet(nn.Module):
             body: NetworkBlock,
             actor_head: NetworkBlock,  # policy
             critic_head: NetworkBlock,  # value
-            policy_head: PolicyHead = CategoricalHead(),
+            policy_head: PolicyHead,
             device: Device = Device(),
     ) -> None:
         assert body.output_dim == iter_prod(actor_head.input_dim), \
@@ -70,48 +71,52 @@ class RndActorCriticNet(ActorCriticNet):
         return self.internal_critic_head(features).squeeze()
 
 
+def policy_init() -> Initializer:
+    """Use small value for policy layer to make policy entroy larger
+    """
+    return Initializer(weight_init=orthogonal(0.01))
+
+
+def _make_ac_net(body: NetworkBlock, policy_head: PolicyHead, device: Device) -> ActorCriticNet:
+    ac_head = LinearHead(body.output_dim, policy_head.input_dim, policy_init())
+    cr_head = LinearHead(body.output_dim, 1)
+    return ActorCriticNet(body, ac_head, cr_head, device=device, policy_head=policy_head)
+
+
 def ac_conv(
-        state_dim: Tuple[int, int, int],
-        action_dim: int,
-        device: Device,
         policy: Callable[[int], PolicyHead] = CategoricalHead,
-) -> ActorCriticNet:
+        hidden_channels: Tuple[int, int, int] = (32, 64, 32),
+        **kwargs
+) -> NetFn:
     """Convolutuion network used for atari experiments
        in A3C paper(https://arxiv.org/abs/1602.01783)
     """
-    body = DqnConv(state_dim, hidden_channels=(32, 64, 32), output_dim=256)
-    policy_head = policy(action_dim, device)
-    policy_dim = policy_head.calc_input_dim(action_dim)
-    ac_head = LinearHead(body.output_dim, policy_dim, Initializer(weight_init=orthogonal(0.01)))
-    cr_head = LinearHead(body.output_dim, 1)
-    return ActorCriticNet(body, ac_head, cr_head, device=device, policy_head=policy_head)
+    def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> ActorCriticNet:
+        body = DqnConv(state_dim, hidden_channels=hidden_channels, **kwargs)
+        policy_head = policy(action_dim, device)
+        return _make_ac_net(body, policy_head, device)
+    return _net
+
+
+def fc(policy: Callable[[int], PolicyHead] = CategoricalHead, **kwargs) -> NetFn:
+    """FC body head ActorCritic network
+    """
+    def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> ActorCriticNet:
+        body = FcBody(state_dim[0], **kwargs)
+        policy_head = policy(action_dim, device)
+        return _make_ac_net(body, policy_head, device)
+    return _net
 
 
 def impala_conv(
-        state_dim: Tuple[int, int, int],
-        action_dim: int,
-        device: Device,
         policy: Callable[[int], PolicyHead] = CategoricalHead,
-) -> ActorCriticNet:
+        channels: List[int] = [16, 32, 32],
+        **kwargs
+) -> NetFn:
     """Convolutuion network used in IMPALA
     """
-    body = ResNetBody(state_dim, channels=[16, 32, 32], use_batch_norm=False)
-    policy_head = policy(action_dim, device)
-    policy_dim = policy_head.calc_input_dim(action_dim)
-    ac_head = LinearHead(body.output_dim, policy_dim, Initializer(weight_init=orthogonal(0.01)))
-    cr_head = LinearHead(body.output_dim, 1)
-    return ActorCriticNet(body, ac_head, cr_head, device=device, policy_head=policy_head)
-
-
-def fc(state_dim: Tuple[int, ...],
-       action_dim: int,
-       device: Device = Device(),
-       policy: Callable[[int], PolicyHead] = CategoricalHead) -> ActorCriticNet:
-    """FC body head ActorCritic network
-    """
-    body = FcBody(state_dim[0])
-    policy_head = policy(action_dim, device)
-    policy_dim = policy_head.calc_input_dim(action_dim)
-    ac_head = LinearHead(body.output_dim, policy_dim, Initializer(weight_init=orthogonal(0.01)))
-    cr_head = LinearHead(body.output_dim, 1)
-    return ActorCriticNet(body, ac_head, cr_head, device=device, policy_head=policy_head)
+    def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> ActorCriticNet:
+        body = ResNetBody(state_dim, channels, **kwargs)
+        policy_head = policy(action_dim, device)
+        return _make_ac_net(body, policy_head, device)
+    return _net
