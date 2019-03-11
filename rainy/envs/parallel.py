@@ -30,6 +30,7 @@ class ParallelEnv(ABC, Generic[Action, State]):
     def seed(self, seed: int) -> None:
         pass
 
+    @property
     @abstractmethod
     def num_envs(self) -> int:
         pass
@@ -86,6 +87,7 @@ class MultiProcEnv(ParallelEnv):
         for env in self.envs:
             env.seed(seed)
 
+    @property
     def num_envs(self) -> int:
         return len(self.envs)
 
@@ -167,6 +169,7 @@ class DummyParallelEnv(ParallelEnv):
         for env in self.envs:
             env.seed(seed)
 
+    @property
     def num_envs(self) -> int:
         return len(self.envs)
 

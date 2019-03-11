@@ -25,8 +25,9 @@ class ParallelEnvWrapper(ParallelEnv[Action, State]):
     def seed(self, seed: int) -> None:
         self.penv.seed(seed)
 
+    @property
     def num_envs(self) -> int:
-        return self.penv.num_envs()
+        return self.penv.num_envs
 
     @property
     def spec(self) -> EnvSpec:
@@ -49,7 +50,7 @@ class FrameStackParallel(ParallelEnvWrapper):
             else:
                 break
         self.shape = (nstack, *self.penv.state_dim[idx:])
-        self.obs = np.zeros((self.num_envs(), *self.shape), dtype=dtype)
+        self.obs = np.zeros((self.num_envs, *self.shape), dtype=dtype)
 
     def step(
             self,
@@ -104,7 +105,7 @@ class NormalizeReward(ParallelEnvWrapper[Action, State]):
         self.reward_clip = reward_clip
         self.gamma = gamma
         self._rms = RunningMeanStd(shape=())
-        self.ret = np.zeros(self.num_envs())
+        self.ret = np.zeros(self.num_envs)
 
     def step(
             self,
@@ -118,5 +119,5 @@ class NormalizeReward(ParallelEnvWrapper[Action, State]):
         return state, reward, done, info
 
     def reset(self) -> Array[State]:
-        self.ret = np.zeros(self.num_envs())
+        self.ret = np.zeros(self.num_envs)
         return self.penv.reset()

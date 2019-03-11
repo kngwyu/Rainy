@@ -14,7 +14,7 @@ from rainy.utils import Device
 def test_storage(penv: ParallelEnv) -> None:
     NSTEP = 4
     ACTION_DIM = 3
-    NWORKERS = penv.num_envs()
+    NWORKERS = penv.num_envs
     states = penv.reset()
     storage = RolloutStorage(NSTEP, NWORKERS, Device())
     storage.set_initial_state(states)
@@ -44,7 +44,7 @@ def test_storage(penv: ParallelEnv) -> None:
 def test_sampler(penv: ParallelEnv) -> None:
     NSTEP = 4
     ACTION_DIM = 3
-    NWORKERS = penv.num_envs()
+    NWORKERS = penv.num_envs
     states = penv.reset()
     storage = RolloutStorage(NSTEP, NWORKERS, Device())
     storage.set_initial_state(states)
