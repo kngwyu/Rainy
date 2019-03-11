@@ -27,7 +27,7 @@ class ParallelEnv(ABC, Generic[Action, State]):
         pass
 
     @abstractmethod
-    def seed(self, seed: int) -> None:
+    def seed(self, seeds: Iterable[int]) -> None:
         pass
 
     @property
@@ -83,8 +83,8 @@ class MultiProcEnv(ParallelEnv):
         res = [env.recv() for env in self.envs]
         return tuple(map(np.array, zip(*res)))  # type: ignore
 
-    def seed(self, seed: int) -> None:
-        for env in self.envs:
+    def seed(self, seeds: Iterable[int]) -> None:
+        for env, seed in zip(self.envs, seeds):
             env.seed(seed)
 
     @property
@@ -165,8 +165,8 @@ class DummyParallelEnv(ParallelEnv):
         res = [e.step_and_reset(a) for (a, e) in zip(actions, self.envs)]
         return tuple(map(np.array, zip(*res)))  # type: ignore
 
-    def seed(self, seed: int) -> None:
-        for env in self.envs:
+    def seed(self, seeds: Iterable[int]) -> None:
+        for env, seed in zip(self.envs, seeds):
             env.seed(seed)
 
     @property

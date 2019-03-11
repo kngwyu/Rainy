@@ -51,6 +51,9 @@ class DummyEnv(EnvExt):
     def spec(self) -> EnvSpec:
         return EnvSpec(self.array_dim, Discrete(1))
 
+    def seed(self, int) -> None:
+        pass
+
     def close(self) -> None:
         pass
 
@@ -96,6 +99,7 @@ def test_penv(penv: ParallelEnv) -> None:
 ])
 def test_frame_stack(penv: ParallelEnv, nstack: int) -> None:
     penv = FrameStackParallel(penv, nstack=nstack)
+    penv.seed(np.arange(penv.num_envs))
     init = np.array(penv.reset())
     assert init.shape == (6, nstack, 16, 16)
     assert penv.state_dim == (nstack, 16, 16)

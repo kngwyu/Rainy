@@ -22,8 +22,8 @@ class ParallelEnvWrapper(ParallelEnv[Action, State]):
     ) -> Tuple[Array[State], Array[float], Array[bool], Array[Any]]:
         return self.penv.step(actions)
 
-    def seed(self, seed: int) -> None:
-        self.penv.seed(seed)
+    def seed(self, seeds: Iterable[int]) -> None:
+        self.penv.seed(seeds)
 
     @property
     def num_envs(self) -> int:
