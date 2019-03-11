@@ -86,13 +86,14 @@ def _make_ac_net(body: NetworkBlock, policy_head: PolicyHead, device: Device) ->
 def ac_conv(
         policy: Callable[[int, Device], PolicyHead] = CategoricalHead,
         hidden_channels: Tuple[int, int, int] = (32, 64, 32),
+        output_dim: int = 256,
         **kwargs
 ) -> NetFn:
     """Convolutuion network used for atari experiments
        in A3C paper(https://arxiv.org/abs/1602.01783)
     """
     def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> ActorCriticNet:
-        body = DqnConv(state_dim, hidden_channels=hidden_channels, **kwargs)
+        body = DqnConv(state_dim, hidden_channels=hidden_channels, output_dim=output_dim, **kwargs)
         policy_head = policy(action_dim, device)
         return _make_ac_net(body, policy_head, device)
     return _net  # type: ignore
