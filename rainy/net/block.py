@@ -162,6 +162,7 @@ class ResNetBody(NetworkBlock):
             self,
             input_dim: Tuple[int, int, int],
             channels: List[int] = [16, 32, 32],
+            maxpool_param: tuple = (3, 2, 1),
             use_batch_norm: bool = True,
             fc_out: int = 256,
             init: Initializer = Initializer(nonlinearity = 'relu'),
@@ -235,7 +236,7 @@ def calc_cnn_hidden(params: Sequence[tuple], width: int, height: int) -> Tuple[i
        See https://pytorch.org/docs/stable/nn.html#torch.nn.Conv2d for detail.
     """
     for param in params:
-        kernel, stride, padding = param if len(param) > 3 else (*param, 0)
+        kernel, stride, padding = param if len(param) > 2 else (*param, 0)
         width = (width - kernel + 2 * padding) // stride + 1
         height = (height - kernel + 2 * padding) // stride + 1
     assert width > 0 and height > 0, 'Convolution makes dim < 0!!!'

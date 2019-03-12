@@ -14,6 +14,7 @@ ACTION_DIM = 10
 @pytest.mark.parametrize('net, state_dim, batch_size', [
     (actor_critic.fc()((4,), ACTION_DIM, Device()), (4,), 32),
     (actor_critic.ac_conv()((4, 84, 84), ACTION_DIM, Device()), (4, 84, 84), 32),
+    (actor_critic.impala_conv()((4, 84, 84), ACTION_DIM, Device()), (4, 84, 84), 32),
 ])
 def test_acnet(net: actor_critic.ActorCriticNet, state_dim: tuple, batch_size: int) -> None:
     assert net.state_dim == state_dim
