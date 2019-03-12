@@ -22,7 +22,6 @@ class A2cAgent(NStepParallelAgent):
         self.net.train(mode=train)
 
     def eval_action(self, state_: Array) -> Action:
-        state = self.config.eval_env.state_to_array(state_)
         if len(state.shape) == len(self.net.state_dim):
             # treat as batch_size == 1
             state = np.stack([state])
@@ -33,9 +32,9 @@ class A2cAgent(NStepParallelAgent):
         else:
             return policy.action().squeeze().cpu().numpy()
 
-    def eval_action_parallel(self, states: Array[State]) -> Array[Action]:
+    def eval_action_parallel(self, states: Array) -> Array[Action]:
         with torch.no_grad():
-            policy = self.net.policy(self.penv.states_to_array(states))
+            policy = self.net.policy(states)
         if self.config.eval_deterministic:
             return policy.best_action().squeeze().cpu().numpy()
         else:

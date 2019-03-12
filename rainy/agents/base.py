@@ -208,7 +208,8 @@ class NStepParallelAgent(Agent, Generic[State]):
             self.penv.seed(self.config.seed)
         states = self.penv.reset()
         while True:
-            states, rewards, done, info = self.penv.step(self.eval_action_parallel(states))
+            sa = self.penv.states_to_array(states)
+            states, rewards, done, info = self.penv.step(sa)
             self.episode_length += 1
             self.rewards += rewards
             self.report_reward(done, info)
