@@ -21,7 +21,7 @@ class A2cAgent(NStepParallelAgent):
     def set_mode(self, train: bool = True) -> None:
         self.net.train(mode=train)
 
-    def eval_action(self, state_: Array) -> Action:
+    def eval_action(self, state: Array) -> Action:
         if len(state.shape) == len(self.net.state_dim):
             # treat as batch_size == 1
             state = np.stack([state])
