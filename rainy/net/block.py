@@ -162,7 +162,7 @@ class ResNetBody(NetworkBlock):
             self,
             input_dim: Tuple[int, int, int],
             channels: List[int] = [16, 32, 32],
-            maxpool_param: tuple = (3, 2, 1),
+            maxpool_param: Tuple[int, int, int] = (3, 2, 1),
             use_batch_norm: bool = True,
             fc_out: int = 256,
             init: Initializer = Initializer(nonlinearity = 'relu'),
@@ -172,7 +172,7 @@ class ResNetBody(NetworkBlock):
             return nn.Sequential(
                 ResBlock._conv3x3(in_channel, out_channel),
                 ResBlock._batch_norm(use_batch_norm, out_channel),
-                nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+                nn.MaxPool2d(*maxpool_param),
                 ResBlock(out_channel, use_batch_norm=use_batch_norm),
                 ResBlock(out_channel, use_batch_norm=use_batch_norm)
             )
@@ -182,7 +182,7 @@ class ResNetBody(NetworkBlock):
         _channels = zip([input_dim[0]] + channels, channels)
         self.res_blocks = init.make_list(*[layer(c) for c in _channels])
         self.relu = nn.ReLU(inplace=True)
-        conved = calc_cnn_hidden([(3, 2, 1)] * len(channels), *input_dim[1:])
+        conved = calc_cnn_hidden([maxpool_param] * len(channels), *input_dim[1:])
         fc_in = iter_prod((channels[-1], *conved))
         self.fc = nn.Linear(fc_in, fc_out)
 
