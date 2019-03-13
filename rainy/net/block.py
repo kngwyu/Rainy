@@ -162,27 +162,27 @@ class ResNetBody(NetworkBlock):
             self,
             input_dim: Tuple[int, int, int],
             channels: List[int] = [16, 32, 32],
-            maxpool_param: Tuple[int, int, int] = (3, 2, 1),
+            maxpools: List[tuple] = [(3, 2, 1)] * 3,
             use_batch_norm: bool = True,
             fc_out: int = 256,
             init: Initializer = Initializer(nonlinearity = 'relu'),
     ) -> None:
-        def layer(channels: Tuple[int, int]) -> nn.Sequential:
-            in_channel, out_channel = channels
+        def layer(in_channel: int, out_channel: int, maxpool: tuple) -> nn.Sequential:
             return nn.Sequential(
                 ResBlock._conv3x3(in_channel, out_channel),
                 ResBlock._batch_norm(use_batch_norm, out_channel),
-                nn.MaxPool2d(*maxpool_param),
+                nn.MaxPool2d(*maxpool),
                 ResBlock(out_channel, use_batch_norm=use_batch_norm),
                 ResBlock(out_channel, use_batch_norm=use_batch_norm)
             )
 
         super().__init__()
         self._input_dim = input_dim
-        _channels = zip([input_dim[0]] + channels, channels)
-        self.res_blocks = init.make_list(*[layer(c) for c in _channels])
+        self.res_blocks = init.make_list(*[
+            layer(*t) for t in zip([input_dim[0]] + channels, channels, maxpools)
+        ])
         self.relu = nn.ReLU(inplace=True)
-        conved = calc_cnn_hidden([maxpool_param] * len(channels), *input_dim[1:])
+        conved = calc_cnn_hidden(maxpools, *input_dim[1:])
         fc_in = iter_prod((channels[-1], *conved))
         self.fc = nn.Linear(fc_in, fc_out)
 
