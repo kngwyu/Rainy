@@ -205,11 +205,11 @@ class NStepParallelAgent(Agent, Generic[State]):
         if n is None:
             n = self.config.nworkers
         if self.config.seed is not None:
-            self.penv.seed(self.config.seed)
+            self.penv.seed([self.config.seed] * self.config.nworkers)
         states = self.penv.reset()
         while True:
-            sa = self.penv.states_to_array(states)
-            states, rewards, done, info = self.penv.step(sa)
+            actions = self.eval_action_parallel(self.penv.states_to_array(states))
+            states, rewards, done, info = self.penv.step(actions)
             self.episode_length += 1
             self.rewards += rewards
             self.report_reward(done, info)
