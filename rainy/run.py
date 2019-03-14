@@ -19,8 +19,6 @@ def eval_fn(
     ag.set_mode(train=False)
     if save_file is not None:
         res = [ag.eval_and_save(save_file.as_posix(), render=render) for _ in range(n)]
-    elif ag.config.eval_parallel and isinstance(ag, NStepParallelAgent):
-        res = ag.eval_parallel(n)
     else:
         res = [ag.eval_episode(render=render) for _ in range(n)]
     ag.set_mode(train=True)
