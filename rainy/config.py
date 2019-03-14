@@ -65,7 +65,7 @@ class Config:
         self.episode_log_freq = 100
         self.network_log_freq = 1000
         self.eval_freq = 10000
-        self.save_freq = 10000
+        self.save_freq = int(1e6)
         self.save_eval_actions = False
 
         # Optimizer and preconditioner
