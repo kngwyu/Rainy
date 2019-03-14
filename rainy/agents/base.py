@@ -245,7 +245,7 @@ class NStepParallelAgent(Agent, Generic[State]):
 
     def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
         if self.config.seed is not None:
-            self.penv.seed(self.config.seed)
+            self.penv.seed([self.config.seed] * self.config.nworkers)
         states = self.penv.reset()
         self.storage.set_initial_state(states)
         step = self.config.nsteps * self.config.nworkers

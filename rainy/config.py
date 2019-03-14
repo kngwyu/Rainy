@@ -1,12 +1,12 @@
 from torch import nn
 from torch.optim import Optimizer, RMSprop
 from typing import Callable, Dict, Optional, Tuple
+from .envs import ClassicalControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEnv
 from .net import actor_critic, value
 from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
 from .lib.kfac import KfacPreConditioner, PreConditioner
 from .replay import DqnReplayFeed, ReplayBuffer, UniformReplayBuffer
 from .utils import Device, Logger
-from .envs import ClassicalControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEnv
 from .prelude import NetFn, Params
 
 

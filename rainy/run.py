@@ -1,4 +1,3 @@
-from functools import reduce
 import numpy as np
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -11,10 +10,10 @@ SAVE_FILE_OLD = 'rainy-agent.save'
 ACTION_FILE_DEFAULT = 'actions.json'
 
 
-def _eval_common(
+def eval_fn(
         ag: Agent,
         save_file: Optional[Path],
-        render: bool = False
+        render: bool = False,
 ) -> List[EpisodeResult]:
     n = ag.config.eval_times
     ag.set_mode(train=False)
@@ -61,9 +60,9 @@ def train_agent(
                 episodes,
                 action_file.suffix
             ))
-            res = _eval_common(ag, fname)
+            res = eval_fn(ag, fname, False)
         else:
-            res = _eval_common(ag, None)
+            res = eval_fn(ag, None, False)
         rewards, length = _reward_and_length(res)
         ag.logger.exp('eval', {
             'total-steps': ag.total_steps,
@@ -98,7 +97,7 @@ def train_agent(
         if interval(steps, step_diff, ag.config.save_freq):
             ag.save(save_file_name + '.{}'.format(save_id))
             save_id += 1
-    log_eval(episodes)
+    log_eval()
     ag.save(save_file_name)
     ag.close()
 
@@ -126,9 +125,9 @@ def eval_agent(
             continue
         raise ValueError('Load file {} does not exists'.format())
     if action_file is not None and len(action_file) > 0:
-        res = _eval_common(ag, path.joinpath(action_file), render=render)
+        res = eval_fn(ag, path.joinpath(action_file), render)
     else:
-        res = _eval_common(ag, None, render=render)
+        res = eval_fn(ag, None, render)
     print('{}'.format(res))
     if render:
         input('--Press Enter to exit--')
