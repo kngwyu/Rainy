@@ -4,7 +4,7 @@ from typing import Callable, Optional, Tuple
 from .log import ExperimentLog
 from ..agents import Agent
 from ..config import Config
-from ..run import eval_agent, train_agent, random_agent
+from ..run import eval_agent, train_agent, random_agent, SAVE_FILE_DEFAULT
 
 
 @click.group()
@@ -33,11 +33,11 @@ def train(ctx: dict, comment: Optional[str], prefix: str) -> None:
 
 @rainy_cli.command()
 @click.option('--save', is_flag=True)
-@click.option('--fname', type=str, default='random-actions.json')
 @click.option('--render', is_flag=True)
 @click.option('--replay', is_flag=True)
+@click.option('--action-file', type=str, default='random-actions.json')
 @click.pass_context
-def random(ctx: dict, save: bool, fname: str, render: bool, replay: bool) -> None:
+def random(ctx: dict, save: bool, render: bool, replay: bool, action_file: str) -> None:
     c = ctx.obj['config']
     ag = ctx.obj['make_agent'](c)
     action_file = fname if save else None
@@ -46,14 +46,22 @@ def random(ctx: dict, save: bool, fname: str, render: bool, replay: bool) -> Non
 
 @rainy_cli.command()
 @click.argument('logdir', required=True, type=str)
+@click.option('--model', type=str, default=SAVE_FILE_DEFAULT)
 @click.option('--render', is_flag=True)
 @click.option('--replay', is_flag=True)
-@click.option('--fname', type=str, default='best-actions.json')
+@click.option('--action-file', type=str, default='best-actions.json')
 @click.pass_context
-def eval(ctx: dict, logdir: str, render: bool, replay: bool, fname: str) -> None:
+def eval(ctx: dict, logdir: str, model: str, render: bool, replay: bool, action_file: str) -> None:
     c = ctx.obj['config']
     ag = ctx.obj['make_agent'](c)
-    eval_agent(ag, logdir, render=render, replay=replay, action_file=fname)
+    eval_agent(
+        ag,
+        logdir,
+        load_file_name=model,
+        render=render,
+        replay=replay,
+        action_file=action_file
+    )
 
 
 @rainy_cli.command()

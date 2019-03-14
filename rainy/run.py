@@ -1,3 +1,4 @@
+from functools import reduce
 import numpy as np
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -5,7 +6,8 @@ from .agents import Agent, EpisodeResult, NStepParallelAgent
 from .prelude import Array
 
 
-SAVE_FILE_DEFAULT = 'rainy-agent.save'
+SAVE_FILE_DEFAULT = 'rainy-agent.pth'
+SAVE_FILE_OLD = 'rainy-agent.save'
 ACTION_FILE_DEFAULT = 'actions.json'
 
 
@@ -37,9 +39,6 @@ def train_agent(
         save_file_name: str = SAVE_FILE_DEFAULT,
         action_file_name: str = ACTION_FILE_DEFAULT,
 ) -> None:
-    max_steps = ag.config.max_steps
-    episodes = 0
-    results: List[EpisodeResult] = []
     action_file = Path(action_file_name)
 
     def log_episode(episodes: int, res: List[EpisodeResult]) -> None:
@@ -54,7 +53,7 @@ def train_agent(
             'length-mean': int(np.mean(length)),
         })
 
-    def log_eval(episodes: int):
+    def log_eval() -> None:
         log_dir = ag.logger.log_dir
         if ag.config.save_eval_actions and log_dir:
             fname = log_dir.joinpath('{}-{}{}'.format(
@@ -67,7 +66,7 @@ def train_agent(
             res = _eval_common(ag, None)
         rewards, length = _reward_and_length(res)
         ag.logger.exp('eval', {
-            'episodes': episodes,
+            'total-steps': ag.total_steps,
             'update-steps': ag.update_steps,
             'reward-mean': float(np.mean(rewards)),
             'length-mean': float(np.mean(length)),
@@ -79,18 +78,26 @@ def train_agent(
     def truncate_episode(episodes: int, freq: Optional[int]) -> int:
         return episodes - episodes % freq if freq else episodes
 
-    for res in ag.train_episodes(max_steps):
+    episodes = 0
+    steps = 0
+    results: List[EpisodeResult] = []
+    save_id = 0
+
+    for res in ag.train_episodes(ag.config.max_steps):
         ep_len = len(res)
         episodes += ep_len
+        step_diff = ag.total_steps - steps
+        steps = ag.total_steps
         results += res
         if interval(episodes, ep_len, ag.config.episode_log_freq):
             eps = truncate_episode(episodes, ag.config.episode_log_freq)
             log_episode(eps, results[:eps])
             results = results[eps:]
-        if interval(episodes, ep_len, ag.config.eval_freq):
-            log_eval(truncate_episode(episodes, ag.config.eval_freq))
-        if interval(episodes, ep_len, ag.config.save_freq):
-            ag.save(save_file_name)
+        if interval(steps, step_diff, ag.config.eval_freq):
+            log_eval()
+        if interval(steps, step_diff, ag.config.save_freq):
+            ag.save(save_file_name + '.{}'.format(save_id))
+            save_id += 1
     log_eval(episodes)
     ag.save(save_file_name)
     ag.close()
@@ -105,7 +112,19 @@ def eval_agent(
         action_file: Optional[str] = None,
 ) -> None:
     path = Path(log_dir)
-    ag.load(path.joinpath(load_file_name).as_posix())
+
+    def _try_load(fname: str) -> bool:
+        p = path.joinpath(fname)
+        if p.exists():
+            ag.load(p.as_posix())
+            return True
+        else:
+            return False
+    while _try_load(load_file_name) is False:
+        if load_file_name == SAVE_FILE_DEFAULT:
+            load_file_name = SAVE_FILE_OLD
+            continue
+        raise ValueError('Load file {} does not exists'.format())
     if action_file is not None and len(action_file) > 0:
         res = _eval_common(ag, path.joinpath(action_file), render=render)
     else:
