@@ -68,6 +68,9 @@ def train_agent(
             'total-steps': ag.total_steps,
             'update-steps': ag.update_steps,
             'reward-mean': float(np.mean(rewards)),
+            'reward-min': float(np.min(rewards)),
+            'reward-max': float(np.max(rewards)),
+            'reward-stdev': float(np.std(rewards)),
             'length-mean': float(np.mean(length)),
         })
 
