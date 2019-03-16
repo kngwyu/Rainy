@@ -1,8 +1,10 @@
-# referenced https://github.com/chainer/chainerrl/blob/master/chainerrl/misc/random.py
 import numpy as np
 
 
 def sample_indices(n: int, k: int) -> np.ndarray:
+    """Sample k numbers from [0, n)
+       Based on https://github.com/chainer/chainerrl/blob/master/chainerrl/misc/random.py
+    """
     if 3 * k >= n:
         return np.random.choice(n, k, replace=False)
     else:

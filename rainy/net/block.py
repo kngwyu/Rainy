@@ -7,7 +7,6 @@ from typing import Callable, List, Sequence, Tuple
 from .init import Initializer
 from ..utils.misc import iter_prod
 
-
 Activator = Callable[[Tensor], Tensor]
 
 

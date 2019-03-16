@@ -6,6 +6,7 @@ import git
 from pathlib import Path
 import sys
 from typing import Any, Dict, List, Optional, Set
+
 NORMAL_FORMATTER = logging.Formatter('%(levelname)s %(asctime)s: %(name)s: %(message)s')
 JSON_FORMATTER = logging.Formatter('%(levelname)s::%(message)s')
 FINGERPRINT = 'fingerprint.txt'

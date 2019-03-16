@@ -1,9 +1,8 @@
 import numpy as np
 from pathlib import Path
 from typing import List, Optional, Tuple
-from .agents import Agent, EpisodeResult, NStepParallelAgent
+from .agents import Agent, EpisodeResult
 from .prelude import Array
-
 
 SAVE_FILE_DEFAULT = 'rainy-agent.pth'
 SAVE_FILE_OLD = 'rainy-agent.save'
