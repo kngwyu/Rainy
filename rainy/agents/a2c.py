@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch import nn
-from typing import Tuple
+from typing import Optional, Tuple
 from .base import NStepParallelAgent
 from ..config import Config
 from ..net import Policy
@@ -32,9 +32,15 @@ class A2cAgent(NStepParallelAgent):
         else:
             return policy.action().squeeze().cpu().numpy()
 
-    def eval_action_parallel(self, states: Array) -> Array[Action]:
+    def eval_action_parallel(
+            self,
+            states: Array,
+            ent: Optional[Array[float]] = None
+    ) -> Array[Action]:
         with torch.no_grad():
             policy = self.net.policy(states)
+        if ent is not None:
+            ent += policy.entropy().cpu().numpy()
         if self.config.eval_deterministic:
             return policy.best_action().squeeze().cpu().numpy()
         else:
