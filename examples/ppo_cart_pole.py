@@ -17,7 +17,7 @@ def config() -> Config:
     c.grad_clip = 0.1
     c.gae_tau = 0.95
     c.nsteps = 128
-    c.ppo_minibatch_size = 32
+    c.ppo_minibatch_size = 64
     c.use_gae = True
     c.lr_decay = True
     c.clip_decay = True

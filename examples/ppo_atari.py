@@ -19,8 +19,9 @@ def config() -> Config:
     c.nsteps = 128
     c.value_loss_weight = 0.5
     c.gae_tau = 0.95
-    c.ppo_minibatch_size = (128 * 8) // 4
+    c.ppo_minibatch_size = 32 * 8
     c.ppo_clip = 0.1
+    c.ppo_epochs = 3
     c.use_gae = True
     c.use_reward_monitor = True
     c.lr_decay = True

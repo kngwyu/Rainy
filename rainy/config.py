@@ -54,11 +54,11 @@ class Config:
 
         # For ppo
         self.adv_normalize_eps = 1.0e-5
-        self.ppo_minibatch_size = 32
-        self.ppo_epochs = 10
-        self.ppo_clip = 0.2
+        self.ppo_minibatch_size = 64  # Mujoco: 64 Atari: 32 * 8
+        self.ppo_epochs = 10  # Mujoco: 64 Atari: 10
+        self.ppo_clip = 0.2  # Mujoco: 64 Atari: 0.1
         self.ppo_value_clip = True
-        self.clip_decay = False
+        self.clip_decay = False  # Mujoco: False Atari: True
 
         # Logger and logging frequency
         self.logger = Logger()
