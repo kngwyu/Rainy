@@ -1,5 +1,5 @@
 import os
-from rainy import Config
+from rainy import Config, net
 from rainy.agents import PpoAgent
 import rainy.utils.cli as cli
 from rainy.envs import MultiProcEnv
@@ -21,6 +21,7 @@ def config() -> Config:
     c.use_gae = True
     c.lr_decay = True
     c.clip_decay = True
+    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(rnn=net.GruBlock))
     return c
 
 

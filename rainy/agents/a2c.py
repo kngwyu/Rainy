@@ -4,14 +4,14 @@ from torch import nn
 from typing import Optional, Tuple
 from .base import NStepParallelAgent
 from ..config import Config
-from ..net import Policy
+from ..net import ActorCriticNet, Policy, RnnState
 from ..prelude import Action, Array, State
 
 
-class A2cAgent(NStepParallelAgent):
+class A2cAgent(NStepParallelAgent[State]):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.net = config.net('actor-critic')
+        self.net: ActorCriticNet = config.net('actor-critic')
         self.optimizer = config.optimizer(self.net.parameters())
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
 
@@ -20,6 +20,9 @@ class A2cAgent(NStepParallelAgent):
 
     def set_mode(self, train: bool = True) -> None:
         self.net.train(mode=train)
+
+    def rnn_init(self) -> RnnState:
+        return self.net.recurrent_body.initial_state(self.config.nworkers, self.config.device)
 
     def eval_action(self, state: Array) -> Action:
         if len(state.shape) == len(self.net.state_dim):
@@ -48,7 +51,10 @@ class A2cAgent(NStepParallelAgent):
 
     def _one_step(self, states: Array[State]) -> Array[State]:
         with torch.no_grad():
-            policy, value, rnns = self.net(self.penv.states_to_array(states))
+            policy, value, rnns = self.net(
+                self.penv.states_to_array(states),
+                self.storage.rnn_states[-1]
+            )
         next_states, rewards, done, info = self.penv.step(policy.action().squeeze().cpu().numpy())
         self.episode_length += 1
         self.rewards += rewards
@@ -74,10 +80,10 @@ class A2cAgent(NStepParallelAgent):
             self.storage.calc_gae_returns(next_value, gamma, tau)
         else:
             self.storage.calc_ac_returns(next_value, self.config.discount_factor)
-
+        rnn_states = self.storage.batch_rnn_states(self.net.recurrent_body)
         policy, value, _ = self.net(
             self.storage.batch_states(self.penv),
-            self.storage.batch_rnn_states(self.net.recurrent_body)
+            rnn_states
         )
         policy.set_action(self.storage.batch_actions())
 

@@ -58,11 +58,11 @@ class PpoAgent(A2cAgent):
                 self.storage,
                 self.penv,
                 self.config.ppo_minibatch_size,
-                rnn=self.net.recurrent_block,
+                rnn=self.net.recurrent_body,
                 adv_normalize_eps=self.config.adv_normalize_eps,
             )
             for batch in sampler:
-                policy, value = self.net(batch.states)
+                policy, value, _ = self.net(batch.states)
                 policy.set_action(batch.actions)
                 policy_loss = self._policy_loss(policy, batch.advantages, batch.old_log_probs)
                 value_loss = self._value_loss(value, batch.values, batch.returns)

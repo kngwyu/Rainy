@@ -1,6 +1,6 @@
 from numpy import ndarray
 from torch import nn, Tensor
-from typing import Callable, Generic, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 from .block import DqnConv, FcBody, ResNetBody, LinearHead, NetworkBlock
 from .init import Initializer, orthogonal
 from .policy import CategoricalHead, Policy, PolicyHead
@@ -10,7 +10,7 @@ from ..utils import Device
 from ..utils.misc import iter_prod
 
 
-class ActorCriticNet(nn.Module, Generic[RnnState]):
+class ActorCriticNet(nn.Module):
     """A network with common body, value head and policy head.
     Basically it's same as the one used in A3C paper.
     """
@@ -35,7 +35,6 @@ class ActorCriticNet(nn.Module, Generic[RnnState]):
         self.critic_head = critic_head
         self.policy_head = policy_head
         self.recurrent_body = recurrent_body
-        self.prev_state: Optional[RnnState] = None
         self.to(device.unwrapped)
 
     @property
@@ -48,10 +47,7 @@ class ActorCriticNet(nn.Module, Generic[RnnState]):
 
     @property
     def is_recurrent(self) -> bool:
-        return self.recurrent_body is not None
-
-    def rnn_init(self) -> RnnState:
-        pass
+        return not isinstance(self.recurrent_body, DummyRnn)
 
     def _features(
             self,
@@ -59,13 +55,12 @@ class ActorCriticNet(nn.Module, Generic[RnnState]):
             rnns: Optional[RnnState]
     ) -> Tuple[Tensor, RnnState]:
         res = self.body(self.device.tensor(states))
-        if rnns is not None:
-            return self.recurrent_body(res, rnns)
-        res = self.recurrent_body(res, self.prev_state)
-        self.prev_state = res[1]
+        if rnns is None:
+            rnns = self.recurrent_body.initial_state(res.size(0), self.device)
+        res = self.recurrent_body(res, rnns)
         return res
 
-    def reset_state(self) -> None:
+    def reset_state(self, batch_size: int) -> None:
         self.prev_state = None
 
     def policy(self, states: Union[ndarray, Tensor], rnns: Optional[RnnState] = None) -> Policy:

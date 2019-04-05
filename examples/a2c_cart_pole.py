@@ -1,5 +1,5 @@
 import os
-from rainy import Config
+from rainy import Config, net
 from rainy.agents import A2cAgent
 import rainy.utils.cli as cli
 from rainy.envs import MultiProcEnv
@@ -20,6 +20,8 @@ def config() -> Config:
     c.eval_deterministic = True
     c.value_loss_weight = 0.1
     c.entropy_weight = 0.001
+    c.network_log_freq = 100
+    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(rnn=net.GruBlock))
     return c
 
 

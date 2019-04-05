@@ -15,7 +15,7 @@ def config() -> Config:
     c.set_optimizer(
         lambda params: RMSprop(params, lr=7e-4, alpha=0.99, eps=1e-5)
     )
-    c.set_net_fn('actor-critic', net.actor_critic.impala_conv(use_batch_norm=True))
+    c.set_net_fn('actor-critic', net.actor_critic.ac_conv())
     c.nworkers = 16
     c.set_parallel_env(atari_parallel())
     c.grad_clip = 0.5

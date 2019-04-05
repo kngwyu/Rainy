@@ -1,19 +1,18 @@
-import numpy as np
 import torch
 from torch import Tensor
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
-from typing import Generic, NamedTuple, Iterable, Iterator, List, Optional, Tuple
+from typing import Generic, NamedTuple, Iterator, List, Optional, Tuple
 from ..envs import ParallelEnv, State
-from ..net import Policy, recurrent, RnnBlock, RnnState
+from ..net import DummyRnn, Policy, RnnBlock, RnnState
 from ..utils import Device
-from ..prelude import Array, GenericNamedMeta
+from ..prelude import Array
 
 
-class RolloutStorage(Generic[RnnState, State]):
+class RolloutStorage(Generic[State]):
     def __init__(self, nsteps: int, nworkers: int, device: Device) -> None:
         self.states: List[Array[State]] = []
         self.rewards: List[Array[float]] = []
-        self.masks: List[Array[float]] = [np.ones(nworkers)]
+        self.masks: List[Tensor] = [device.zeros(nworkers)]
         self.rnn_states: List[RnnState] = []
         self.policies: List[Policy] = []
         self.values: List[Tensor] = []
@@ -25,24 +24,29 @@ class RolloutStorage(Generic[RnnState, State]):
     def initialized(self) -> bool:
         return len(self.states) != 0
 
-    def set_initial_state(self, state: Array[State]) -> None:
+    def set_initial_state(
+            self,
+            state: Array[State],
+            rnn_state: RnnState = DummyRnn.DUMMY_STATE
+    ) -> None:
         self.states.append(state)
+        self.rnn_states.append(rnn_state)
 
     def push(
             self,
             state: Array[State],
             reward: Array[float],
             mask: Array[bool],
-            rnn_state: Optional[RnnState] = None,
+            rnn_state: RnnState = DummyRnn.DUMMY_STATE,
             policy: Optional[Policy] = None,
             value: Optional[Tensor] = None,
     ) -> None:
         assert self.states, '[RolloutStorage.push] Call set_initial_state first'
         self.states.append(state)
         self.rewards.append(reward)
-        self.masks.append(1.0 - mask)
-        if rnn_state is not None:
-            self.rnn_states.append(rnn_state)
+        self.masks.append(self.device.tensor(1.0 - mask))
+        rnn_state.mul_(self.masks[-1].unsqueeze(1))
+        self.rnn_states.append(rnn_state)
         if policy is not None:
             self.policies.append(policy)
         if value is not None:
@@ -51,7 +55,7 @@ class RolloutStorage(Generic[RnnState, State]):
     def reset(self) -> None:
         self.masks = [self.masks[-1]]
         self.states = [self.states[-1]]
-        self.rnn_states = []
+        self.rnn_states = [self.rnn_states[-1]]
         self.rewards = []
         self.policies = []
         self.values = []
@@ -61,25 +65,28 @@ class RolloutStorage(Generic[RnnState, State]):
         return torch.cat(states, dim=0)
 
     def batch_rnn_states(self, rnn: RnnBlock) -> RnnState:
-        return rnn.make_batch(self.rnn_states, self.masks)
+        return rnn.make_batch(self.rnn_states[:-1])
 
     def batch_actions(self) -> Tensor:
-        return torch.cat([p.action() for p in self.policies], dim=0)
+        return torch.cat([p.action() for p in self.policies])
 
     def batch_returns(self) -> Tensor:
         return self.returns[:-1].flatten()
 
     def batch_values(self) -> Tensor:
-        return torch.cat(self.values[:self.nsteps], dim=0)
+        return torch.cat(self.values[:self.nsteps])
 
-    def batch_masks_and_rewards(self) -> Iterable[Tensor]:
-        return map(lambda a: self.device.tensor(a).flatten(), (self.masks[:-1], self.rewards))
+    def batch_masks(self) -> Tensor:
+        return torch.cat(self.masks[:-1])
+
+    def batch_rewards(self) -> Tensor:
+        return self.device.tensor(self.rewards).flatten()
 
     def batch_log_probs(self) -> Tensor:
-        return torch.cat([p.log_prob() for p in self.policies], dim=0)
+        return torch.cat([p.log_prob() for p in self.policies])
 
     def _masks_and_rewards(self) -> Tuple[Tensor, Tensor]:
-        return self.device.tensor(self.masks), self.device.tensor(self.rewards)
+        return torch.stack(self.masks), self.device.tensor(self.rewards)
 
     def append_next_value(self, next_value: Tensor) -> None:
         self.returns[-1] = next_value
@@ -102,7 +109,7 @@ class RolloutStorage(Generic[RnnState, State]):
             self.returns[i] = gae + self.values[i]
 
 
-class RolloutBatch(NamedTuple, Generic[RnnState], metaclass=GenericNamedMeta):
+class RolloutBatch(NamedTuple):
     states: Tensor
     actions: Tensor
     masks: Tensor
@@ -114,13 +121,13 @@ class RolloutBatch(NamedTuple, Generic[RnnState], metaclass=GenericNamedMeta):
     rnn_state: RnnState
 
 
-class RolloutSampler(Generic[RnnState]):
+class RolloutSampler:
     def __init__(
             self,
             storage: RolloutStorage,
             penv: ParallelEnv,
             minibatch_size: int,
-            rnn: RnnBlock = recurrent.DummyRnn(),
+            rnn: RnnBlock = DummyRnn(),
             adv_normalize_eps: Optional[float] = None,
     ) -> None:
         """Create a batch sampler from storage for feed forward network.
@@ -137,8 +144,9 @@ class RolloutSampler(Generic[RnnState]):
         self.minibatch_size = minibatch_size
         self.states = storage.batch_states(penv)
         self.actions = storage.batch_actions()
-        self.masks, self.rewards = storage.batch_masks_and_rewards()
+        self.masks = storage.batch_masks()
         self.returns = storage.batch_returns()
+        self.rewards = storage.batch_rewards()
         self.values = storage.batch_values()
         self.old_log_probs = storage.batch_log_probs()
         self.rnn_states = storage.batch_rnn_states(rnn)
@@ -163,6 +171,6 @@ class RolloutSampler(Generic[RnnState]):
                 self.values,
                 self.old_log_probs,
                 self.advantages,
-                self.rnn_states
+                self.rnn_states,
             )))
 

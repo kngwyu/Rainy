@@ -189,10 +189,10 @@ class OneStepAgent(Agent, Generic[State]):
                 break
 
 
-class NStepParallelAgent(Agent, Generic[RnnState, State]):
+class NStepParallelAgent(Agent, Generic[State]):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.storage: RolloutStorage[RnnState, State] = \
+        self.storage: RolloutStorage[State] = \
             RolloutStorage(config.nsteps, config.nworkers, config.device)
         self.rewards = np.zeros(config.nworkers, dtype=np.float32)
         self.episode_length = np.zeros(config.nworkers, dtype=np.int)
@@ -238,6 +238,9 @@ class NStepParallelAgent(Agent, Generic[RnnState, State]):
     def update_steps(self) -> int:
         return self.total_steps // (self.config.nsteps * self.config.nworkers)
 
+    def rnn_init(self) -> Optional[RnnState]:
+        return None
+
     def report_reward(self, done: Array[bool], info: Array[dict]) -> None:
         if self.penv.use_reward_monitor:
             for i in filter(lambda i: 'episode' in i, info):
@@ -256,7 +259,7 @@ class NStepParallelAgent(Agent, Generic[RnnState, State]):
         if self.config.seed is not None:
             self.penv.seed([self.config.seed] * self.config.nworkers)
         states = self.penv.reset()
-        self.storage.set_initial_state(states)
+        self.storage.set_initial_state(states, self.rnn_init())
         step = self.config.nsteps * self.config.nworkers
         while True:
             states = self.nstep(states)

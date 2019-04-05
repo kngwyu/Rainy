@@ -63,7 +63,6 @@ class Initializer:
     def make_seq(self, *args) -> nn.Sequential:
         return nn.Sequential(*map(lambda mod: self.__init_dispatch(mod), args))
 
-
     def __init_dispatch(self, mod: nn.Module) -> nn.Module:
         if isinstance(mod, nn.Sequential) or isinstance(mod, nn.ModuleList):
             for child in mod.children():
