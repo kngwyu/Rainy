@@ -77,7 +77,7 @@ class GruState(RnnState):
         self.t.mul_(x)
 
     def __getitem__(self, x: Tensor) -> Self:
-        return GruState(self.t[x].unsqueeze(1))
+        return GruState(self.t.squeeze()[x].unsqueeze(0))
 
 
 class GruBlock(RnnBlock[GruState]):
@@ -93,11 +93,11 @@ class GruBlock(RnnBlock[GruState]):
         initializer(self.gru)
 
     def make_batch(self, hiddens: List[GruState]) -> GruState:
-        return GruState(torch.cat([h.t.squeeze_() for h in hiddens], dim=0))
+        return GruState(torch.cat([h.t.squeeze_() for h in hiddens]).unsqueeze_(0))
 
     def forward(self, x: Tensor, hidden: GruState) -> Tuple[Tensor, GruState]:
         if len(x.shape) == 2:
-            x.unsqueeze_(dim=0)
+            x.unsqueeze_(0)
         res = self.gru(x, hidden.t)
         return res[0].squeeze(), GruState(res[1])
 
