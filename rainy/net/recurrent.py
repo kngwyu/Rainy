@@ -40,11 +40,16 @@ class RnnBlock(Generic[RS], nn.Module):
 
 
 class LstmState(RnnState):
+    def __init__(self, h: Tensor, c: Tensor) -> None:
+        self.h = h
+        self.c = c
+
     def mul_(self, x: Tensor) -> None:
-        pass
+        self.h.mul_(x)
+        self.c.mul_(x)
 
     def __getitem__(self, x: Tensor) -> Self:
-        pass
+        return LstmState(self.h.squeeze()[x].unsqueeze(0), self.c.squeeze()[x].unsqueeze(0))
 
 
 class LstmBlock(RnnBlock[LstmState]):
@@ -60,24 +65,30 @@ class LstmBlock(RnnBlock[LstmState]):
         initializer(self.lstm)
 
     def make_batch(self, hiddens: List[LstmState]) -> LstmState:
-        pass
+        h = torch.cat([h.h.squeeze_() for h in hiddens])
+        c = torch.cat([h.c.squeeze_() for h in hiddens])
+        return LstmState(h.unsqueeze_(0), c.unsqueeze_(0))
 
     def forward(self, x: Tensor, hidden: LstmState) -> Tuple[Tensor, LstmState]:
-        pass
+        if len(x.shape) == 2:
+            x.unsqueeze_(0)
+        out, next_h = self.lstm(x, (hidden.h, hidden.c))
+        return out.squeeze(), LstmState(*next_h)
 
     def initial_state(self, batch_size: int, device: Device) -> LstmState:
-        pass
+        zeros = device.zeros((1, batch_size, self.input_dim))
+        return LstmState(zeros, zeros)
 
 
 class GruState(RnnState):
-    def __init__(self, t: Tensor) -> None:
-        self.t = t
+    def __init__(self, h: Tensor) -> None:
+        self.h = h
 
     def mul_(self, x: Tensor) -> None:
-        self.t.mul_(x)
+        self.h.mul_(x)
 
     def __getitem__(self, x: Tensor) -> Self:
-        return GruState(self.t.squeeze()[x].unsqueeze(0))
+        return GruState(self.h.squeeze()[x].unsqueeze(0))
 
 
 class GruBlock(RnnBlock[GruState]):
@@ -93,13 +104,13 @@ class GruBlock(RnnBlock[GruState]):
         initializer(self.gru)
 
     def make_batch(self, hiddens: List[GruState]) -> GruState:
-        return GruState(torch.cat([h.t.squeeze_() for h in hiddens]).unsqueeze_(0))
+        return GruState(torch.cat([h.h.squeeze_() for h in hiddens]).unsqueeze_(0))
 
     def forward(self, x: Tensor, hidden: GruState) -> Tuple[Tensor, GruState]:
         if len(x.shape) == 2:
             x.unsqueeze_(0)
-        res = self.gru(x, hidden.t)
-        return res[0].squeeze(), GruState(res[1])
+        out, next_h = self.gru(x, hidden.h)
+        return out.squeeze(), GruState(next_h)
 
     def initial_state(self, batch_size: int, device: Device) -> GruState:
         return GruState(device.zeros((1, batch_size, self.input_dim)))

@@ -14,6 +14,8 @@ class A2cAgent(NStepParallelAgent[State]):
         self.net: ActorCriticNet = config.net('actor-critic')
         self.optimizer = config.optimizer(self.net.parameters())
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
+        self.eval_rnns: Optional[RnnState] = None
+        self.eval_rnns_parallel: Optional[RnnState] = None
 
     def members_to_save(self) -> Tuple[str, ...]:
         return ("net",)
@@ -24,12 +26,16 @@ class A2cAgent(NStepParallelAgent[State]):
     def rnn_init(self) -> RnnState:
         return self.net.recurrent_body.initial_state(self.config.nworkers, self.config.device)
 
+    def eval_reset(self) -> None:
+        self.eval_rnns = None
+        self.eval_rnns_parallel = None
+
     def eval_action(self, state: Array) -> Action:
         if len(state.shape) == len(self.net.state_dim):
             # treat as batch_size == 1
             state = np.stack([state])
         with torch.no_grad():
-            policy = self.net.policy(state)
+            policy, self.eval_rnns = self.net.policy(state, self.eval_rnns)
         if self.config.eval_deterministic:
             return policy.best_action().squeeze().cpu().numpy()
         else:
@@ -38,10 +44,12 @@ class A2cAgent(NStepParallelAgent[State]):
     def eval_action_parallel(
             self,
             states: Array,
+            done: Array[bool],
             ent: Optional[Array[float]] = None
     ) -> Array[Action]:
         with torch.no_grad():
-            policy = self.net.policy(states)
+            policy, self.eval_rnns_parallel = self.net.policy(states, self.eval_rnns_parallel)
+        self.eval_rnns_parallel.mul_(self.config.device.tensor(1.0 - mask))
         if ent is not None:
             ent += policy.entropy().cpu().numpy()
         if self.config.eval_deterministic:
@@ -49,12 +57,12 @@ class A2cAgent(NStepParallelAgent[State]):
         else:
             return policy.action().squeeze().cpu().numpy()
 
+    def _network_in(self, states: Array[State]) -> Tuple[Array, torch.Tensor]:
+        return self.penv.states_to_array(states), self.storage.rnn_states[-1]
+
     def _one_step(self, states: Array[State]) -> Array[State]:
         with torch.no_grad():
-            policy, value, rnns = self.net(
-                self.penv.states_to_array(states),
-                self.storage.rnn_states[-1]
-            )
+            policy, value, rnns = self.net(*self._network_in(states))
         next_states, rewards, done, info = self.penv.step(policy.action().squeeze().cpu().numpy())
         self.episode_length += 1
         self.rewards += rewards
@@ -74,7 +82,7 @@ class A2cAgent(NStepParallelAgent[State]):
         for _ in range(self.config.nsteps):
             states = self._one_step(states)
         with torch.no_grad():
-            next_value = self.net.value(self.penv.states_to_array(states))
+            next_value = self.net.value(*self._network_in(states))
         if self.config.use_gae:
             gamma, tau = self.config.discount_factor, self.config.gae_tau
             self.storage.calc_gae_returns(next_value, gamma, tau)

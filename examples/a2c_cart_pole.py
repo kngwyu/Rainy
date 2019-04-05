@@ -20,7 +20,7 @@ def config() -> Config:
     c.eval_deterministic = True
     c.value_loss_weight = 0.1
     c.entropy_weight = 0.001
-    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(rnn=net.GruBlock))
+    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(rnn=net.LstmBlock))
     return c
 
 

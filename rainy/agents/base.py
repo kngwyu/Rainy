@@ -56,6 +56,9 @@ class Agent(ABC):
     def update_steps(self) -> int:
         pass
 
+    def eval_reset(self) -> None:
+        pass
+
     def set_mode(self, train: bool = True) -> None:
         pass
 
@@ -88,6 +91,7 @@ class Agent(ABC):
             total_reward += reward
             res = self._result(done, info, total_reward, steps)
             if res is not None:
+                self.eval_reset()
                 return (res, env)
 
     def _result(
@@ -220,12 +224,14 @@ class NStepParallelAgent(Agent, Generic[State]):
             self.report_reward(done, info)
             if n <= len(self.episode_results):
                 break
+        self.eval_reset()
         return self.episode_results
 
     @abstractmethod
     def eval_action_parallel(
             self,
             states: Array,
+            done: Array[bool],
             ent: Optional[Array[float]] = None
     ) -> Array[Action]:
         pass

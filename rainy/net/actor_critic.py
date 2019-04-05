@@ -63,9 +63,13 @@ class ActorCriticNet(nn.Module):
     def reset_state(self, batch_size: int) -> None:
         self.prev_state = None
 
-    def policy(self, states: Union[ndarray, Tensor], rnns: Optional[RnnState] = None) -> Policy:
-        features = self._features(states, rnns)[0]
-        return self.policy_head(self.actor_head(features))
+    def policy(
+            self,
+            states: Union[ndarray, Tensor],
+            rnns: Optional[RnnState] = None
+    ) -> Tuple[Policy, RnnState]:
+        features, rnns_ = self._features(states, rnns)
+        return self.policy_head(self.actor_head(features)), rnns_
 
     def value(self, states: Union[ndarray, Tensor], rnns: Optional[RnnState] = None) -> Tensor:
         features = self._features(states, rnns)[0]

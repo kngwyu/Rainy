@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from rainy.net import actor_critic, DqnConv, GruBlock
+from rainy.net import actor_critic, DqnConv, GruBlock, LstmBlock
 from rainy.net.init import Initializer, kaiming_normal, kaiming_uniform
 from rainy.utils import Device
 from test_env import DummyEnv
@@ -15,6 +15,7 @@ ACTION_DIM = 10
     (actor_critic.fc_shared()((4,), ACTION_DIM, Device()), (4,), 32),
     (actor_critic.ac_conv()((4, 84, 84), ACTION_DIM, Device()), (4, 84, 84), 32),
     (actor_critic.ac_conv(rnn=GruBlock)((4, 84, 84), ACTION_DIM, Device()), (4, 84, 84), 32),
+    (actor_critic.ac_conv(rnn=LstmBlock)((4, 84, 84), ACTION_DIM, Device()), (4, 84, 84), 32),
     (actor_critic.impala_conv()((4, 84, 84), ACTION_DIM, Device()), (4, 84, 84), 32),
 ])
 def test_acnet(net: actor_critic.ActorCriticNet, state_dim: tuple, batch_size: int) -> None:

@@ -45,7 +45,7 @@ class PpoAgent(A2cAgent):
             states = self._one_step(states)
 
         with torch.no_grad():
-            next_value = self.net.value(self.penv.states_to_array(states))
+            next_value = self.net.value(*self._network_in(states))
 
         if self.config.use_gae:
             gamma, tau = self.config.discount_factor, self.config.gae_tau

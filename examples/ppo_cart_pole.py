@@ -19,9 +19,9 @@ def config() -> Config:
     c.nsteps = 128
     c.ppo_minibatch_size = 64
     c.use_gae = True
-    c.lr_decay = True
-    c.clip_decay = True
-    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(rnn=net.GruBlock))
+    c.lr_decay = False
+    c.clip_decay = False
+    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(rnn=net.LstmBlock))
     return c
 
 
