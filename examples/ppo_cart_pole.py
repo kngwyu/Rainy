@@ -21,7 +21,7 @@ def config() -> Config:
     c.use_gae = True
     c.lr_decay = False
     c.clip_decay = False
-    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(rnn=net.LstmBlock))
+    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(rnn=net.GruBlock))
     return c
 
 

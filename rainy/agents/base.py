@@ -227,14 +227,13 @@ class NStepParallelAgent(Agent, Generic[State]):
         self.eval_reset()
         return self.episode_results
 
-    @abstractmethod
     def eval_action_parallel(
             self,
             states: Array,
             done: Array[bool],
             ent: Optional[Array[float]] = None
     ) -> Array[Action]:
-        pass
+        raise NotImplementedError('TODO: Remove this function')
 
     @abstractmethod
     def nstep(self, states: Array[State]) -> Array[State]:
@@ -244,7 +243,7 @@ class NStepParallelAgent(Agent, Generic[State]):
     def update_steps(self) -> int:
         return self.total_steps // (self.config.nsteps * self.config.nworkers)
 
-    def rnn_init(self) -> Optional[RnnState]:
+    def rnn_init(self) -> RnnState:
         return None
 
     def report_reward(self, done: Array[bool], info: Array[dict]) -> None:

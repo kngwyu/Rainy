@@ -18,9 +18,10 @@ def config() -> Config:
     c.use_gae = False
     c.lr_decay = False
     c.eval_deterministic = True
+    c.eval_freq = None
     c.value_loss_weight = 0.1
     c.entropy_weight = 0.001
-    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(rnn=net.LstmBlock))
+    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(rnn=net.GruBlock))
     return c
 
 

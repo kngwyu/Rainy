@@ -16,7 +16,7 @@ class RolloutStorage(Generic[State]):
         self.rnn_states: List[RnnState] = []
         self.policies: List[Policy] = []
         self.values: List[Tensor] = []
-        self.returns: Tensor = torch.zeros(nsteps + 1, nworkers, device=device.unwrapped)
+        self.returns: Tensor = device.zeros((nsteps + 1, nworkers))
         self.nsteps = nsteps
         self.nworkers = nworkers
         self.device = device
@@ -85,23 +85,19 @@ class RolloutStorage(Generic[State]):
     def batch_log_probs(self) -> Tensor:
         return torch.cat([p.log_prob() for p in self.policies])
 
-    def _masks_and_rewards(self) -> Tuple[Tensor, Tensor]:
-        return torch.stack(self.masks), self.device.tensor(self.rewards)
-
-    def append_next_value(self, next_value: Tensor) -> None:
+    def _calc_ret_common(self, next_value: Tensor) -> Tuple[Tensor, Tensor]:
         self.returns[-1] = next_value
         self.values.append(next_value)
+        return torch.stack(self.masks), self.device.tensor(self.rewards)
 
     def calc_ac_returns(self, next_value: Tensor, gamma: float) -> None:
-        self.append_next_value(next_value)
-        masks, rewards = self._masks_and_rewards()
+        masks, rewards = self._calc_ret_common(next_value)
         for i in reversed(range(self.nsteps)):
             self.returns[i] = self.returns[i + 1] * gamma * masks[i + 1] + rewards[i]
 
     def calc_gae_returns(self, next_value: Tensor, gamma: float, tau: float) -> None:
-        self.append_next_value(next_value)
-        masks, rewards = self._masks_and_rewards()
-        gae = torch.zeros(self.nworkers, device=self.device.unwrapped)
+        masks, rewards = self._calc_ret_common(next_value)
+        gae = self.device.zeros(self.nworkers)
         for i in reversed(range(self.nsteps)):
             td_error = \
                 rewards[i] + gamma * self.values[i + 1] * masks[i + 1] - self.values[i]
