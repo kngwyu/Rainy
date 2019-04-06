@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import torch
 from torch import nn, Tensor
 from typing import Generic, List, Tuple, TypeVar
-from .init import Initializer
+from .init import constant, Initializer
 from ..prelude import Self
 from ..utils import Device
 
@@ -57,7 +57,7 @@ class LstmBlock(RnnBlock[LstmState]):
             self,
             input_dim: int,
             output_dim: int,
-            initializer: Initializer = Initializer(),
+            initializer: Initializer = Initializer(bias_init = constant(1.0)),
             **kwargs
     ) -> None:
         super().__init__(input_dim, output_dim)
@@ -94,7 +94,7 @@ class GruBlock(RnnBlock[GruState]):
             self,
             input_dim: int,
             output_dim: int,
-            initializer: Initializer = Initializer(),
+            initializer: Initializer = Initializer(bias_init = constant(-1.0)),
             **kwargs
     ) -> None:
         super().__init__(input_dim, output_dim)
