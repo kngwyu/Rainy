@@ -27,8 +27,9 @@ def config() -> Config:
     c.lr_decay = True
     # eval settings
     c.eval_env = Atari('Breakout')
-    c.eval_freq = None
     c.episode_log_freq = 100
+    c.eval_freq = None
+    c.save_freq = None
     return c
 
 

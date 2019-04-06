@@ -23,10 +23,11 @@ def config() -> Config:
     c.use_gae = False
     c.max_steps = int(2e7)
     c.eval_env = Atari('Breakout')
-    c.eval_freq = None
-    c.episode_log_freq = 100
     c.use_reward_monitor = True
     c.eval_deterministic = False
+    c.episode_log_freq = 100
+    c.eval_freq = None
+    c.save_freq = None
     return c
 
 

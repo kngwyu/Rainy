@@ -7,7 +7,7 @@ from typing import Callable, Generic, Iterable, List, NamedTuple, Optional, Tupl
 import warnings
 from ..config import Config
 from ..lib.rollout import RolloutStorage
-from ..net import RnnState
+from ..net import DummyRnn, RnnState
 from ..envs import EnvExt
 from ..prelude import Action, Array, State
 
@@ -244,7 +244,7 @@ class NStepParallelAgent(Agent, Generic[State]):
         return self.total_steps // (self.config.nsteps * self.config.nworkers)
 
     def rnn_init(self) -> RnnState:
-        return None
+        return DummyRnn.DUMMY_STATE
 
     def report_reward(self, done: Array[bool], info: Array[dict]) -> None:
         if self.penv.use_reward_monitor:

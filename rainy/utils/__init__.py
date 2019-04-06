@@ -1,6 +1,6 @@
 from .device import Device
 from .log import Logger
-from .sample import sample_indices
+from .sample import OrderedBatchSampler, sample_indices
 
 
 del device

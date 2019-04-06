@@ -16,7 +16,7 @@ def config() -> Config:
     c.network_log_freq = 20
     c.grad_clip = 0.1
     c.gae_tau = 0.95
-    c.nsteps = 128
+    c.nsteps = 64
     c.ppo_minibatch_size = 64
     c.use_gae = True
     c.lr_decay = False

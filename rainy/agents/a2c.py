@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch import nn
-from typing import Optional, Tuple
+from typing import Tuple
 from .base import NStepParallelAgent
 from ..config import Config
 from ..net import ActorCriticNet, Policy, RnnState
@@ -26,7 +26,7 @@ class A2cAgent(NStepParallelAgent[State]):
         return self.net.recurrent_body.initial_state(self.config.nworkers, self.config.device)
 
     def eval_reset(self) -> None:
-        self.eval_rnns.mul_(0.0)
+        self.eval_rnns.fill_(0.0)
 
     def eval_action(self, state: Array) -> Action:
         if len(state.shape) == len(self.net.state_dim):
@@ -39,8 +39,8 @@ class A2cAgent(NStepParallelAgent[State]):
         else:
             return policy.action().squeeze().cpu().numpy()
 
-    def _network_in(self, states: Array[State]) -> Tuple[Array, RnnState]:
-        return self.penv.states_to_array(states), self.storage.rnn_states[-1]
+    def _network_in(self, states: Array[State]) -> Tuple[Array, RnnState, torch.Tensor]:
+        return self.penv.states_to_array(states), self.storage.rnn_states[-1], self.storage.masks[-1]
 
     def _one_step(self, states: Array[State]) -> Array[State]:
         with torch.no_grad():
@@ -71,10 +71,10 @@ class A2cAgent(NStepParallelAgent[State]):
             self.storage.calc_gae_returns(next_value, gamma, tau)
         else:
             self.storage.calc_ac_returns(next_value, self.config.discount_factor)
-        rnn_states = self.storage.batch_rnn_states(self.net.recurrent_body)
         policy, value, _ = self.net(
             self.storage.batch_states(self.penv),
-            rnn_states
+            self.storage.rnn_states[0],
+            self.storage.batch_masks(),
         )
         policy.set_action(self.storage.batch_actions())
 

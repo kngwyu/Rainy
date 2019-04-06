@@ -4,7 +4,7 @@ from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 from typing import Generic, NamedTuple, Iterator, List, Optional, Tuple
 from ..envs import ParallelEnv, State
 from ..net import DummyRnn, Policy, RnnBlock, RnnState
-from ..utils import Device
+from ..utils import Device, OrderedBatchSampler
 from ..prelude import Array
 
 
@@ -45,7 +45,6 @@ class RolloutStorage(Generic[State]):
         self.states.append(state)
         self.rewards.append(reward)
         self.masks.append(self.device.tensor(1.0 - mask))
-        rnn_state.mul_(self.masks[-1].unsqueeze(1))
         self.rnn_states.append(rnn_state)
         if policy is not None:
             self.policies.append(policy)
@@ -63,9 +62,6 @@ class RolloutStorage(Generic[State]):
     def batch_states(self, penv: ParallelEnv) -> Tensor:
         states = [self.device.tensor(penv.states_to_array(s)) for s in self.states[:-1]]
         return torch.cat(states, dim=0)
-
-    def batch_rnn_states(self, rnn: RnnBlock) -> RnnState:
-        return rnn.make_batch(self.rnn_states[:-1])
 
     def batch_actions(self) -> Tensor:
         return torch.cat([p.action() for p in self.policies])
@@ -130,8 +126,9 @@ class RolloutSampler:
         adv_normalize_eps is adpoted from Open AI's PPO implementation.
         I think it's for reduce variance of advantages, but I'm not sure.
         """
-        self.batch_size = storage.nsteps * storage.nworkers
-        if minibatch_size >= self.batch_size:
+        self.nworkers = storage.nworkers
+        self.nsteps = storage.nsteps
+        if minibatch_size >= self.nworkers * self.nsteps:
             raise ValueError(
                 'PPO requires minibatch_size <= nsteps * nworkers, but '
                 'minibatch_size: {}, nsteps: {}, nworkers: {} was passed.'
@@ -145,28 +142,31 @@ class RolloutSampler:
         self.rewards = storage.batch_rewards()
         self.values = storage.batch_values()
         self.old_log_probs = storage.batch_log_probs()
-        self.rnn_states = storage.batch_rnn_states(rnn)
+        self.rnn_init = storage.rnn_states[0]
         self.advantages = self.returns - self.values
         if adv_normalize_eps:
             adv = self.advantages
             self.advantages = (adv - adv.mean()) / (adv.std() + adv_normalize_eps)
 
     def __iter__(self) -> Iterator[RolloutBatch]:
-        samplar = BatchSampler(
-            SubsetRandomSampler(range(self.batch_size)),
-            batch_size=self.minibatch_size,
-            drop_last=False
-        )
-        for indices in samplar:
-            yield RolloutBatch(*map(lambda t: t[indices], (
-                self.states,
-                self.actions,
-                self.masks,
-                self.rewards,
-                self.returns,
-                self.values,
-                self.old_log_probs,
-                self.advantages,
-                self.rnn_states,
-            )))
+        if self.rnn_init is DummyRnn.DUMMY_STATE:
+            samplar = BatchSampler(
+                SubsetRandomSampler(range(self.nsteps * self.nworkers)),
+                batch_size=self.minibatch_size,
+                drop_last=False
+            )
+        else:
+            samplar = OrderedBatchSampler(self.nsteps, self.nworkers, self.minibatch_size)
+        for i in samplar:
+            yield RolloutBatch(
+                self.states[i],
+                self.actions[i],
+                self.masks[i],
+                self.rewards[i],
+                self.returns[i],
+                self.values[i],
+                self.old_log_probs[i],
+                self.advantages[i],
+                self.rnn_init[torch.tensor(i) % self.nworkers],
+            )
 

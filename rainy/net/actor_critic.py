@@ -52,37 +52,42 @@ class ActorCriticNet(nn.Module):
     def _features(
             self,
             states: Union[ndarray, Tensor],
-            rnns: Optional[RnnState]
+            rnns: Optional[RnnState] = None,
+            masks: Optional[Tensor] = None,
     ) -> Tuple[Tensor, RnnState]:
         res = self.body(self.device.tensor(states))
         if rnns is None:
             rnns = self.recurrent_body.initial_state(res.size(0), self.device)
-        res = self.recurrent_body(res, rnns)
+        res = self.recurrent_body(res, rnns, masks)
         return res
-
-    def reset_state(self, batch_size: int) -> None:
-        self.prev_state = None
 
     def policy(
             self,
             states: Union[ndarray, Tensor],
-            rnns: Optional[RnnState] = None
+            rnns: Optional[RnnState] = None,
+            masks: Optional[Tensor] = None,
     ) -> Tuple[Policy, RnnState]:
-        features, rnns_ = self._features(states, rnns)
+        features, rnns_ = self._features(states, rnns, masks)
         return self.policy_head(self.actor_head(features)), rnns_
 
-    def value(self, states: Union[ndarray, Tensor], rnns: Optional[RnnState] = None) -> Tensor:
-        features = self._features(states, rnns)[0]
-        return self.critic_head(features).squeeze_()
+    def value(
+            self,
+            states: Union[ndarray, Tensor],
+            rnns: Optional[RnnState] = None,
+            masks: Optional[Tensor] = None,
+    ) -> Tensor:
+        features = self._features(states, rnns, masks)[0]
+        return self.critic_head(features).squeeze()
 
     def forward(
             self,
             states: Union[ndarray, Tensor],
-            rnns: Optional[RnnState] = None
+            rnns: Optional[RnnState] = None,
+            masks: Optional[Tensor] = None,
     ) -> Tuple[Policy, Tensor, RnnState]:
-        features, rnns = self._features(states, rnns)
+        features, rnns = self._features(states, rnns, masks)
         policy, value = self.actor_head(features), self.critic_head(features)
-        return self.policy_head(policy), value.squeeze_(), rnns
+        return self.policy_head(policy), value.squeeze(), rnns
 
 
 def policy_init() -> Initializer:

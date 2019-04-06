@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import torch
 from torch import nn, Tensor
-from typing import Generic, List, Tuple, TypeVar
+from typing import Generic, Iterable, List, Optional, Tuple, TypeVar
 from .init import constant, Initializer
 from ..prelude import Self
 from ..utils import Device
@@ -9,11 +9,11 @@ from ..utils import Device
 
 class RnnState(ABC):
     @abstractmethod
-    def mul_(self, x: Tensor) -> None:
+    def __getitem__(self, x: Tensor) -> Self:
         pass
 
     @abstractmethod
-    def __getitem__(self, x: Tensor) -> Self:
+    def fill_(self, f: float) -> None:
         pass
 
 
@@ -27,7 +27,7 @@ class RnnBlock(Generic[RS], nn.Module):
         self.output_dim = output_dim
 
     @abstractmethod
-    def forward(self, x: Tensor, hidden: RS) -> Tuple[Tensor, RS]:
+    def forward(self, x: Tensor, hidden: RS, masks: Optional[Tensor]) -> Tuple[Tensor, RS]:
         pass
 
     @abstractmethod
@@ -39,17 +39,31 @@ class RnnBlock(Generic[RS], nn.Module):
         pass
 
 
+def _apply_mask(x: Iterable[Tensor], mask: Optional[Tensor]) -> None:
+    if mask is not None:
+        for x_ in x:
+            x_.mul_(mask.unsqueeze(1))
+
+
+def _haszero_indices(masks: Tensor, nstep: int) -> List[int]:
+    has_zeros = (masks == 0.0).any(dim=-1).nonzero().squeeze().cpu()
+    if has_zeros.dim() == 0:
+        return [0, has_zeros.item() + 1, nstep]
+    else:
+        return [0] + (has_zeros + 1).tolist() + [nstep]
+
+
 class LstmState(RnnState):
     def __init__(self, h: Tensor, c: Tensor) -> None:
         self.h = h
         self.c = c
 
-    def mul_(self, x: Tensor) -> None:
-        self.h.mul_(x)
-        self.c.mul_(x)
-
     def __getitem__(self, x: Tensor) -> Self:
         return LstmState(self.h[x], self.c[x])
+
+    def fill_(self, f: float) -> None:
+        self.h.fill_(f)
+        self.c.fill_(f)
 
 
 class LstmBlock(RnnBlock[LstmState]):
@@ -57,7 +71,7 @@ class LstmBlock(RnnBlock[LstmState]):
             self,
             input_dim: int,
             output_dim: int,
-            initializer: Initializer = Initializer(bias_init = constant(1.0)),
+            initializer: Initializer = Initializer(),
             **kwargs
     ) -> None:
         super().__init__(input_dim, output_dim)
@@ -69,7 +83,12 @@ class LstmBlock(RnnBlock[LstmState]):
         c = torch.cat([h.c for h in hiddens])
         return LstmState(h, c)
 
-    def forward(self, x: Tensor, hidden: LstmState) -> Tuple[Tensor, LstmState]:
+    def forward(
+            self,
+            x: Tensor,
+            hidden: LstmState,
+            mask: Optional[Tensor] = None
+    ) -> Tuple[Tensor, LstmState]:
         out, (h, c) = self.lstm(x.unsqueeze(0), (hidden.h.unsqueeze(0), hidden.c.unsqueeze(0)))
         return out.squeeze(0), LstmState(h.squeeze(0), c.squeeze(0))
 
@@ -82,11 +101,11 @@ class GruState(RnnState):
     def __init__(self, h: Tensor) -> None:
         self.h = h
 
-    def mul_(self, x: Tensor) -> None:
-        self.h.mul_(x)
-
     def __getitem__(self, x: Tensor) -> Self:
         return GruState(self.h[x])
+
+    def fill_(self, f: float) -> None:
+        self.h.fill_(f)
 
 
 class GruBlock(RnnBlock[GruState]):
@@ -104,9 +123,27 @@ class GruBlock(RnnBlock[GruState]):
     def make_batch(self, hiddens: List[GruState]) -> GruState:
         return GruState(torch.cat([h.h for h in hiddens]))
 
-    def forward(self, x: Tensor, hidden: GruState) -> Tuple[Tensor, GruState]:
-        out, h = self.gru(x.unsqueeze(0), hidden.h.unsqueeze(0))
-        return out.squeeze(0), GruState(h.squeeze(0))
+    def forward(
+            self,
+            x: Tensor,
+            hidden: GruState,
+            mask: Optional[Tensor] = None
+    ) -> Tuple[Tensor, GruState]:
+        in_shape = x.shape
+        if in_shape == hidden.h.shape:
+            _apply_mask((hidden.h,), mask)
+            out, h = self.gru(x.unsqueeze(0), hidden.h.unsqueeze(0))
+            return out.squeeze(0), GruState(h.squeeze(0))
+        nstep = in_shape[0] // hidden.h.size(0)
+        x = x.view(nstep, -1, x.size(-1))
+        masks = mask.view(nstep, -1)
+        haszero = _haszero_indices(mask, nstep)
+        res = []
+        for start, end in zip(haszero[:-1], haszero[1:]):
+            h = hidden.h * masks[start].view(1, -1, 1)
+            processed, h = self.gru(x[start:end], h)
+            res.append(processed)
+        return torch.cat(res).view(in_shape), GruState(h.squeeze(0))
 
     def initial_state(self, batch_size: int, device: Device) -> GruState:
         return GruState(device.zeros((batch_size, self.input_dim)))
@@ -119,6 +156,9 @@ class DummyState(RnnState):
     def __getitem__(self, x: Tensor) -> Self:
         return self
 
+    def fill_(self, f: float) -> None:
+        pass
+
 
 class DummyRnn(RnnBlock[DummyState]):
     DUMMY_STATE = DummyState()
@@ -129,7 +169,12 @@ class DummyRnn(RnnBlock[DummyState]):
     def make_batch(self, hiddens: List[DummyState]) -> DummyState:
         return self.DUMMY_STATE
 
-    def forward(self, x: Tensor, hidden: DummyState) -> Tuple[Tensor, DummyState]:
+    def forward(
+            self,
+            x: Tensor,
+            hidden: DummyState = DUMMY_STATE,
+            mask: Optional[Tensor] = None,
+    ) -> Tuple[Tensor, DummyState]:
         return x, hidden
 
     def initial_state(self, batch_size: int, device: Device) -> DummyState:
