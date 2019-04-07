@@ -153,7 +153,7 @@ class RolloutSampler:
             samplar = BatchSampler(
                 SubsetRandomSampler(range(self.nsteps * self.nworkers)),
                 batch_size=self.minibatch_size,
-                drop_last=False
+                drop_last=True
             )
         else:
             samplar = OrderedBatchSampler(self.nsteps, self.nworkers, self.minibatch_size)

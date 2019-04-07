@@ -16,10 +16,6 @@ class RnnState(ABC):
     def fill_(self, f: float) -> None:
         pass
 
-    @abstractmethod
-    def mul_(self, x: Tensor) -> None:
-        pass
-
 
 RS = TypeVar('RS', bound=RnnState)
 
@@ -39,9 +35,12 @@ class RnnBlock(Generic[RS], nn.Module):
         pass
 
 
-def _apply_mask(x: RnnState, mask: Optional[Tensor]) -> None:
-    if mask is not None:
-        x.mul_(mask.unsqueeze(1))
+def _apply_mask(mask: Optional[Tensor], *args) -> tuple:
+    if mask is None:
+        return tuple(map(lambda x: x.unsqueeze(0), args))
+    else:
+        m = mask.view(1, -1, 1)
+        return tuple(map(lambda x: x * m, args))
 
 
 def _reshape_batch(x: Tensor, mask: Optional[Tensor], nsteps: int) -> Tuple[Tensor, Tensor]:
@@ -101,8 +100,7 @@ class LstmBlock(RnnBlock[LstmState]):
     ) -> Tuple[Tensor, LstmState]:
         in_shape = x.shape
         if in_shape == hidden.h.shape:
-            _apply_mask(hidden, mask)
-            out, (h, c) = self.lstm(x.unsqueeze(0), (hidden.h.unsqueeze(0), hidden.c.unsqueeze(0)))
+            out, (h, c) = self.lstm(x.unsqueeze(0), _apply_mask(mask, hidden.h, hidden.c))
             return out.squeeze(0), LstmState(h, c)
         # forward Nsteps altogether
         nsteps = in_shape[0] // hidden.h.size(0)
@@ -129,9 +127,6 @@ class GruState(RnnState):
     def fill_(self, f: float) -> None:
         self.h.fill_(f)
 
-    def mul_(self, x: Tensor) -> None:
-        self.h.mul_(x)
-
 
 class GruBlock(RnnBlock[GruState]):
     def __init__(
@@ -153,8 +148,7 @@ class GruBlock(RnnBlock[GruState]):
     ) -> Tuple[Tensor, GruState]:
         in_shape = x.shape
         if in_shape == hidden.h.shape:
-            _apply_mask(hidden, mask)
-            out, h = self.gru(x.unsqueeze(0), hidden.h.unsqueeze(0))
+            out, h = self.gru(x.unsqueeze(0), _apply_mask(mask, hidden.h)[0])
             return out.squeeze(0), GruState(h.squeeze_(0))
         # forward Nsteps altogether
         nsteps = in_shape[0] // hidden.h.size(0)
@@ -174,9 +168,6 @@ class DummyState(RnnState):
         return self
 
     def fill_(self, f: float) -> None:
-        pass
-
-    def mul_(self, x: Tensor) -> None:
         pass
 
 
