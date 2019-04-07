@@ -1,7 +1,6 @@
-from itertools import chain
 import numpy as np
-from torch.utils.data.sampler import Sampler
-from typing import Iterable, List
+from torch.utils.data.sampler import BatchSampler, Sampler, SubsetRandomSampler
+from typing import Iterator, List, Tuple
 from ..prelude import Array
 
 
@@ -27,7 +26,20 @@ def sample_indices(n: int, k: int) -> np.ndarray:
         return rands[:k]
 
 
-class OrderedBatchSampler(Sampler):
+class FeedForwardBatchSampler(BatchSampler):
+    def __init__(self, nsteps: int, nworkers: int, batch_size: int) -> None:
+        super().__init__(
+            SubsetRandomSampler(range(nsteps * nworkers)),
+            batch_size=batch_size,
+            drop_last=True
+        )
+
+    def __iter__(self) -> Iterator[Tuple[Tuple[int], List[int]]]:
+        for idx in super().__iter__():
+            yield (0,), idx
+
+
+class RecurrentBatchSampler(Sampler):
     def __init__(self, nsteps: int, nworkers: int, batch_size: int) -> None:
         if batch_size % nsteps > 0:
             raise ValueError('batch_size must be a multiple of nsteps')
@@ -35,12 +47,14 @@ class OrderedBatchSampler(Sampler):
         self.nworkers = nworkers
         self.batch_size = batch_size
 
-    def __iter__(self) -> Iterable[Array[int]]:
+    def __iter__(self) -> Iterator[Tuple[List[int], Array[int]]]:
         env_num = self.batch_size // self.nsteps
         perm = np.random.permutation(self.nworkers)
         for i in range(self.nworkers // env_num):
             stop, step = self.nsteps * self.nworkers, self.nsteps
-            yield np.concatenate([np.arange(w, stop, step) for w in perm[i:i + env_num]])
+            workers = perm[i: i + env_num]
+            batches = np.concatenate([np.arange(w, stop, step) for w in workers])
+            yield workers, batches
 
     def __len__(self) -> int:
         return (self.nsteps * self.nworkers) // self.batch_size

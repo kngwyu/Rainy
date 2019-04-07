@@ -1,10 +1,10 @@
 import torch
 from torch import Tensor
-from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
 from typing import Generic, NamedTuple, Iterator, List, Optional, Tuple
 from ..envs import ParallelEnv, State
 from ..net import DummyRnn, Policy, RnnBlock, RnnState
-from ..utils import Device, OrderedBatchSampler
+from ..utils import Device
+from ..utils.sample import FeedForwardBatchSampler, RecurrentBatchSampler
 from ..prelude import Array
 
 
@@ -150,14 +150,10 @@ class RolloutSampler:
 
     def __iter__(self) -> Iterator[RolloutBatch]:
         if self.rnn_init is DummyRnn.DUMMY_STATE:
-            samplar = BatchSampler(
-                SubsetRandomSampler(range(self.nsteps * self.nworkers)),
-                batch_size=self.minibatch_size,
-                drop_last=True
-            )
+            sampler = FeedForwardBatchSampler(self.nsteps, self.nworkers, self.minibatch_size)
         else:
-            samplar = OrderedBatchSampler(self.nsteps, self.nworkers, self.minibatch_size)
-        for i in samplar:
+            sampler = RecurrentBatchSampler(self.nsteps, self.nworkers, self.minibatch_size)
+        for i_rnn, i in sampler:
             yield RolloutBatch(
                 self.states[i],
                 self.actions[i],
@@ -167,6 +163,6 @@ class RolloutSampler:
                 self.values[i],
                 self.old_log_probs[i],
                 self.advantages[i],
-                self.rnn_init[torch.tensor(i) % self.nworkers],
+                self.rnn_init[i_rnn],
             )
 
