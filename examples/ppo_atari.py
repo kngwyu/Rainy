@@ -25,7 +25,7 @@ def config() -> Config:
     c.use_gae = True
     c.use_reward_monitor = True
     c.lr_minimum = 0.0
-    c.clip_decay = True
+    c.clip_minimum = 0.0
     # eval settings
     c.eval_env = Atari('Breakout')
     c.episode_log_freq = 100
