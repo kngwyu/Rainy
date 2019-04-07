@@ -24,7 +24,8 @@ def config() -> Config:
     c.ppo_epochs = 3
     c.use_gae = True
     c.use_reward_monitor = True
-    c.lr_decay = True
+    c.lr_minimum = 0.0
+    c.clip_decay = True
     # eval settings
     c.eval_env = Atari('Breakout')
     c.episode_log_freq = 100

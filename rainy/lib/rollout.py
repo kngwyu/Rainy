@@ -110,7 +110,7 @@ class RolloutBatch(NamedTuple):
     values: Tensor
     old_log_probs: Tensor
     advantages: Tensor
-    rnn_state: RnnState
+    rnn_init: RnnState
 
 
 class RolloutSampler:

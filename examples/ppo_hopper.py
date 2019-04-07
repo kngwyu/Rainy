@@ -26,7 +26,6 @@ def config() -> Config:
     c.clip_decay = False
     c.use_gae = True
     c.use_reward_monitor = True
-    c.lr_decay = False
     return c
 
 

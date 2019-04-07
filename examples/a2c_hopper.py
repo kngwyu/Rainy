@@ -20,7 +20,6 @@ def config() -> Config:
     c.value_loss_weight = 0.5
     c.entropy_weight = 0.0
     c.use_gae = False
-    c.lr_decay = False
     c.eval_deterministic = False
     return c
 

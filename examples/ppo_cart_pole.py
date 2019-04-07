@@ -18,8 +18,8 @@ def config() -> rainy.Config:
     c.nsteps = 32
     c.ppo_minibatch_size = 64
     c.use_gae = True
-    c.lr_decay = False
-    c.clip_decay = False
+    c.ppo_clip = 0.2
+    c.clip_minimum = 0.1
     c.eval_freq = None
     # c.set_net_fn('actor-critic', rainy.net.actor_critic.fc_shared(rnn=rainy.net.GruBlock))
     return c

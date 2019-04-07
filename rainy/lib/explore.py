@@ -20,6 +20,11 @@ class LinearCooler(Cooler):
     """decrease epsilon linearly, from initial to minimal, via `max_step` steps
     """
     def __init__(self, initial: float, minimal: float, max_step: int) -> None:
+        if initial < minimal:
+            raise ValueError(
+                f'[LinearCooler.__init__] the minimal value({minimal})'
+                ' is bigger than the initial value {initial}'
+            )
         self.delta = (initial - minimal) / float(max_step)
         self.minimal = minimal
 
