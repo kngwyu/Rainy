@@ -1,8 +1,8 @@
 from functools import partial
 from typing import Iterable, Optional, Union
-from torch import nn
+import torch
+from torch import nn, Tensor
 
-# function to init Tensor
 InitFn = partial
 
 
@@ -28,6 +28,14 @@ def constant(val: float) -> InitFn:
 
 def zero() -> InitFn:
     return partial(nn.init.constant_, val=0)
+
+
+def forget_bias(val: float) -> InitFn:
+    def __set_bias(t: Tensor, value: float) -> None:
+        with torch.no_grad():
+            i = len(t) // 4
+            t[i:2 * i].fill_(value)
+    return partial(__set_bias, value=val)
 
 
 class Initializer:

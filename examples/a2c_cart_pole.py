@@ -13,15 +13,14 @@ def config() -> Config:
     c.nsteps = 5
     c.set_parallel_env(lambda env_gen, num_w: MultiProcEnv(env_gen, num_w))
     c.set_optimizer(lambda params: Adam(params, lr=0.001))
-    c.grad_clip = 0.5
-    c.gae_tau = 0.95
+    c.grad_clip = 0.1
+    c.value_loss_weight = 0.1
     c.use_gae = False
     c.lr_decay = False
     c.eval_deterministic = True
     c.eval_freq = None
-    c.value_loss_weight = 0.1
     c.entropy_weight = 0.001
-    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(rnn=net.GruBlock))
+    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(rnn=net.LstmBlock))
     return c
 
 

@@ -12,7 +12,7 @@ def config() -> Config:
     c.nworkers = 8
     c.set_parallel_env(lambda env_gen, num_w: MultiProcEnv(env_gen, num_w))
     c.set_optimizer(lambda params: Adam(params, lr=2.5e-4, eps=1.0e-4))
-    c.value_loss_weight = 0.2
+    c.value_loss_weight = 0.1
     c.network_log_freq = 20
     c.grad_clip = 0.1
     c.gae_tau = 0.95
@@ -21,6 +21,7 @@ def config() -> Config:
     c.use_gae = True
     c.lr_decay = False
     c.clip_decay = False
+    c.eval_freq = None
     c.set_net_fn('actor-critic', net.actor_critic.fc_shared(rnn=net.GruBlock))
     return c
 
