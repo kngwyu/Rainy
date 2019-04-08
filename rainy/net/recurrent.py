@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import torch
 from torch import nn, Tensor
 from typing import Generic, Iterable, Optional, Sequence, Tuple, TypeVar
-from .init import constant, forget_bias, Initializer
+from .init import forget_bias, Initializer
 from ..prelude import Self
 from ..utils import Device
 
@@ -133,7 +133,7 @@ class GruBlock(RnnBlock[GruState]):
             self,
             input_dim: int,
             output_dim: int,
-            initializer: Initializer = Initializer(bias_init = constant(-1.0)),
+            initializer: Initializer = Initializer(),
             **kwargs
     ) -> None:
         super().__init__(input_dim, output_dim)
