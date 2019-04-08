@@ -35,7 +35,7 @@ class RnnBlock(Generic[RS], nn.Module):
         pass
 
 
-def _apply_mask(mask: Optional[Tensor], *args) -> tuple:
+def _apply_mask(mask: Optional[Tensor], *args) -> Sequence[Tensor]:
     if mask is None:
         return tuple(map(lambda x: x.unsqueeze(0), args))
     else:
@@ -148,7 +148,7 @@ class GruBlock(RnnBlock[GruState]):
     ) -> Tuple[Tensor, GruState]:
         in_shape = x.shape
         if in_shape == hidden.h.shape:
-            out, h = self.gru(x.unsqueeze(0), _apply_mask(mask, hidden.h)[0])
+            out, h = self.gru(x.unsqueeze(0), *_apply_mask(mask, hidden.h))
             return out.squeeze(0), GruState(h.squeeze_(0))
         # forward Nsteps altogether
         nsteps = in_shape[0] // hidden.h.size(0)

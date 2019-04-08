@@ -230,7 +230,6 @@ class NStepParallelAgent(Agent, Generic[State]):
     def eval_action_parallel(
             self,
             states: Array,
-            done: Array[bool],
             ent: Optional[Array[float]] = None
     ) -> Array[Action]:
         raise NotImplementedError('TODO: Remove this function')

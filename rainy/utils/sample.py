@@ -47,14 +47,14 @@ class RecurrentBatchSampler(Sampler):
         self.nworkers = nworkers
         self.batch_size = batch_size
 
-    def __iter__(self) -> Iterator[Tuple[List[int], Array[int]]]:
+    def __iter__(self) -> Iterator[Tuple[Array[int], Array[int]]]:
         env_num = self.batch_size // self.nsteps
         perm = np.random.permutation(self.nworkers)
         for i in range(self.nworkers // env_num):
             stop, step = self.nsteps * self.nworkers, self.nsteps
             workers = perm[i: i + env_num]
-            batches = np.concatenate([np.arange(w, stop, step) for w in workers])
-            yield workers, batches
+            batches = np.stack([np.arange(w, stop, step) for w in workers], axis=1)
+            yield workers, batches.flatten()
 
     def __len__(self) -> int:
         return (self.nsteps * self.nworkers) // self.batch_size
