@@ -4,12 +4,12 @@ Originaly from openai baselines, but modified to:
 - Support PyTorch
 - Support [dopamine](https://github.com/google/dopamine) style setting
 """
-
 import cv2
 import numpy as np
 import gym
 from gym import spaces
 from ..replay import ArrayDeque
+from ..prelude import Array
 
 cv2.ocl.setUseOpenCL(False)
 
@@ -233,6 +233,15 @@ class LazyFrames:
         return self._force()[i]
 
 
+class FlickerFrame(gym.ObservationWrapper):
+    """Stochastically flicker frames."""
+    def __init__(self, env: gym.Env) -> None:
+        super().__init__(self, env)
+
+    def observation(self, obs: Array) -> Array:
+        return obs if np.random.randint() else np.zeros_like(obs)
+
+
 def make_atari(
         env_id: str,
         timelimit: bool = True,
@@ -252,9 +261,10 @@ def make_atari(
 def wrap_deepmind(
         env: gym.Env,
         episodic_life: bool = True,
-        frame_stack: bool = True,
         fire_reset: bool = False,
         clip_reward: bool = True,
+        flicker_frame: bool = False,
+        frame_stack: bool = True,
 ) -> gym.Env:
     """Configure environment for DeepMind-style Atari.
        About FireResetEnv, I recommend to see the discussion at
@@ -267,6 +277,8 @@ def wrap_deepmind(
     env = WarpFrame(env)
     if clip_reward:
         env = ClipRewardEnv(env)
+    if flicker_frame:
+        env = FlickerFrame(env)
     if frame_stack:
         env = FrameStack(env, 4)
     return env
