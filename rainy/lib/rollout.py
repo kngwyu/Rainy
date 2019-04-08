@@ -149,11 +149,9 @@ class RolloutSampler:
             self.advantages = (adv - adv.mean()) / (adv.std() + adv_normalize_eps)
 
     def __iter__(self) -> Iterator[RolloutBatch]:
-        if self.rnn_init is DummyRnn.DUMMY_STATE:
-            sampler = FeedForwardBatchSampler(self.nsteps, self.nworkers, self.minibatch_size)
-        else:
-            sampler = RecurrentBatchSampler(self.nsteps, self.nworkers, self.minibatch_size)
-        for i_rnn, i in sampler:
+        sampler_cls = FeedForwardBatchSampler \
+            if self.rnn_init is DummyRnn.DUMMY_STATE else RecurrentBatchSampler
+        for i in sampler_cls(self.nsteps, self.nworkers, self.minibatch_size):
             yield RolloutBatch(
                 self.states[i],
                 self.actions[i],
@@ -163,6 +161,6 @@ class RolloutSampler:
                 self.values[i],
                 self.old_log_probs[i],
                 self.advantages[i],
-                self.rnn_init[i_rnn],
+                self.rnn_init[:len(i) // self.nsteps]
             )
 

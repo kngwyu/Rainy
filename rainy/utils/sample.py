@@ -34,10 +34,6 @@ class FeedForwardBatchSampler(BatchSampler):
             drop_last=True
         )
 
-    def __iter__(self) -> Iterator[Tuple[Tuple[int], List[int]]]:
-        for idx in super().__iter__():
-            yield (0,), idx
-
 
 class RecurrentBatchSampler(Sampler):
     def __init__(self, nsteps: int, nworkers: int, batch_size: int) -> None:
@@ -47,14 +43,14 @@ class RecurrentBatchSampler(Sampler):
         self.nworkers = nworkers
         self.batch_size = batch_size
 
-    def __iter__(self) -> Iterator[Tuple[Array[int], Array[int]]]:
+    def __iter__(self) -> Iterator[Array[int]]:
         env_num = self.batch_size // self.nsteps
+        total, step = self.nsteps * self.nworkers, self.nworkers
         perm = np.random.permutation(self.nworkers)
-        for i in range(self.nworkers // env_num):
-            stop, step = self.nsteps * self.nworkers, self.nsteps
+        for i in np.arange(0, self.nworkers, env_num):
             workers = perm[i: i + env_num]
-            batches = np.stack([np.arange(w, stop, step) for w in workers], axis=1)
-            yield workers, batches.flatten()
+            batches = np.stack([np.arange(w, total, step) for w in workers], axis=1)
+            yield batches.flatten()
 
     def __len__(self) -> int:
         return (self.nsteps * self.nworkers) // self.batch_size
