@@ -58,7 +58,7 @@ log.plot_reward(12 * 20, max_steps=int(4e5), title='ACKTR cart pole')
 |DQN/Double DQN|:x:                   |:x:                             |:heavy_check_mark:  |:x:                  |
 |PPO           |:heavy_check_mark:    |:heavy_check_mark:<sup>(1)</sup>|:heavy_check_mark:  |:heavy_check_mark:   |
 |A2C           |:heavy_check_mark:    |:heavy_check_mark:              |:heavy_check_mark:  |:heavy_check_mark:   |
-|ACKTR         |:heavy_check_sign:    |:x:<sup>(2)</sup>               |:heavy_check_mark:  |:heavy_check_mark:   |
+|ACKTR         |:heavy_check_mark:    |:x:<sup>(2)</sup>               |:heavy_check_mark:  |:heavy_check_mark:   |
 
 <sup><sup>(1): It's very unstable </sup></sup><br>
 <sup><sup>(2): Needs https://openreview.net/forum?id=HyMTkQZAb implemented </sup></sup><br>
