@@ -51,7 +51,18 @@ log.plot_reward(12 * 20, max_steps=int(4e5), title='ACKTR cart pole')
 ```
 ![ACKTR cart pole](./pictures/acktr-cart-pole.png)
 
-# Implemented Algorithms
+# Implementation Status
+
+|**Algorithm** |**Multi Worker(Sync)**|**Recurrent**                   |**Discrete Action** |**Continuous Action**|
+| ------------ | -------------------- | ------------------------------ | ------------------ | ------------------- |
+|DQN/Double DQN|:x:                   |:x:                             |:heavy_check_mark:  |:x:                  |
+|PPO           |:heavy_check_mark:    |:heavy_check_mark:<sup>(1)</sup>|:heavy_check_mark:  |:heavy_check_mark:   |
+|A2C           |:heavy_check_mark:    |:heavy_check_mark:              |:heavy_check_mark:  |:heavy_check_mark:   |
+|ACKTR         |:heavy_minus_sign:    |:x:                             |:heavy_check_mark:  |:heavy_check_mark:   |
+
+<sup><sup>(1): It's very unstabe </sup></sup><br>
+
+# References
 
 ## DQN (Deep Q Network)
 - https://www.nature.com/articles/nature14236/
