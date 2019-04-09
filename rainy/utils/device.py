@@ -34,8 +34,11 @@ class Device:
         else:
             raise ValueError('arr must be ndarray or list or tensor')
 
-    def zeros(self, num: int) -> Tensor:
-        return torch.zeros(num, device=self.device)
+    def zeros(self, size: Union[int, tuple]) -> Tensor:
+        return torch.zeros(size, device=self.device)
+
+    def ones(self, size: Union[int, tuple]) -> Tensor:
+        return torch.ones(size, device=self.device)
 
     def data_parallel(self, module: nn.Module) -> nn.DataParallel:
         return nn.DataParallel(module, device_ids=self.gpu_indices)

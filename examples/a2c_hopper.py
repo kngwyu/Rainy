@@ -10,7 +10,7 @@ from torch.optim import Adam
 def config() -> Config:
     c = Config()
     c.set_env(lambda: PyBullet('Hopper'))
-    c.set_net_fn('actor-critic', net.actor_critic.fc(policy=SeparateStdGaussinanHead))
+    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(policy=SeparateStdGaussinanHead))
     c.set_parallel_env(pybullet_parallel())
     c.max_steps = int(1e6)
     c.nworkers = 12
@@ -20,8 +20,8 @@ def config() -> Config:
     c.value_loss_weight = 0.5
     c.entropy_weight = 0.0
     c.use_gae = False
-    c.lr_decay = False
     c.eval_deterministic = False
+    c.eval_freq = None
     return c
 
 

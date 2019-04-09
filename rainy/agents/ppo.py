@@ -2,7 +2,7 @@ import torch
 from torch import nn, Tensor
 from typing import Tuple
 from .a2c import A2cAgent
-from ..lib.rollout import FeedForwardSampler
+from ..lib.rollout import RolloutSampler
 from ..config import Config
 from ..envs import State
 from ..net import Policy
@@ -45,7 +45,7 @@ class PpoAgent(A2cAgent):
             states = self._one_step(states)
 
         with torch.no_grad():
-            next_value = self.net.value(self.penv.states_to_array(states))
+            next_value = self.net.value(*self._network_in(states))
 
         if self.config.use_gae:
             gamma, tau = self.config.discount_factor, self.config.gae_tau
@@ -54,14 +54,15 @@ class PpoAgent(A2cAgent):
             self.storage.calc_ac_returns(next_value, self.config.discount_factor)
         p, v, e = (0.0, 0.0, 0.0)
         for _ in range(self.config.ppo_epochs):
-            sampler = FeedForwardSampler(
+            sampler = RolloutSampler(
                 self.storage,
                 self.penv,
                 self.config.ppo_minibatch_size,
+                rnn=self.net.recurrent_body,
                 adv_normalize_eps=self.config.adv_normalize_eps,
             )
             for batch in sampler:
-                policy, value = self.net(batch.states)
+                policy, value, _ = self.net(batch.states, batch.rnn_init, batch.masks)
                 policy.set_action(batch.actions)
                 policy_loss = self._policy_loss(policy, batch.advantages, batch.old_log_probs)
                 value_loss = self._value_loss(value, batch.values, batch.returns)

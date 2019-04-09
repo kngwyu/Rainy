@@ -13,6 +13,7 @@ except ImportError:
     GenericNamedMeta = NamedTupleMeta  # type: ignore
 
 T = TypeVar('T')
+Self = Any
 
 
 class Array(Sequence[T]):
@@ -20,16 +21,16 @@ class Array(Sequence[T]):
     def shape(self) -> tuple:
         ...
 
-    def squeeze(self) -> Any:
+    def squeeze(self) -> Self:
         ...
 
-    def transpose(self, *args) -> Any:
+    def transpose(self, *args) -> Self:
         ...
 
-    def __rsub__(self, value: Any) -> Any:
+    def __rsub__(self, value: Any) -> Self:
         ...
 
-    def __truediv__(self, rvalue: Any) -> Any:
+    def __truediv__(self, rvalue: Any) -> Self:
         ...
 
 

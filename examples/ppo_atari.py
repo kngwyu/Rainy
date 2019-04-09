@@ -9,6 +9,7 @@ from torch.optim import Adam
 def config() -> Config:
     c = Config()
     c.set_env(lambda: Atari('Breakout', frame_stack=False))
+    #  c.set_net_fn('actor-critic', net.actor_critic.ac_conv(rnn=net.GruBlock))
     c.set_net_fn('actor-critic', net.actor_critic.ac_conv())
     c.set_parallel_env(atari_parallel())
     c.set_optimizer(lambda params: Adam(params, lr=2.5e-4, eps=1.0e-4))
@@ -24,11 +25,13 @@ def config() -> Config:
     c.ppo_epochs = 3
     c.use_gae = True
     c.use_reward_monitor = True
-    c.lr_decay = True
+    c.lr_minimum = 0.0
+    c.clip_minimum = 0.0
     # eval settings
     c.eval_env = Atari('Breakout')
-    c.eval_freq = None
     c.episode_log_freq = 100
+    c.eval_freq = None
+    c.save_freq = None
     return c
 
 

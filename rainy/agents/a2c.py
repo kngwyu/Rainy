@@ -1,19 +1,20 @@
 import numpy as np
 import torch
 from torch import nn
-from typing import Optional, Tuple
+from typing import Tuple
 from .base import NStepParallelAgent
 from ..config import Config
-from ..net import Policy
+from ..net import ActorCriticNet, Policy, RnnState
 from ..prelude import Action, Array, State
 
 
-class A2cAgent(NStepParallelAgent):
+class A2cAgent(NStepParallelAgent[State]):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.net = config.net('actor-critic')
+        self.net: ActorCriticNet = config.net('actor-critic')
         self.optimizer = config.optimizer(self.net.parameters())
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
+        self.eval_rnns: RnnState = self.net.recurrent_body.initial_state(1, self.config.device)
 
     def members_to_save(self) -> Tuple[str, ...]:
         return ("net",)
@@ -21,39 +22,34 @@ class A2cAgent(NStepParallelAgent):
     def set_mode(self, train: bool = True) -> None:
         self.net.train(mode=train)
 
+    def rnn_init(self) -> RnnState:
+        return self.net.recurrent_body.initial_state(self.config.nworkers, self.config.device)
+
+    def eval_reset(self) -> None:
+        self.eval_rnns.fill_(0.0)
+
     def eval_action(self, state: Array) -> Action:
         if len(state.shape) == len(self.net.state_dim):
             # treat as batch_size == 1
             state = np.stack([state])
         with torch.no_grad():
-            policy = self.net.policy(state)
+            policy, self.eval_rnns = self.net.policy(state, self.eval_rnns)
         if self.config.eval_deterministic:
             return policy.best_action().squeeze().cpu().numpy()
         else:
             return policy.action().squeeze().cpu().numpy()
 
-    def eval_action_parallel(
-            self,
-            states: Array,
-            ent: Optional[Array[float]] = None
-    ) -> Array[Action]:
-        with torch.no_grad():
-            policy = self.net.policy(states)
-        if ent is not None:
-            ent += policy.entropy().cpu().numpy()
-        if self.config.eval_deterministic:
-            return policy.best_action().squeeze().cpu().numpy()
-        else:
-            return policy.action().squeeze().cpu().numpy()
+    def _network_in(self, states: Array[State]) -> Tuple[Array, RnnState, torch.Tensor]:
+        return self.penv.states_to_array(states), self.storage.rnn_states[-1], self.storage.masks[-1]
 
     def _one_step(self, states: Array[State]) -> Array[State]:
         with torch.no_grad():
-            policy, value = self.net(self.penv.states_to_array(states))
+            policy, value, rnns = self.net(*self._network_in(states))
         next_states, rewards, done, info = self.penv.step(policy.action().squeeze().cpu().numpy())
         self.episode_length += 1
         self.rewards += rewards
         self.report_reward(done, info)
-        self.storage.push(next_states, rewards, done, policy=policy, value=value)
+        self.storage.push(next_states, rewards, done, rnn_state=rnns, policy=policy, value=value)
         return next_states
 
     def _pre_backward(self, _policy: Policy, _value: torch.Tensor) -> None:
@@ -68,14 +64,18 @@ class A2cAgent(NStepParallelAgent):
         for _ in range(self.config.nsteps):
             states = self._one_step(states)
         with torch.no_grad():
-            next_value = self.net.value(self.penv.states_to_array(states))
+            # next_value = self.net.value(self.penv.states_to_array(states))
+            next_value = self.net.value(*self._network_in(states))
         if self.config.use_gae:
             gamma, tau = self.config.discount_factor, self.config.gae_tau
             self.storage.calc_gae_returns(next_value, gamma, tau)
         else:
             self.storage.calc_ac_returns(next_value, self.config.discount_factor)
-
-        policy, value = self.net(self.storage.batch_states(self.penv))
+        policy, value, _ = self.net(
+            self.storage.batch_states(self.penv),
+            self.storage.rnn_states[0],
+            self.storage.batch_masks(),
+        )
         policy.set_action(self.storage.batch_actions())
 
         advantage = self.storage.batch_returns() - value

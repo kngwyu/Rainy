@@ -50,15 +50,15 @@ class Config:
         self.value_loss_weight = 1.0
         self.use_gae = False
         self.gae_tau = 1.0
-        self.lr_decay = False
+        self.lr_minimum: Optional[float] = None  # Mujoco: None Atari 0.0
 
         # For ppo
         self.adv_normalize_eps = 1.0e-5
         self.ppo_minibatch_size = 64  # Mujoco: 64 Atari: 32 * 8
-        self.ppo_epochs = 10  # Mujoco: 64 Atari: 10
-        self.ppo_clip = 0.2  # Mujoco: 64 Atari: 0.1
+        self.ppo_epochs = 10  # Mujoco: 10 Atari: 3
+        self.ppo_clip = 0.2  # Mujoco: 0.2 Atari: 0.1
         self.ppo_value_clip = True
-        self.clip_decay = False  # Mujoco: False Atari: True
+        self.clip_minimum: Optional[float] = None  # Mujoco: None Atari: 0.0
 
         # Logger and logging frequency
         self.logger = Logger()
@@ -75,7 +75,7 @@ class Config:
         # Network
         self.__net: Dict[str, NetFn] = {
             'value': value.fc(),
-            'actor-critic': actor_critic.fc(),
+            'actor-critic': actor_critic.fc_shared(),
         }
 
         # Environments
@@ -154,15 +154,15 @@ class Config:
     def set_net_fn(self, name: str, net: NetFn) -> None:
         self.__net[name] = net
 
-    def lr_cooler(self, initial: float, minimum: float = 0.0) -> Cooler:
-        if not self.lr_decay:
+    def lr_cooler(self, initial: float) -> Cooler:
+        if self.lr_minimum is None:
             return DummyCooler()
-        return LinearCooler(initial, minimum, self.max_steps)
+        return LinearCooler(initial, self.lr_minimum, self.max_steps)
 
-    def clip_cooler(self, minimum: float = 0.0) -> Cooler:
-        if not self.clip_decay:
+    def clip_cooler(self) -> Cooler:
+        if self.clip_minimum is None:
             return DummyCooler()
-        return LinearCooler(self.ppo_clip, minimum, self.max_steps)
+        return LinearCooler(self.ppo_clip, self.clip_minimum, self.max_steps)
 
     def __repr__(self) -> str:
         d = filter(lambda t: not t[0].startswith('_Config'), self.__dict__.items())

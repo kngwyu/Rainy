@@ -7,6 +7,7 @@ from typing import Callable, Generic, Iterable, List, NamedTuple, Optional, Tupl
 import warnings
 from ..config import Config
 from ..lib.rollout import RolloutStorage
+from ..net import DummyRnn, RnnState
 from ..envs import EnvExt
 from ..prelude import Action, Array, State
 
@@ -55,6 +56,9 @@ class Agent(ABC):
     def update_steps(self) -> int:
         pass
 
+    def eval_reset(self) -> None:
+        pass
+
     def set_mode(self, train: bool = True) -> None:
         pass
 
@@ -87,6 +91,7 @@ class Agent(ABC):
             total_reward += reward
             res = self._result(done, info, total_reward, steps)
             if res is not None:
+                self.eval_reset()
                 return (res, env)
 
     def _result(
@@ -158,7 +163,7 @@ class Agent(ABC):
                 setattr(self, member_str, saved_item)
 
 
-class OneStepAgent(Agent):
+class OneStepAgent(Agent, Generic[State]):
     @abstractmethod
     def step(self, state: State) -> Tuple[State, float, bool, dict]:
         pass
@@ -219,15 +224,15 @@ class NStepParallelAgent(Agent, Generic[State]):
             self.report_reward(done, info)
             if n <= len(self.episode_results):
                 break
+        self.eval_reset()
         return self.episode_results
 
-    @abstractmethod
     def eval_action_parallel(
             self,
             states: Array,
             ent: Optional[Array[float]] = None
     ) -> Array[Action]:
-        pass
+        raise NotImplementedError('TODO: Remove this function')
 
     @abstractmethod
     def nstep(self, states: Array[State]) -> Array[State]:
@@ -236,6 +241,9 @@ class NStepParallelAgent(Agent, Generic[State]):
     @property
     def update_steps(self) -> int:
         return self.total_steps // (self.config.nsteps * self.config.nworkers)
+
+    def rnn_init(self) -> RnnState:
+        return DummyRnn.DUMMY_STATE
 
     def report_reward(self, done: Array[bool], info: Array[dict]) -> None:
         if self.penv.use_reward_monitor:
@@ -255,7 +263,7 @@ class NStepParallelAgent(Agent, Generic[State]):
         if self.config.seed is not None:
             self.penv.seed([self.config.seed] * self.config.nworkers)
         states = self.penv.reset()
-        self.storage.set_initial_state(states)
+        self.storage.set_initial_state(states, self.rnn_init())
         step = self.config.nsteps * self.config.nworkers
         while True:
             states = self.nstep(states)

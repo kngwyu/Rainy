@@ -9,7 +9,7 @@ from torch.optim import Adam
 
 def config() -> Config:
     c = Config()
-    c.set_env(lambda: PyBullet('Hopper'))
+    c.set_env(lambda: PyBullet('HalfCheetah'))
     c.set_net_fn('actor-critic', net.actor_critic.fc_shared(policy=SeparateStdGaussinanHead))
     c.set_parallel_env(pybullet_parallel())
     c.set_optimizer(lambda params: Adam(params, lr=3.0e-4, eps=1.0e-4))
@@ -19,9 +19,9 @@ def config() -> Config:
     c.value_loss_weight = 0.5
     c.entropy_weight = 0.0
     c.gae_tau = 0.95
-    c.nworkers = 4
-    c.nsteps = 512
-    c.ppo_minibatch_size = (4 * 512) // 8
+    c.nworkers = 16
+    c.nsteps = 128
+    c.ppo_minibatch_size = (16 * 128) // 16
     c.ppo_clip = 0.2
     c.use_gae = True
     c.use_reward_monitor = True

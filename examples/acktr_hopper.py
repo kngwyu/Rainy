@@ -20,16 +20,16 @@ def config() -> Config:
     c.nworkers = 12
     c.nsteps = 20
     c.set_env(lambda: PyBullet('Hopper'))
-    c.set_net_fn('actor-critic', net.actor_critic.fc(policy=SeparateStdGaussinanHead))
+    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(policy=SeparateStdGaussinanHead))
     c.set_parallel_env(pybullet_parallel())
     c.set_optimizer(kfac.default_sgd(eta_max=0.1))
     c.set_preconditioner(lambda net: kfac.KfacPreConditioner(net, **KFAC_KWARGS))
     c.gae_tau = 0.95
     c.use_gae = True
-    c.lr_decay = False
     c.eval_deterministic = False
     c.value_loss_weight = 0.5
     c.entropy_weight = 0.0
+    c.eval_freq = None
     return c
 
 

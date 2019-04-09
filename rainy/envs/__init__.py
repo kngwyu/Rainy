@@ -14,7 +14,13 @@ from ..prelude import State
 class Atari(EnvExt):
     STYLES = ['deepmind', 'baselines', 'dopamine']
 
-    def __init__(self, name: str, style: str = 'deepmind', frame_stack: bool = True) -> None:
+    def __init__(
+            self,
+            name: str,
+            style: str = 'deepmind',
+            flicker_frame: bool = False,
+            frame_stack: bool = True,
+    ) -> None:
         assert style in self.STYLES, \
             'You have to choose a style from {}'.format(self.STYLES)
         if style is 'dopamine':
