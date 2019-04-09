@@ -25,6 +25,7 @@ def config() -> Config:
     c.ppo_clip = 0.2
     c.use_gae = True
     c.use_reward_monitor = True
+    c.eval_freq = None
     return c
 
 

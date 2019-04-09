@@ -21,6 +21,7 @@ def config() -> Config:
     c.entropy_weight = 0.0
     c.use_gae = False
     c.eval_deterministic = False
+    c.eval_freq = None
     return c
 
 

@@ -29,6 +29,7 @@ def config() -> Config:
     c.eval_deterministic = False
     c.value_loss_weight = 0.5
     c.entropy_weight = 0.0
+    c.eval_freq = None
     return c
 
 
