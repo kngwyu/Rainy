@@ -77,7 +77,6 @@ class PpoAgent(A2cAgent):
 
         self.lr_cooler.lr_decay(self.optimizer)
         self.clip_eps = self.clip_cooler()
-        print(self.clip_eps)
         self.storage.reset()
 
         p, v, e = map(lambda x: x / float(self.num_updates), (p, v, e))
