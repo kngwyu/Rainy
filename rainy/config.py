@@ -37,13 +37,13 @@ class Config:
         self.sync_freq = 200
         self.__explore: Callable[[], Explorer] = \
             lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000))
-        self.__eval_explore: Callable[[], Explorer] = lambda: EpsGreedy(0.01, DummyCooler())
+        self.__eval_explore: Callable[[], Explorer] = lambda: EpsGreedy(0.01, DummyCooler(0.01))
 
         # For multi worker algorithms
-        self.nworkers = 8
+        self.nworkers = 1
 
         # For n-step algorithms
-        self.nsteps = 5
+        self.nsteps = 1
 
         # For actor-critic algorithms
         self.entropy_weight = 0.01
@@ -156,13 +156,15 @@ class Config:
 
     def lr_cooler(self, initial: float) -> Cooler:
         if self.lr_minimum is None:
-            return DummyCooler()
-        return LinearCooler(initial, self.lr_minimum, self.max_steps)
+            return DummyCooler(initial)
+        update_steps = self.max_steps // (self.nsteps * self.nworkers)
+        return LinearCooler(initial, self.lr_minimum, update_steps)
 
     def clip_cooler(self) -> Cooler:
         if self.clip_minimum is None:
-            return DummyCooler()
-        return LinearCooler(self.ppo_clip, self.clip_minimum, self.max_steps)
+            return DummyCooler(self.ppo_clip)
+        update_steps = self.max_steps // (self.nsteps * self.nworkers)
+        return LinearCooler(self.ppo_clip, self.clip_minimum, update_steps)
 
     def __repr__(self) -> str:
         d = filter(lambda t: not t[0].startswith('_Config'), self.__dict__.items())

@@ -14,6 +14,7 @@ def config() -> Config:
     c.set_parallel_env(pybullet_parallel())
     c.max_steps = int(1e6)
     c.nworkers = 12
+    c.nsteps = 5
     c.set_optimizer(lambda params: Adam(params, lr=0.001))
     c.grad_clip = 0.5
     c.gae_tau = 0.95

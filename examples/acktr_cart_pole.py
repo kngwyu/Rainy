@@ -15,7 +15,7 @@ KFAC_KWARGS = {
 
 def config() -> Config:
     c = Config()
-    c.max_steps = int(4e5)
+    c.max_steps = int(480 * 20)
     c.nworkers = 12
     c.nsteps = 20
     c.set_parallel_env(lambda env_gen, num_w: MultiProcEnv(env_gen, num_w))

@@ -21,7 +21,7 @@ class PpoAgent(A2cAgent):
         self.num_updates = self.config.ppo_epochs * nbatchs
 
     def members_to_save(self) -> Tuple[str, ...]:
-        return ('net', 'clip_eps', 'optimizer')
+        return ('net', 'clip_eps', 'clip_cooler', 'optimizer')
 
     def _policy_loss(self, policy: Policy, advantages: Tensor, old_log_probs: Tensor) -> Tensor:
         prob_ratio = torch.exp(policy.log_prob() - old_log_probs)
@@ -76,7 +76,7 @@ class PpoAgent(A2cAgent):
                 p, v, e = p + policy_loss.item(), v + value_loss.item(), e + entropy_loss.item()
 
         self.lr_cooler.lr_decay(self.optimizer)
-        self.clip_eps = self.clip_cooler(self.clip_eps)
+        self.clip_eps = self.clip_cooler()
         self.storage.reset()
 
         p, v, e = map(lambda x: x / float(self.num_updates), (p, v, e))
