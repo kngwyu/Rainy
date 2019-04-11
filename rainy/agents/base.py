@@ -10,6 +10,7 @@ from ..lib.rollout import RolloutStorage
 from ..net import DummyRnn, RnnState
 from ..envs import EnvExt
 from ..prelude import Action, Array, State
+from ..utils.log import ExpStats
 
 
 class EpisodeResult(NamedTuple):
@@ -28,6 +29,7 @@ class Agent(ABC):
         self.logger = config.logger
         self.env = config.env()
         self.total_steps = 0
+        self.loss_stat = ExpStats()
 
     @abstractmethod
     def members_to_save(self) -> Tuple[str, ...]:
@@ -63,9 +65,11 @@ class Agent(ABC):
         pass
 
     def report_loss(self, **kwargs) -> None:
-        if self.update_steps % self.config.network_log_freq == 0:
-            kwargs['update-steps'] = self.update_steps
-            self.logger.exp('loss', kwargs)
+        self.loss_stat.update(kwargs)
+        if self.update_steps % self.config.loss_log_freq == 0:
+            d = self.loss_stat.report_and_reset()
+            d['update-steps'] = self.update_steps
+            self.logger.exp('loss', d)
 
     def close(self) -> None:
         self.env.close()

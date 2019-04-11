@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime
 import json
 import logging
@@ -197,3 +198,21 @@ class ExperimentLog:
 
     def __repr__(self) -> str:
         return 'ExperimentLog({})'.format(self.log_path.as_posix())
+
+
+class ExpStats:
+    """Statictics of loss
+    """
+    def __init__(self) -> None:
+        self.inner = defaultdict(list)
+
+    def update(self, d: Dict[str, float]) -> None:
+        for key in d.keys():
+            self.inner[key].append(d[key])
+
+    def report_and_reset(self) -> Dict[str, float]:
+        res = {}
+        for k, v in self.inner.items():
+            res[k] = np.array(v).mean()
+            v.clear()
+        return res
