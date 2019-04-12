@@ -204,7 +204,7 @@ class ExpStats:
     """Statictics of loss
     """
     def __init__(self) -> None:
-        self.inner = defaultdict(list)
+        self.inner: Dict[str, List[float]] = defaultdict(list)
 
     def update(self, d: Dict[str, float]) -> None:
         for key in d.keys():

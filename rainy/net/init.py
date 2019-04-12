@@ -31,14 +31,13 @@ def zero() -> InitFn:
 
 
 def lstm_bias(forget: float = 1.0, other: float = 0.0) -> InitFn:
-    """Set forget bias =
+    """Set forget bias and others separately.
     """
     def __set_bias(t: Tensor) -> None:
         with torch.no_grad():
             i = len(t) // 4
-            t[0:i].fill_(other)
+            t.fill_(other)
             t[i:2 * i].fill_(forget)
-            t[i:].fill_(other)
     return partial(__set_bias)
 
 
@@ -56,7 +55,7 @@ class Initializer:
            with calucurated gain by torch.init.calculate_gain.
         """
         self.weight_init = weight_init
-        if nonlinearity:
+        if nonlinearity is not None:
             if 'gain' in self.weight_init.keywords:
                 self.weight_init.keywords['gain'] = nn.init.calculate_gain(nonlinearity)
             elif 'nonlinearity' in self.weight_init.keywords:
@@ -97,5 +96,3 @@ class Initializer:
         mod.weight.data.fill_(1)
         mod.bias.data.zero_()
         return mod
-
-
