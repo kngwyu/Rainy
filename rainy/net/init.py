@@ -30,12 +30,16 @@ def zero() -> InitFn:
     return partial(nn.init.constant_, val=0)
 
 
-def forget_bias(val: float) -> InitFn:
-    def __set_bias(t: Tensor, value: float) -> None:
+def lstm_bias(forget: float = 1.0, other: float = 0.0) -> InitFn:
+    """Set forget bias =
+    """
+    def __set_bias(t: Tensor) -> None:
         with torch.no_grad():
             i = len(t) // 4
-            t[i:2 * i].fill_(value)
-    return partial(__set_bias, value=val)
+            t[0:i].fill_(other)
+            t[i:2 * i].fill_(forget)
+            t[i:].fill_(other)
+    return partial(__set_bias)
 
 
 class Initializer:
