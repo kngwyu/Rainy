@@ -1,6 +1,7 @@
 import pytest
 from test_env import DummyEnv
 import torch
+from typing import Sequence
 from rainy.lib.rollout import RolloutSampler, RolloutStorage
 from rainy.envs import DummyParallelEnv, MultiProcEnv, ParallelEnv
 from rainy.net.policy import CategoricalHead
@@ -38,6 +39,17 @@ def test_storage(penv: ParallelEnv) -> None:
     penv.close()
 
 
+class TeState(recurrent.RnnState):
+    def __init__(self, h: torch.Tensor):
+        self.h = h
+
+    def __getitem__(self, x: Sequence[int]):
+        return TeState(self.h[x])
+
+    def fill_(self, f: float):
+        pass
+
+
 @pytest.mark.parametrize('penv, is_recurrent', [
     (DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 6), False),
     (MultiProcEnv(lambda: DummyEnv(array_dim=(16, 16)), 6), False),
@@ -49,8 +61,7 @@ def test_sampler(penv: ParallelEnv, is_recurrent: bool) -> None:
     ACTION_DIM = 3
     NWORKERS = penv.num_envs
     states = penv.reset()
-    rnns = recurrent.GruState(torch.zeros((NWORKERS, 10))) \
-        if is_recurrent else recurrent.DummyRnn.DUMMY_STATE
+    rnns = TeState(torch.arange(NWORKERS)) if is_recurrent else recurrent.DummyRnn.DUMMY_STATE
     storage = RolloutStorage(NSTEP, NWORKERS, Device())
     storage.set_initial_state(states, rnn_state=rnns)
     policy_head = CategoricalHead(ACTION_DIM)
@@ -60,9 +71,13 @@ def test_sampler(penv: ParallelEnv, is_recurrent: bool) -> None:
         policy = policy_head(torch.rand(NWORKERS, ACTION_DIM))
         storage.push(state, reward, done, rnn_state=rnns, policy=policy, value=value)
     MINIBATCH = 12
+    rnn_test = set()
     for batch in RolloutSampler(storage, penv, MINIBATCH):
         length = len(batch.states)
         assert length == MINIBATCH or length == (NSTEP * NWORKERS) % MINIBATCH
-        if isinstance(batch.rnn_init, recurrent.GruState):
+        if isinstance(batch.rnn_init, TeState):
             assert batch.rnn_init.h.size(0) == MINIBATCH // NSTEP
+            rnn_test.update(batch.rnn_init.h.cpu().tolist())
+    if is_recurrent:
+        assert len(rnn_test) > NWORKERS - (MINIBATCH // NSTEP)
     penv.close()
