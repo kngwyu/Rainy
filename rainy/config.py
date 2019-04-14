@@ -50,7 +50,7 @@ class Config:
         self.value_loss_weight = 1.0
         self.use_gae = False
         self.gae_tau = 1.0
-        self.lr_minimum: Optional[float] = None  # Mujoco: None Atari 0.0
+        self.lr_min: Optional[float] = None  # Mujoco: None Atari 0.0
 
         # For ppo
         self.adv_normalize_eps = 1.0e-5
@@ -58,7 +58,7 @@ class Config:
         self.ppo_epochs = 10  # Mujoco: 10 Atari: 3
         self.ppo_clip = 0.2  # Mujoco: 0.2 Atari: 0.1
         self.ppo_value_clip = True
-        self.clip_minimum: Optional[float] = None  # Mujoco: None Atari: 0.0
+        self.ppo_clip_min: Optional[float] = None  # Mujoco: None Atari: 0.0
 
         # Logger and logging frequency
         self.logger = Logger()
@@ -155,16 +155,16 @@ class Config:
         self.__net[name] = net
 
     def lr_cooler(self, initial: float) -> Cooler:
-        if self.lr_minimum is None:
+        if self.lr_min is None:
             return DummyCooler(initial)
         update_steps = self.max_steps // (self.nsteps * self.nworkers)
-        return LinearCooler(initial, self.lr_minimum, update_steps)
+        return LinearCooler(initial, self.lr_min, update_steps)
 
     def clip_cooler(self) -> Cooler:
-        if self.clip_minimum is None:
+        if self.ppo_clip_min is None:
             return DummyCooler(self.ppo_clip)
         update_steps = self.max_steps // (self.nsteps * self.nworkers)
-        return LinearCooler(self.ppo_clip, self.clip_minimum, update_steps)
+        return LinearCooler(self.ppo_clip, self.ppo_clip_min, update_steps)
 
     def __repr__(self) -> str:
         d = filter(lambda t: not t[0].startswith('_Config'), self.__dict__.items())
