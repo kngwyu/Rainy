@@ -47,7 +47,7 @@ class RecurrentBatchSampler(Sampler):
         env_num = self.batch_size // self.nsteps
         total, step = self.nsteps * self.nworkers, self.nworkers
         perm = np.random.permutation(self.nworkers)
-        for end in np.arange(env_num, self.nworkers, env_num):
+        for end in np.arange(env_num, self.nworkers + 1, env_num):
             workers = perm[end - env_num: end]
             batches = np.stack([np.arange(w, total, step) for w in workers], axis=1)
             yield batches.flatten()
