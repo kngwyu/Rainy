@@ -23,7 +23,7 @@ def config() -> Config:
     c.set_parallel_env(atari_parallel())
     c.value_loss_weight = 0.5
     c.use_gae = True
-    c.lr_minimum = 0.0
+    c.lr_min = 0.0
     c.max_steps = int(2e7)
     c.eval_env = Atari('Breakout')
     c.eval_freq = None
