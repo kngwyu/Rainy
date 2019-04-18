@@ -1,4 +1,4 @@
-from .actor_critic import ActorCriticNet
+from .actor_critic import ActorCriticNet, SharedBodyACNet
 from .block import Activator, ConvBody, DqnConv, FcBody, ResNetBody, LinearHead, NetworkBlock
 from .init import InitFn, Initializer
 from .policy import Policy, PolicyHead

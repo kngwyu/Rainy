@@ -1,18 +1,58 @@
-from numpy import ndarray
+from abc import ABC, abstractmethod
 from torch import nn, Tensor
 from typing import Callable, List, Optional, Tuple, Union
 from .block import DqnConv, FcBody, ResNetBody, LinearHead, NetworkBlock
 from .init import Initializer, orthogonal
 from .policy import CategoricalHead, Policy, PolicyHead
 from .recurrent import DummyRnn, RnnBlock, RnnState
-from ..prelude import NetFn
+from ..prelude import Array, NetFn
 from ..utils import Device
 from ..utils.misc import iter_prod
 
 
-class ActorCriticNet(nn.Module):
-    """A network with common body, value head and policy head.
-    Basically it's same as the one used in A3C paper.
+class ActorCriticNet(nn.Module, ABC):
+    """Network with Policy + Value Head
+    """
+    @property
+    @abstractmethod
+    def recurrent_body(self) -> RnnBlock:
+        pass
+
+    @property
+    def is_recurrent(self) -> bool:
+        return not isinstance(self.recurrent_body, DummyRnn)
+
+    @abstractmethod
+    def policy(
+            self,
+            states: Union[Array, Tensor],
+            rnns: Optional[RnnState] = None,
+            masks: Optional[Tensor] = None,
+    ) -> Tuple[Policy, RnnState]:
+        pass
+
+    @abstractmethod
+    def value(
+            self,
+            states: Union[Array, Tensor],
+            rnns: Optional[RnnState] = None,
+            masks: Optional[Tensor] = None,
+    ) -> Tensor:
+        pass
+
+    @abstractmethod
+    def forward(
+            self,
+            states: Union[Array, Tensor],
+            rnns: Optional[RnnState] = None,
+            masks: Optional[Tensor] = None,
+    ) -> Tuple[Policy, Tensor, RnnState]:
+        pass
+
+
+class SharedBodyACNet(nn.Module):
+    """An Actor Critic network with common body + separate value/policy heads.
+    Basically it's same as the one used in the Atari experimtent in the A3C paper.
     """
     def __init__(
             self,
@@ -27,14 +67,14 @@ class ActorCriticNet(nn.Module):
             'body output and action_head input must have a same dimention'
         assert body.output_dim == iter_prod(critic_head.input_dim), \
             'body output and action_head input must have a same dimention'
-        super(ActorCriticNet, self).__init__()
+        super().__init__()
         self.body = body
         self.device = device
         self.body = body
         self.actor_head = actor_head
         self.critic_head = critic_head
         self.policy_head = policy_head
-        self.recurrent_body = recurrent_body
+        self._rnn_body = recurrent_body
         self.to(device.unwrapped)
 
     @property
@@ -42,37 +82,37 @@ class ActorCriticNet(nn.Module):
         return self.body.input_dim
 
     @property
-    def action_dim(self) -> int:
+    def action_dim(self) -> Tuple[int, ...]:
         return self.actor_head.output_dim
 
     @property
-    def is_recurrent(self) -> bool:
-        return not isinstance(self.recurrent_body, DummyRnn)
+    def recurrent_body(self) -> RnnBlock:
+        return self._rnn_body
 
     def _features(
             self,
-            states: Union[ndarray, Tensor],
+            states: Union[Array, Tensor],
             rnns: Optional[RnnState] = None,
             masks: Optional[Tensor] = None,
     ) -> Tuple[Tensor, RnnState]:
         res = self.body(self.device.tensor(states))
         if rnns is None:
-            rnns = self.recurrent_body.initial_state(res.size(0), self.device)
-        res = self.recurrent_body(res, rnns, masks)
+            rnns = self._rnn_body.initial_state(res.size(0), self.device)
+        res = self._rnn_body(res, rnns, masks)
         return res
 
     def policy(
             self,
-            states: Union[ndarray, Tensor],
+            states: Union[Array, Tensor],
             rnns: Optional[RnnState] = None,
             masks: Optional[Tensor] = None,
     ) -> Tuple[Policy, RnnState]:
-        features, rnns_ = self._features(states, rnns, masks)
-        return self.policy_head(self.actor_head(features)), rnns_
+        features, rnn_next = self._features(states, rnns, masks)
+        return self.policy_head(self.actor_head(features)), rnn_next
 
     def value(
             self,
-            states: Union[ndarray, Tensor],
+            states: Union[Array, Tensor],
             rnns: Optional[RnnState] = None,
             masks: Optional[Tensor] = None,
     ) -> Tensor:
@@ -81,13 +121,13 @@ class ActorCriticNet(nn.Module):
 
     def forward(
             self,
-            states: Union[ndarray, Tensor],
+            states: Union[Array, Tensor],
             rnns: Optional[RnnState] = None,
             masks: Optional[Tensor] = None,
     ) -> Tuple[Policy, Tensor, RnnState]:
-        features, rnns = self._features(states, rnns, masks)
+        features, rnn_next = self._features(states, rnns, masks)
         policy, value = self.actor_head(features), self.critic_head(features)
-        return self.policy_head(policy), value.squeeze(), rnns
+        return self.policy_head(policy), value.squeeze(), rnn_next
 
 
 def policy_init() -> Initializer:
@@ -96,16 +136,16 @@ def policy_init() -> Initializer:
     return Initializer(weight_init=orthogonal(0.01))
 
 
-def _make_ac_net(
+def _make_ac_shared(
         body: NetworkBlock,
         policy_head: PolicyHead,
         device: Device,
         rnn: Callable[[int, int], RnnBlock],
-) -> ActorCriticNet:
+) -> SharedBodyACNet:
     rnn_ = rnn(body.output_dim, body.output_dim)
     ac_head = LinearHead(body.output_dim, policy_head.input_dim, policy_init())
     cr_head = LinearHead(body.output_dim, 1)
-    return ActorCriticNet(body, ac_head, cr_head, policy_head, recurrent_body=rnn_, device=device)
+    return SharedBodyACNet(body, ac_head, cr_head, policy_head, recurrent_body=rnn_, device=device)
 
 
 def ac_conv(
@@ -118,10 +158,10 @@ def ac_conv(
     """Convolutuion network used for atari experiments
        in A3C paper(https://arxiv.org/abs/1602.01783)
     """
-    def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> ActorCriticNet:
+    def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> SharedBodyACNet:
         body = DqnConv(state_dim, hidden_channels=hidden_channels, output_dim=output_dim, **kwargs)
         policy_head = policy(action_dim, device)
-        return _make_ac_net(body, policy_head, device, rnn)
+        return _make_ac_shared(body, policy_head, device, rnn)
     return _net  # type: ignore
 
 
@@ -132,10 +172,10 @@ def fc_shared(
 ) -> NetFn:
     """FC body head ActorCritic network
     """
-    def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> ActorCriticNet:
+    def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> SharedBodyACNet:
         body = FcBody(state_dim[0], **kwargs)
         policy_head = policy(action_dim, device)
-        return _make_ac_net(body, policy_head, device, rnn)
+        return _make_ac_shared(body, policy_head, device, rnn)
     return _net
 
 
@@ -147,8 +187,8 @@ def impala_conv(
 ) -> NetFn:
     """Convolutuion network used in IMPALA
     """
-    def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> ActorCriticNet:
+    def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> SharedBodyACNet:
         body = ResNetBody(state_dim, channels, **kwargs)
         policy_head = policy(action_dim, device)
-        return _make_ac_net(body, policy_head, device, rnn)
+        return _make_ac_shared(body, policy_head, device, rnn)
     return _net  # type: ignore
