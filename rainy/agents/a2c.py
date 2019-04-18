@@ -14,6 +14,7 @@ class A2cAgent(NStepParallelAgent[State]):
         self.net: ActorCriticNet = config.net('actor-critic')
         self.optimizer = config.optimizer(self.net.parameters())
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
+        self.eval_rnns = self.rnn_init()
 
     def members_to_save(self) -> Tuple[str, ...]:
         return ("net",)

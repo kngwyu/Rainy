@@ -207,7 +207,7 @@ class NStepParallelAgent(Agent, Generic[State]):
         self.episode_length = np.zeros(config.nworkers, dtype=np.int)
         self.episode_results: List[EpisodeResult] = []
         self.penv = config.parallel_env()
-        self.eval_rnns: RnnState = self.rnn_init()
+        self.eval_rnns: RnnState = DummyRnn.DUMMY_STATE
 
     def eval_parallel(
             self,
@@ -222,12 +222,11 @@ class NStepParallelAgent(Agent, Generic[State]):
         self.rewards.fill(0.0)
         self.episode_length.fill(0)
         self.episode_results.clear()
-        self.eval_rnns = self.rnn_init()
-
         if n is None:
             n = self.config.nworkers
         if self.config.seed is not None:
             self.penv.seed([self.config.seed] * self.config.nworkers)
+
         states = self.penv.reset()
         while True:
             actions = self.eval_action_parallel(self.penv.extract(states), entropy)
