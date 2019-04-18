@@ -53,7 +53,10 @@ class ParallelEnv(ABC, Generic[Action, State]):
         return self.spec.use_reward_monitor
 
     @abstractmethod
-    def states_to_array(self, states: Iterable[State]) -> Array:
+    def extract(self, states: Iterable[State]) -> Array:
+        """
+        Convert Sequence of states to ndarray.
+        """
         pass
 
 
@@ -95,7 +98,7 @@ class MultiProcEnv(ParallelEnv):
     def spec(self) -> EnvSpec:
         return self._spec
 
-    def states_to_array(self, states: Iterable[State]) -> ndarray:
+    def extract(self, states: Iterable[State]) -> ndarray:
         return np.asarray([self.to_array(s) for s in states])
 
 
@@ -177,5 +180,5 @@ class DummyParallelEnv(ParallelEnv):
     def spec(self) -> EnvSpec:
         return self.envs[0].spec
 
-    def states_to_array(self, states: Iterable[State]) -> ndarray:
+    def extract(self, states: Iterable[State]) -> ndarray:
         return np.asarray([e.extract(s) for (s, e) in zip(states, self.envs)])

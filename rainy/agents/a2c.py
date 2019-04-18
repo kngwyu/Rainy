@@ -40,7 +40,7 @@ class A2cAgent(NStepParallelAgent[State]):
             return policy.action().squeeze().cpu().numpy()
 
     def _network_in(self, states: Array[State]) -> Tuple[Array, RnnState, torch.Tensor]:
-        return self.penv.states_to_array(states), self.storage.rnn_states[-1], self.storage.masks[-1]
+        return self.penv.extract(states), self.storage.rnn_states[-1], self.storage.masks[-1]
 
     def _one_step(self, states: Array[State]) -> Array[State]:
         with torch.no_grad():
@@ -64,7 +64,7 @@ class A2cAgent(NStepParallelAgent[State]):
         for _ in range(self.config.nsteps):
             states = self._one_step(states)
         with torch.no_grad():
-            # next_value = self.net.value(self.penv.states_to_array(states))
+            # next_value = self.net.value(self.penv.extract(states))
             next_value = self.net.value(*self._network_in(states))
         if self.config.use_gae:
             gamma, tau = self.config.discount_factor, self.config.gae_tau

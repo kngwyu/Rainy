@@ -33,8 +33,8 @@ class ParallelEnvWrapper(ParallelEnv[Action, State]):
     def spec(self) -> EnvSpec:
         return self.penv.spec
 
-    def states_to_array(self, states: Iterable[State]) -> Array:
-        return self.penv.states_to_array(states)
+    def extract(self, states: Iterable[State]) -> Array:
+        return self.penv.extract(states)
 
 
 class FrameStackParallel(ParallelEnvWrapper):
@@ -60,13 +60,13 @@ class FrameStackParallel(ParallelEnvWrapper):
         self.obs = np.roll(self.obs, shift=-1, axis=1)
         for i, _ in filter(lambda t: t[1], enumerate(done)):
             self.obs[i] = 0.0
-        self.obs[:, -1] = self.states_to_array(state).squeeze()
+        self.obs[:, -1] = self.extract(state).squeeze()
         return (self.obs, reward, done, info)
 
     def reset(self) -> Array[State]:
         self.obs.fill(0)
         state = self.penv.reset()
-        self.obs[:, -1] = self.states_to_array(state).squeeze()
+        self.obs[:, -1] = self.extract(state).squeeze()
         return self.obs
 
     @property

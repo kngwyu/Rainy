@@ -60,7 +60,7 @@ class RolloutStorage(Generic[State]):
         self.values = []
 
     def batch_states(self, penv: ParallelEnv) -> Tensor:
-        states = [self.device.tensor(penv.states_to_array(s)) for s in self.states[:-1]]
+        states = [self.device.tensor(penv.extract(s)) for s in self.states[:-1]]
         return torch.cat(states, dim=0)
 
     def batch_actions(self) -> Tensor:
