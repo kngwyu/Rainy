@@ -82,7 +82,7 @@ class SharedBodyACNet(nn.Module):
         return self.body.input_dim
 
     @property
-    def action_dim(self) -> Tuple[int, ...]:
+    def action_dim(self) -> int:
         return self.actor_head.output_dim
 
     @property
