@@ -38,7 +38,8 @@ class Atari(EnvExt):
         super().__init__(env)
         self.spec.use_reward_monitor = True
 
-    def extract(self, obs: State) -> ndarray:
+    @staticmethod
+    def extract(obs: State) -> ndarray:
         if type(obs) is LazyFrames:
             return obs.__array__()  # type: ignore
         else:
