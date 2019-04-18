@@ -112,7 +112,7 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
     def action_space(self) -> gym.Space:
         return self._env.action_space
 
-    def state_to_array(self, state: State) -> ndarray:
+    def extract(self, state: State) -> ndarray:
         """
         Extended method.
         Convert state to ndarray.

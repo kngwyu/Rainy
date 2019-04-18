@@ -57,7 +57,7 @@ class DummyEnv(EnvExt):
     def close(self) -> None:
         pass
 
-    def state_to_array(self, state: State) -> np.ndarray:
+    def extract(self, state: State) -> np.ndarray:
         return state.to_array(self.array_dim)
 
 

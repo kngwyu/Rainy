@@ -40,7 +40,7 @@ class DqnAgent(OneStepAgent):
     def step(self, state: State) -> Tuple[State, float, bool, dict]:
         train_started = self.total_steps > self.config.train_start
         if train_started:
-            action = self.policy.select_action(self.env.state_to_array(state), self.net)
+            action = self.policy.select_action(self.env.extract(state), self.net)
         else:
             action = self.env.spec.random_action()
         next_state, reward, done, info = self.env.step(action)
@@ -54,7 +54,7 @@ class DqnAgent(OneStepAgent):
 
     def _train(self) -> None:
         obs = self.replay.sample(self.config.replay_batch_size)
-        obs = [ob.to_ndarray(self.env.state_to_array) for ob in obs]
+        obs = [ob.to_ndarray(self.env.extract) for ob in obs]
         states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
         with torch.no_grad():
             q_next = self._q_next(next_states)

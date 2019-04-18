@@ -88,7 +88,7 @@ class Agent(ABC):
         while True:
             if render:
                 env.render()
-            state = env.state_to_array(state)
+            state = env.extract(state)
             action = select_action(state)
             state, reward, done, info = env.step(action)
             steps += 1

@@ -61,7 +61,7 @@ class MultiProcEnv(ParallelEnv):
     def __init__(self, env_gen: EnvGen, nworkers: int) -> None:
         assert nworkers >= 2
         envs_tmp = [env_gen() for _ in range(nworkers)]
-        self.to_array = envs_tmp[0].state_to_array
+        self.to_array = envs_tmp[0].extract
         self._spec = envs_tmp[0].spec
         self.envs = [_ProcHandler(e) for e in envs_tmp]
 
@@ -178,4 +178,4 @@ class DummyParallelEnv(ParallelEnv):
         return self.envs[0].spec
 
     def states_to_array(self, states: Iterable[State]) -> ndarray:
-        return np.asarray([e.state_to_array(s) for (s, e) in zip(states, self.envs)])
+        return np.asarray([e.extract(s) for (s, e) in zip(states, self.envs)])
