@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import torch
 from torch import nn, Tensor
-from typing import Generic, Iterable, Optional, Sequence, Tuple, TypeVar
+from typing import Generic, Iterable, Optional, Sequence, Tuple, Union, TypeVar
 from .init import lstm_bias, Initializer
 from ..prelude import Self
 from ..utils import Device
@@ -9,11 +9,19 @@ from ..utils import Device
 
 class RnnState(ABC):
     @abstractmethod
-    def __getitem__(self, x: Sequence[int]) -> Self:
+    def __getitem__(self, x: Union[Sequence[int], int]) -> Self:
+        pass
+
+    @abstractmethod
+    def __setitem__(self, x: Union[Sequence[int], int], value: Self) -> None:
         pass
 
     @abstractmethod
     def fill_(self, f: float) -> None:
+        pass
+
+    @abstractmethod
+    def mul_(self, x: Tensor) -> None:
         pass
 
 
@@ -68,8 +76,12 @@ class LstmState(RnnState):
             self.h.squeeze_(0)
             self.c.squeeze_(0)
 
-    def __getitem__(self, x: Sequence[int]) -> Self:
+    def __getitem__(self, x: Union[Sequence[int], int]) -> Self:
         return LstmState(self.h[x], self.c[x])
+
+    def __setitem__(self, x: Union[Sequence[int], int], value: Self) -> None:
+        self.h[x] = value.h[x]
+        self.c[x] = value.c[x]
 
     def fill_(self, f: float) -> None:
         self.h.fill_(f)
@@ -121,11 +133,17 @@ class GruState(RnnState):
     def __init__(self, h: Tensor) -> None:
         self.h = h
 
-    def __getitem__(self, x: Sequence[int]) -> Self:
+    def __getitem__(self, x: Union[Sequence[int], int]) -> Self:
         return GruState(self.h[x])
+
+    def __setitem__(self, x: Union[Sequence[int], int], value: Self) -> None:
+        self.h[x] = value.h[x]
 
     def fill_(self, f: float) -> None:
         self.h.fill_(f)
+
+    def mul_(self, x: Tensor) -> None:
+        self.h.mul_(x)
 
 
 class GruBlock(RnnBlock[GruState]):
@@ -164,10 +182,16 @@ class GruBlock(RnnBlock[GruState]):
 
 
 class DummyState(RnnState):
-    def __getitem__(self, x: Sequence[int]) -> Self:
+    def __getitem__(self, x: Union[Sequence[int], int]) -> Self:
         return self
 
+    def __setitem__(self, x: Union[Sequence[int], int], value: Self) -> None:
+        pass
+
     def fill_(self, f: float) -> None:
+        pass
+
+    def mul_(self, x: Tensor) -> None:
         pass
 
 

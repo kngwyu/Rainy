@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch import nn
-from typing import Tuple
+from typing import Optional, Tuple
 from .base import NStepParallelAgent
 from ..config import Config
 from ..net import ActorCriticNet, Policy, RnnState
@@ -14,7 +14,6 @@ class A2cAgent(NStepParallelAgent[State]):
         self.net: ActorCriticNet = config.net('actor-critic')
         self.optimizer = config.optimizer(self.net.parameters())
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
-        self.eval_rnns: RnnState = self.net.recurrent_body.initial_state(1, self.config.device)
 
     def members_to_save(self) -> Tuple[str, ...]:
         return ("net",)
@@ -33,7 +32,21 @@ class A2cAgent(NStepParallelAgent[State]):
             # treat as batch_size == 1
             state = np.stack([state])
         with torch.no_grad():
-            policy, self.eval_rnns = self.net.policy(state, self.eval_rnns)
+            policy, self.eval_rnns[0] = self.net.policy(state, self.eval_rnns[0])
+        if self.config.eval_deterministic:
+            return policy.best_action().squeeze().cpu().numpy()
+        else:
+            return policy.action().squeeze().cpu().numpy()
+
+    def eval_action_parallel(
+            self,
+            states: Array,
+            ent: Optional[Array[float]] = None
+    ) -> Array[Action]:
+        with torch.no_grad():
+            policy, self.eval_rnns = self.net.policy(states, self.eval_rnns)
+        if ent is not None:
+            ent += policy.entropy().cpu().numpy()
         if self.config.eval_deterministic:
             return policy.best_action().squeeze().cpu().numpy()
         else:
