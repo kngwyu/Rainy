@@ -50,7 +50,7 @@ class ActorCriticNet(nn.Module, ABC):
         pass
 
 
-class SharedBodyACNet(nn.Module):
+class SharedBodyACNet(ActorCriticNet):
     """An Actor Critic network with common body + separate value/policy heads.
     Basically it's same as the one used in the Atari experimtent in the A3C paper.
     """
