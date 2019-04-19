@@ -18,7 +18,7 @@ def config() -> Config:
     c.max_steps = int(4e5)
     c.nworkers = 12
     c.nsteps = 20
-    c.set_parallel_env(lambda env_gen, num_w: MultiProcEnv(env_gen, num_w))
+    c.set_parallel_env(MultiProcEnv)
     c.set_optimizer(kfac.default_sgd(eta_max=0.1))
     c.set_preconditioner(lambda net: kfac.KfacPreConditioner(net, **KFAC_KWARGS))
     c.gae_tau = 0.95
