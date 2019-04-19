@@ -1,9 +1,27 @@
+import io
+import re
 from setuptools import setup, find_packages
 import sys
 
-if sys.version_info.major != 3:
-    print('This Python is only compatible with Python 3, but you are running '
-          'Python {}. The installation will likely fail.'.format(sys.version_info.major))
+
+py_major = sys.version_info.major
+py_minor = sys.version_info.minor
+if py_major != 3 or py_minor <= 5:
+    print('This package is only compatible with Python>=3.6, but you are running '
+          'Python {}.{}. The installation will likely fail.'.format(py_major, py_minor))
+
+with io.open('rainy/__init__.py', 'rt', encoding='utf8') as f:
+    version = re.search(r"__version__ = \'(.*?)\'", f.read()).group(1)
+
+
+description = '''
+Rainy
+=====
+Reinforcement learning utilities and algrithm implementations using PyTorch.
+
+Please see https://github.com/kngwyu/Rainy for detail.
+'''
+
 
 requirements = [
     'click>=7.0',
@@ -20,12 +38,32 @@ extra_requirements = {
     'bullet': ['pybullet>=2.4']
 }
 
-setup(name='rainy',
-      author='Yuji Kanagawa',
-      url='https://github.com/kngwyu/Rainy',
-      version='0.1',
-      packages=find_packages(),
-      install_requires=requirements,
-      test_requires=test_requirements,
-      extras_require=extra_requirements)
-
+setup(
+    name='rainy',
+    version=version,
+    url='https://github.com/kngwyu/Rainy',
+    project_urls={
+        'Code': 'https://github.com/kngwyu/Rainy',
+        'Issue tracker': 'https://github.com/kngwyu/Rainy/issues',
+    },
+    author='Yuji Kanagawa',
+    author_email='yuji.kngw.80s.revive@gmail.com',
+    description='Algorithm and utilities for deep reinforcement learning',
+    long_description=description,
+    packages=find_packages(),
+    python_requires='>=3.6',
+    install_requires=requirements,
+    test_requires=test_requirements,
+    extras_require=extra_requirements,
+    classifiers=[
+        'License :: OSI Approved :: Apache Software License',
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Developers',
+        'Natural Language :: English',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+    ],
+)
