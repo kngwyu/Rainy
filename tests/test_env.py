@@ -6,8 +6,11 @@ from numpy.testing import assert_array_almost_equal
 from rainy import envs
 from rainy.envs import DummyParallelEnv, EnvExt,\
     EnvSpec, MultiProcEnv, ParallelEnv, FrameStackParallel
+from rainy.utils.misc import iter_prod
 import pytest
 from typing import Tuple
+
+ACTION_DIM = 10
 
 
 class State(Enum):
@@ -26,7 +29,7 @@ class State(Enum):
 
 
 class DummyEnv(EnvExt):
-    def __init__(self, array_dim: Tuple[int, ...] = (16, 16)) -> None:
+    def __init__(self, array_dim: Tuple[int, ...] = (16, 16), flatten: bool = False) -> None:
         self.state = State.START
         self.transition = [
             [0.0, 0.7, 0.3, 0.0, 0.0],
@@ -37,6 +40,7 @@ class DummyEnv(EnvExt):
         ]
         self.rewards = [0., 0., 0., -10., 20.]
         self.array_dim = array_dim
+        self.flatten = flatten
 
     def reset(self) -> State:
         self.state = State.START
@@ -49,7 +53,11 @@ class DummyEnv(EnvExt):
 
     @property
     def spec(self) -> EnvSpec:
-        return EnvSpec(self.array_dim, Discrete(1))
+        if self.flatten:
+            dim = (iter_prod(self.array_dim),)
+        else:
+            dim = self.array_dim
+        return EnvSpec(dim, Discrete(ACTION_DIM))
 
     def seed(self, int) -> None:
         pass
@@ -58,12 +66,16 @@ class DummyEnv(EnvExt):
         pass
 
     def extract(self, state: State) -> np.ndarray:
-        return state.to_array(self.array_dim)
+        res = state.to_array(self.array_dim)
+        if self.flatten:
+            return res.flatten()
+        else:
+            return res
 
 
 class DummyEnvDeterministic(DummyEnv):
-    def __init__(self, array_dim: Tuple[int, ...] = (16, 16)) -> None:
-        super().__init__(array_dim)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
         self.transition = [
             [0.0, 1.0, 0.0, 0.0, 0.0],
             [0.0, 0.0, 1.0, 0.0, 0.0],

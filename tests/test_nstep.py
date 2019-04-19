@@ -40,14 +40,20 @@ def test_storage(penv: ParallelEnv) -> None:
 
 
 class TeState(recurrent.RnnState):
-    def __init__(self, h: torch.Tensor):
+    def __init__(self, h):
         self.h = h
 
-    def __getitem__(self, x: Sequence[int]):
+    def __getitem__(self, x):
         return TeState(self.h[x])
 
-    def fill_(self, f: float):
-        pass
+    def __setitem__(self, x, value):
+        self.f[x] = value
+
+    def fill_(self, f):
+        self.h.fill_(f)
+
+    def mul_(self, f):
+        self.h.mul_(f)
 
 
 @pytest.mark.parametrize('penv, is_recurrent', [

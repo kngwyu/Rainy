@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import copy
 import numpy as np
 from pathlib import Path
 import torch
@@ -206,37 +207,49 @@ class NStepParallelAgent(Agent, Generic[State]):
         self.episode_length = np.zeros(config.nworkers, dtype=np.int)
         self.episode_results: List[EpisodeResult] = []
         self.penv = config.parallel_env()
+        self.eval_rnns: RnnState = DummyRnn.DUMMY_STATE
 
     def eval_parallel(
             self,
             n: Optional[int] = None,
             entropy: Optional[Array[float]] = None,
     ) -> List[EpisodeResult]:
+        reserved = (
+            copy.deepcopy(self.rewards),
+            copy.deepcopy(self.episode_length),
+            copy.deepcopy(self.episode_results),
+        )
         self.rewards.fill(0.0)
         self.episode_length.fill(0)
-        self.episode_results = []
+        self.episode_results.clear()
         if n is None:
             n = self.config.nworkers
         if self.config.seed is not None:
             self.penv.seed([self.config.seed] * self.config.nworkers)
+
         states = self.penv.reset()
         while True:
             actions = self.eval_action_parallel(self.penv.extract(states), entropy)
             states, rewards, done, info = self.penv.step(actions)
+            self.eval_rnns.mul_(self.config.device.tensor(1.0 - done))
             self.episode_length += 1
             self.rewards += rewards
             self.report_reward(done, info)
             if n <= len(self.episode_results):
                 break
-        self.eval_reset()
-        return self.episode_results
 
+        res = self.episode_results
+        self.rewards, self.episode_length, self.episode_results = reserved
+        self.eval_reset()
+        return res
+
+    @abstractmethod
     def eval_action_parallel(
             self,
             states: Array,
-            ent: Optional[Array[float]] = None
+            ent: Optional[Array[float]] = None,
     ) -> Array[Action]:
-        raise NotImplementedError('TODO: Remove this function')
+        pass
 
     @abstractmethod
     def nstep(self, states: Array[State]) -> Array[State]:
