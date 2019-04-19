@@ -1,5 +1,6 @@
 # Rainy
 [![Build Status](https://travis-ci.org/kngwyu/Rainy.svg?branch=master)](https://travis-ci.org/kngwyu/Rainy)
+[![PyPI version](https://img.shields.io/pypi/v/rainy.svg)](https://pypi.org/project/rainy/)
 
 Reinforcement learning utilities and algrithm implementations using PyTorch.
 
