@@ -6,3 +6,6 @@ from . import lib
 from . import net
 from . import replay
 from . import utils
+
+
+__version__ = '0.1.0'
