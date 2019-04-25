@@ -75,9 +75,6 @@ class RolloutStorage(Generic[State]):
     def batch_masks(self) -> Tensor:
         return torch.cat(self.masks[:-1])
 
-    def batch_rewards(self) -> Tensor:
-        return self.device.tensor(self.rewards).flatten()
-
     def batch_log_probs(self) -> Tensor:
         return torch.cat([p.log_prob() for p in self.policies])
 
@@ -105,7 +102,6 @@ class RolloutBatch(NamedTuple):
     states: Tensor
     actions: Tensor
     masks: Tensor
-    rewards: Tensor
     returns: Tensor
     values: Tensor
     old_log_probs: Tensor
@@ -139,7 +135,6 @@ class RolloutSampler:
         self.actions = storage.batch_actions()
         self.masks = storage.batch_masks()
         self.returns = storage.batch_returns()
-        self.rewards = storage.batch_rewards()
         self.values = storage.batch_values()
         self.old_log_probs = storage.batch_log_probs()
         self.rnn_init = storage.rnn_states[0]
@@ -156,7 +151,6 @@ class RolloutSampler:
                 self.states[i],
                 self.actions[i],
                 self.masks[i],
-                self.rewards[i],
                 self.returns[i],
                 self.values[i],
                 self.old_log_probs[i],

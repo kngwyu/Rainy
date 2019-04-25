@@ -1,7 +1,6 @@
 import pytest
 from test_env import DummyEnv
 import torch
-from typing import Sequence
 from rainy.lib.rollout import RolloutSampler, RolloutStorage
 from rainy.envs import DummyParallelEnv, MultiProcEnv, ParallelEnv
 from rainy.net.policy import CategoricalHead
@@ -35,7 +34,6 @@ def test_storage(penv: ParallelEnv) -> None:
     assert sampler.masks.shape == batch_shape
     assert sampler.values.shape == batch_shape
     assert sampler.old_log_probs.shape == batch_shape
-    assert sampler.rewards.shape == batch_shape
     penv.close()
 
 
