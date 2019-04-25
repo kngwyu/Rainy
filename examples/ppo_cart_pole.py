@@ -14,7 +14,7 @@ def config() -> rainy.Config:
     c.set_optimizer(lambda params: Adam(params, lr=2.5e-4, eps=1.0e-4))
     c.value_loss_weight = 0.1
     c.grad_clip = 0.1
-    c.gae_tau = 0.95
+    c.gae_lambda = 0.95
     c.ppo_minibatch_size = 64
     c.use_gae = True
     c.ppo_clip = 0.2

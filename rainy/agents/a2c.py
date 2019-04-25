@@ -81,8 +81,8 @@ class A2cAgent(NStepParallelAgent[State]):
             # next_value = self.net.value(self.penv.extract(states))
             next_value = self.net.value(*self._network_in(states))
         if self.config.use_gae:
-            gamma, tau = self.config.discount_factor, self.config.gae_tau
-            self.storage.calc_gae_returns(next_value, gamma, tau)
+            gamma, lambda_ = self.config.discount_factor, self.config.gae_lambda
+            self.storage.calc_gae_returns(next_value, gamma, lambda_)
         else:
             self.storage.calc_ac_returns(next_value, self.config.discount_factor)
         policy, value, _ = self.net(

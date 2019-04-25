@@ -49,7 +49,7 @@ class Config:
         self.entropy_weight = 0.01
         self.value_loss_weight = 1.0
         self.use_gae = False
-        self.gae_tau = 1.0
+        self.gae_lambda = 1.0
         self.lr_min: Optional[float] = None  # Mujoco: None Atari 0.0
 
         # For ppo

@@ -17,7 +17,7 @@ def config() -> Config:
     c.nsteps = 5
     c.set_optimizer(lambda params: Adam(params, lr=0.001))
     c.grad_clip = 0.5
-    c.gae_tau = 0.95
+    c.gae_lambda = 0.95
     c.value_loss_weight = 0.5
     c.entropy_weight = 0.0
     c.use_gae = False

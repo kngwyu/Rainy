@@ -18,7 +18,7 @@ def config() -> Config:
     # ppo params
     c.value_loss_weight = 0.5
     c.entropy_weight = 0.0
-    c.gae_tau = 0.95
+    c.gae_lambda = 0.95
     c.nworkers = 4
     c.nsteps = 512
     c.ppo_minibatch_size = (4 * 512) // 8
