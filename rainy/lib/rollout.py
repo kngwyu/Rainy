@@ -91,13 +91,13 @@ class RolloutStorage(Generic[State]):
         for i in reversed(range(self.nsteps)):
             self.returns[i] = self.returns[i + 1] * gamma * masks[i + 1] + rewards[i]
 
-    def calc_gae_returns(self, next_value: Tensor, gamma: float, tau: float) -> None:
+    def calc_gae_returns(self, next_value: Tensor, gamma: float, lambda_: float) -> None:
         masks, rewards = self._calc_ret_common(next_value)
         gae = self.device.zeros(self.nworkers)
         for i in reversed(range(self.nsteps)):
             td_error = \
                 rewards[i] + gamma * self.values[i + 1] * masks[i + 1] - self.values[i]
-            gae = td_error + gamma * tau * masks[i] * gae
+            gae = td_error + gamma * lambda_ * masks[i] * gae
             self.returns[i] = gae + self.values[i]
 
 

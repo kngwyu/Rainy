@@ -19,7 +19,7 @@ def config() -> Config:
     c.nworkers = 8
     c.nsteps = 128
     c.value_loss_weight = 0.5
-    c.gae_tau = 0.95
+    c.gae_lambda = 0.95
     c.ppo_minibatch_size = 32 * 8
     c.ppo_clip = 0.1
     c.ppo_epochs = 3
