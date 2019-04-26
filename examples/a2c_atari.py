@@ -18,7 +18,7 @@ def config() -> Config:
     #  c.set_net_fn('actor-critic', net.actor_critic.ac_conv(rnn=net.GruBlock))
     c.set_net_fn('actor-critic', net.actor_critic.ac_conv())
     c.nworkers = 16
-    c.nsteps = 1
+    c.nsteps = 5
     c.set_parallel_env(atari_parallel())
     c.grad_clip = 0.5
     c.value_loss_weight = 0.5
