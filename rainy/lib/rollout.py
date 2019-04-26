@@ -120,8 +120,8 @@ class RolloutSampler:
             adv_normalize_eps: Optional[float] = None,
     ) -> None:
         """Create a batch sampler from storage for feed forward network.
-        adv_normalize_eps is adpoted from Open AI's PPO implementation.
-        I think it's for reduce variance of advantages, but I'm not sure.
+        adv_normalize_eps is adpoted from the PPO implementation in OpenAI baselines.
+        It looks for reducing the variance of advantages, but not sure.
         """
         self.nworkers = storage.nworkers
         self.nsteps = storage.nsteps
@@ -143,18 +143,21 @@ class RolloutSampler:
         if adv_normalize_eps is not None:
             normalize_(self.advantages, adv_normalize_eps)
 
+    def _make_batch(self, i: Array[int]) -> RolloutBatch:
+        return RolloutBatch(
+            self.states[i],
+            self.actions[i],
+            self.masks[i],
+            self.returns[i],
+            self.values[i],
+            self.old_log_probs[i],
+            self.advantages[i],
+            self.rnn_init[i[:len(i) // self.nsteps]]
+        )
+
     def __iter__(self) -> Iterator[RolloutBatch]:
         sampler_cls = FeedForwardBatchSampler \
             if self.rnn_init is DummyRnn.DUMMY_STATE else RecurrentBatchSampler
         for i in sampler_cls(self.nsteps, self.nworkers, self.minibatch_size):  # type: ignore
-            yield RolloutBatch(
-                self.states[i],
-                self.actions[i],
-                self.masks[i],
-                self.returns[i],
-                self.values[i],
-                self.old_log_probs[i],
-                self.advantages[i],
-                self.rnn_init[i[:len(i) // self.nsteps]]
-            )
+            yield self._make_batch(i)
 
