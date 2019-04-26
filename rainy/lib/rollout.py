@@ -4,6 +4,7 @@ from typing import Generic, NamedTuple, Iterator, List, Optional
 from ..envs import ParallelEnv, State
 from ..net import DummyRnn, Policy, RnnBlock, RnnState
 from ..utils import Device
+from ..utils.misc import normalize_
 from ..utils.sample import FeedForwardBatchSampler, RecurrentBatchSampler
 from ..prelude import Array
 
@@ -139,9 +140,8 @@ class RolloutSampler:
         self.old_log_probs = storage.batch_log_probs()
         self.rnn_init = storage.rnn_states[0]
         self.advantages = self.returns - self.values
-        if adv_normalize_eps:
-            adv = self.advantages
-            self.advantages = (adv - adv.mean()) / (adv.std() + adv_normalize_eps)
+        if adv_normalize_eps is not None:
+            normalize_(self.advantages, adv_normalize_eps)
 
     def __iter__(self) -> Iterator[RolloutBatch]:
         sampler_cls = FeedForwardBatchSampler \
