@@ -230,7 +230,7 @@ class LazyFrames:
         return len(self._force())
 
     def __getitem__(self, i):
-        return self._force()[i]
+        return self._force()[:, i]
 
 
 class FlickerFrame(gym.ObservationWrapper):
