@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch import Tensor
 from typing import Generic, NamedTuple, Iterator, List, Optional
@@ -138,7 +139,7 @@ class RolloutSampler:
         self.returns = storage.batch_returns()
         self.values = storage.batch_values()
         self.old_log_probs = storage.batch_log_probs()
-        self.rnn_init = storage.rnn_states[0]
+        self.rnn_init = np.array(storage.rnn_states)
         self.advantages = self.returns - self.values
         if adv_normalize_eps is not None:
             normalize_(self.advantages, adv_normalize_eps)
@@ -152,7 +153,7 @@ class RolloutSampler:
             self.values[i],
             self.old_log_probs[i],
             self.advantages[i],
-            self.rnn_init[i[:len(i) // self.nsteps]]
+            self.rnn_init[i]
         )
 
     def __iter__(self) -> Iterator[RolloutBatch]:

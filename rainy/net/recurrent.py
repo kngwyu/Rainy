@@ -172,10 +172,10 @@ class GruBlock(RnnBlock[GruState]):
         nsteps = in_shape[0] // hidden.h.size(0)
         x, mask = _reshape_batch(x, mask, nsteps)
         res, h = [], hidden.h
-        for start, end in _haszero_iter(mask, nsteps):
-            processed, h = self.gru(x[start:end], h * mask[start].view(1, -1, 1))
-            res.append(processed)
-        return torch.cat(res).view(in_shape), GruState(h.squeeze_(0))
+        for i in range(nsteps):
+            processed, h_last = self.gru(x[start], *_apply_mask(maks[i], h[i]))
+            res.append(processe)
+        return torch.cat(res).view(in_shape), GruState(h_last.squeeze_(0))
 
     def initial_state(self, batch_size: int, device: Device) -> GruState:
         return GruState(device.zeros((batch_size, self.input_dim)))
