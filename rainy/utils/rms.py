@@ -1,3 +1,5 @@
+"""From https://github.com/openai/baselines/blob/master/baselines/common/running_mean_std.py
+"""
 import numpy as np
 import torch
 from typing import Tuple
@@ -6,7 +8,7 @@ from ..utils import Device
 
 
 class RunningMeanStd:
-    """From https://github.com/openai/baselines/blob/master/baselines/common/running_mean_std.py
+    """Calcurate running mean and variance
     """
     def __init__(self, shape: Tuple[int, ...], epsilon: float = 1.0e-4) -> None:
         self.mean = np.zeros(shape, 'float64')
@@ -50,7 +52,7 @@ class RunningMeanStdTorch:
         self.count = torch.tensor(epsilon, dtype=torch.float64, device=device.unwrapped)
         self.device = device
 
-    def update(self, x) -> None:
+    def update(self, x: torch.Tensor) -> None:
         _update_rms_torch(
             self.mean,
             self.var,
@@ -66,7 +68,7 @@ class RunningMeanStdTorch:
 
 @torch.jit.script
 def _update_rms_torch(mean, var, count, batch_mean, batch_var, batch_count):
-    """https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Parallel_algorithm
+    """PyTorch version of _update_rms
     """
     delta = batch_mean - mean
     tot_count = count + batch_count
