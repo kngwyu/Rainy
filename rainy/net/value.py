@@ -4,7 +4,7 @@ from numpy import ndarray
 from torch import nn, Tensor
 from typing import Tuple, Union
 from .block import DqnConv, FcBody, LinearHead, NetworkBlock
-from ..prelude import NetFn
+from .prelude import NetFn
 from ..utils import Device
 from ..utils.misc import iter_prod
 

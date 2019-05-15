@@ -1,6 +1,7 @@
 from torch import nn, Tensor, torch
 from typing import List, Union
 from numpy import ndarray
+from ..prelude import Self
 
 
 class Device:
@@ -16,6 +17,18 @@ class Device:
         else:
             self.gpu_indices = gpu_indices if gpu_indices else self.__all_gpu()
             self.device = torch.device('cuda:{}'.format(self.gpu_indices[0]))
+
+    def split(self) -> Self:
+        """If self has multiple GPUs, split them into two devices.
+        """
+        num_gpus = len(self.gpu_indices)
+        if num_gpus < 2:
+            return self
+        else:
+            index = num_gpus // 2
+            gpu_indices = self.gpu_indices[index:]
+            self.gpu_indices = self.gpu_indices[:index]
+            return Device(gpu_indices=gpu_indices)
 
     @property
     def unwrapped(self) -> torch.device:

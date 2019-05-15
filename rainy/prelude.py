@@ -1,6 +1,4 @@
-from torch import nn, Tensor
-from typing import Any, Callable, Iterable, Sequence, Tuple, TypeVar, Union
-from .utils.device import Device
+from typing import Any, Sequence, TypeVar
 
 
 try:
@@ -36,5 +34,3 @@ class Array(Sequence[T]):
 
 Action = TypeVar('Action', int, Array)
 State = TypeVar('State')
-NetFn = Callable[[Tuple[int, ...], int, Device], nn.Module]
-Params = Iterable[Union[Tensor, dict]]

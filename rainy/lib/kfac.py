@@ -7,7 +7,7 @@ from torch.nn import functional as F
 from torch.optim import Optimizer, SGD
 from typing import Any, Callable, List, Optional, Tuple, Union
 import warnings
-from ..prelude import Params
+from ..net.prelude import Params
 
 
 class Layer(Enum):

@@ -4,8 +4,9 @@ from typing import Callable, List, Optional, Tuple, Union
 from .block import DqnConv, FcBody, ResNetBody, LinearHead, NetworkBlock
 from .init import Initializer, orthogonal
 from .policy import CategoricalHead, Policy, PolicyHead
+from .prelude import NetFn
 from .recurrent import DummyRnn, RnnBlock, RnnState
-from ..prelude import Array, NetFn
+from ..prelude import Array
 from ..utils import Device
 from ..utils.misc import iter_prod
 
