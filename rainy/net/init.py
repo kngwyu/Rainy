@@ -68,11 +68,8 @@ class Initializer:
     def __call__(self, mod: Union[nn.Module, nn.Sequential, Iterable[nn.Module]]) -> nn.Module:
         return self.__init_dispatch(mod)
 
-    def make_list(self, *args) -> nn.ModuleList:
-        return nn.ModuleList([self.__init_dispatch(mod) for mod in args])
-
-    def make_seq(self, *args) -> nn.Sequential:
-        return nn.Sequential(*map(lambda mod: self.__init_dispatch(mod), args))
+    def make_list(self, mods: Iterable[nn.Module]) -> nn.ModuleList:
+        return nn.ModuleList([self.__init_dispatch(mod) for mod in mods])
 
     def __init_dispatch(self, mod: nn.Module) -> nn.Module:
         if isinstance(mod, nn.Sequential) or isinstance(mod, nn.ModuleList):
@@ -93,6 +90,6 @@ class Initializer:
         return mod
 
     def __init_batch_norm(self, mod: nn.BatchNorm2d) -> nn.Module:
-        mod.weight.data.fill_(1)
+        mod.weight.data.fill_(1.0)
         mod.bias.data.zero_()
         return mod

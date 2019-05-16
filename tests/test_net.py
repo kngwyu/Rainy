@@ -3,6 +3,7 @@ import pytest
 from rainy.net import actor_critic, DqnConv, GruBlock, LstmBlock
 from rainy.net.init import Initializer, kaiming_normal, kaiming_uniform
 from rainy.utils import Device
+from rainy.utils.misc import iter_prod
 from test_env import DummyEnv
 import torch
 from typing import Optional, Tuple
@@ -47,15 +48,13 @@ def test_dqnconv(
         init: Optional[Initializer],
 ) -> None:
     kwargs = {}
-    if params:
+    if params is not None:
         kwargs['kernel_and_strides'] = params
-    if init:
+    if init is not None:
         kwargs['init'] = init
     dqn_conv = DqnConv(input_dim, **kwargs)
-    assert dqn_conv.hidden_dim == hidden
+    assert dqn_conv.fc.in_features == iter_prod(hidden)
     x = torch.ones((batch_size, *input_dim))
-    for conv in dqn_conv.conv:
-        x = conv.forward(x)
-    assert x.shape[0] == batch_size
-    in_features = x.shape[1] * x.shape[2] * x.shape[3]
-    assert in_features == dqn_conv.fc.in_features
+    x = dqn_conv(x)
+    assert x.size(0) == batch_size
+    assert x.size(1) == dqn_conv.output_dim
