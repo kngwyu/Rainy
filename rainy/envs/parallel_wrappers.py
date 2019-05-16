@@ -3,7 +3,7 @@ from typing import Any, Iterable, Tuple
 from .ext import EnvSpec
 from .parallel import ParallelEnv
 from ..prelude import Action, Array, State
-from ..utils.rms import RunningMeanStd
+from ..utils import RunningMeanStd
 
 
 class ParallelEnvWrapper(ParallelEnv[Action, State]):

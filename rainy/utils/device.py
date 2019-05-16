@@ -1,4 +1,5 @@
-from torch import nn, Tensor, torch
+import torch
+from torch import nn, Tensor
 from typing import List, Union
 from numpy import ndarray
 from ..prelude import Self
@@ -35,7 +36,7 @@ class Device:
         return self.device
 
     def tensor(self, arr: Union[ndarray, List[ndarray], Tensor], dtype=torch.float32) -> Tensor:
-        """Convert numpy array or Tensor into Tensor on main_device
+        """Convert numpy array or PyTorch Tensor into Tensor on main_device
         :param x: ndarray or Tensor you want to convert
         :return: Tensor
         """
@@ -47,11 +48,11 @@ class Device:
         else:
             raise ValueError('arr must be ndarray or list or tensor')
 
-    def zeros(self, size: Union[int, tuple]) -> Tensor:
-        return torch.zeros(size, device=self.device)
+    def zeros(self, size: Union[int, tuple], dtype: torch.dtype = torch.float32) -> Tensor:
+        return torch.zeros(size, device=self.device, dtype=dtype)
 
-    def ones(self, size: Union[int, tuple]) -> Tensor:
-        return torch.ones(size, device=self.device)
+    def ones(self, size: Union[int, tuple], dtype: torch.dtype = torch.float32) -> Tensor:
+        return torch.ones(size, device=self.device, dtype=dtype)
 
     def data_parallel(self, module: nn.Module) -> nn.DataParallel:
         return nn.DataParallel(module, device_ids=self.gpu_indices)
