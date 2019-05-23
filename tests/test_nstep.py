@@ -78,7 +78,7 @@ def test_sampler(penv: ParallelEnv, is_recurrent: bool) -> None:
     rnn_test = set()
     for batch in RolloutSampler(storage, penv, MINIBATCH):
         length = len(batch.states)
-        assert length == MINIBATCH or length == (NSTEP * NWORKERS) % MINIBATCH
+        assert length == MINIBATCH
         if isinstance(batch.rnn_init, TeState):
             assert batch.rnn_init.h.size(0) == MINIBATCH // NSTEP
             rnn_test.update(batch.rnn_init.h.cpu().tolist())

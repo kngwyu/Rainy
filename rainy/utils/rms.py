@@ -53,14 +53,15 @@ class RunningMeanStdTorch:
         self.device = device
 
     def update(self, x: torch.Tensor) -> None:
-        _update_rms_torch(
-            self.mean,
-            self.var,
-            self.count,
-            x.mean(dim=0),
-            x.var(dim=0, unbiased=False),
-            torch.tensor(x.size(0), device=self.device.unwrapped)
-        )
+        with torch.no_grad():
+            _update_rms_torch(
+                self.mean,
+                self.var,
+                self.count,
+                x.mean(dim=0),
+                x.var(dim=0, unbiased=False),
+                torch.tensor(x.size(0), device=self.device.unwrapped)
+            )
 
     def std(self, eps: float = 1.0e-8) -> torch.Tensor:
         return torch.sqrt(self.var + eps)
