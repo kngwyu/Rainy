@@ -18,9 +18,12 @@ class RolloutStorage(Generic[State]):
         self.policies: List[Policy] = []
         self.values: List[Tensor] = []
         self.returns: Tensor = device.zeros((nsteps + 1, nworkers))
+        self.advs: Tensor = device.zeros((nsteps + 1, nworkers))
+        self.batch_values: Tensor = device.zeros((nsteps, nworkers))
         self.nsteps = nsteps
         self.nworkers = nworkers
         self.device = device
+        self._gae_used = False
 
     def initialized(self) -> bool:
         return len(self.states) != 0
@@ -67,12 +70,6 @@ class RolloutStorage(Generic[State]):
     def batch_actions(self) -> Tensor:
         return torch.cat([p.action() for p in self.policies])
 
-    def batch_returns(self) -> Tensor:
-        return self.returns[:-1].flatten()
-
-    def batch_values(self) -> Tensor:
-        return torch.cat(self.values[:self.nsteps])
-
     def batch_masks(self) -> Tensor:
         return torch.cat(self.masks[:-1])
 
@@ -82,21 +79,24 @@ class RolloutStorage(Generic[State]):
     def _calc_ret_common(self, next_value: Tensor) -> Tensor:
         self.returns[-1] = next_value
         self.values.append(next_value)
+        torch.stack(self.values[:self.nsteps], dim=0, out=self.batch_values)
         return self.device.tensor(self.rewards)
 
     def calc_ac_returns(self, next_value: Tensor, gamma: float) -> None:
         rewards = self._calc_ret_common(next_value)
         for i in reversed(range(self.nsteps)):
             self.returns[i] = self.returns[i + 1] * gamma * self.masks[i + 1] + rewards[i]
+        self.advs[:-1] = self.returns[:-1] - self.batch_values
 
     def calc_gae_returns(self, next_value: Tensor, gamma: float, lambda_: float) -> None:
+        self._gae_used = True
         rewards = self._calc_ret_common(next_value)
-        gae = self.device.zeros(self.nworkers)
+        self.advs.fill_(0.0)
         for i in reversed(range(self.nsteps)):
             td_error = \
                 rewards[i] + gamma * self.values[i + 1] * self.masks[i + 1] - self.values[i]
-            gae = td_error + gamma * lambda_ * self.masks[i] * gae
-            self.returns[i] = gae + self.values[i]
+            self.advs[i] = td_error + gamma * lambda_ * self.masks[i] * self.advs[i + 1]
+            self.returns[i] = self.advs[i] + self.values[i]
 
 
 class RolloutBatch(NamedTuple):
@@ -135,11 +135,11 @@ class RolloutSampler:
         self.states = storage.batch_states(penv)
         self.actions = storage.batch_actions()
         self.masks = storage.batch_masks()
-        self.returns = storage.batch_returns()
-        self.values = storage.batch_values()
+        self.returns = storage.returns[:-1].flatten()
+        self.values = storage.batch_values.flatten()
         self.old_log_probs = storage.batch_log_probs()
         self.rnn_init = storage.rnn_states[0]
-        self.advantages = self.returns - self.values
+        self.advantages = storage.advs[:-1].flatten()
         if adv_normalize_eps is not None:
             normalize_(self.advantages, adv_normalize_eps)
 

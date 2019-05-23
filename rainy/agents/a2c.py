@@ -92,7 +92,7 @@ class A2cAgent(NStepParallelAgent[State]):
         )
         policy.set_action(self.storage.batch_actions())
 
-        advantage = self.storage.batch_returns() - value
+        advantage = self.storage.returns[:-1].flatten() - value
         policy_loss = -(policy.log_prob() * advantage.detach()).mean()
         value_loss = advantage.pow(2).mean()
         entropy_loss = policy.entropy().mean()
