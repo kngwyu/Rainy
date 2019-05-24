@@ -53,14 +53,14 @@ class PpoAgent(A2cAgent):
         else:
             self.storage.calc_ac_returns(next_value, self.config.discount_factor)
         p, v, e = (0.0, 0.0, 0.0)
+        sampler = RolloutSampler(
+            self.storage,
+            self.penv,
+            self.config.ppo_minibatch_size,
+            rnn=self.net.recurrent_body,
+            adv_normalize_eps=self.config.adv_normalize_eps,
+        )
         for _ in range(self.config.ppo_epochs):
-            sampler = RolloutSampler(
-                self.storage,
-                self.penv,
-                self.config.ppo_minibatch_size,
-                rnn=self.net.recurrent_body,
-                adv_normalize_eps=self.config.adv_normalize_eps,
-            )
             for batch in sampler:
                 policy, value, _ = self.net(batch.states, batch.rnn_init, batch.masks)
                 policy.set_action(batch.actions)
