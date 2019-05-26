@@ -1,4 +1,5 @@
 import io
+import os
 import re
 from setuptools import Command, find_packages, setup
 from shutil import rmtree
@@ -7,6 +8,7 @@ from shutil import rmtree
 NAME = 'rainy'
 AUTHOR = 'Yuji Kanagawa'
 EMAIL = 'yuji.kngw.80s.revive@gmail.com'
+URL = 'https://github.com/kngwyu/Rainy'
 REQUIRES_PYTHON = '>=3.6.0'
 DESCRIPTION = 'Algorithm and utilities for deep reinforcement learning'
 
@@ -86,6 +88,7 @@ setup(
     author_email=EMAIL,
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
+    long_description_content_type='text/markdown',
     packages=find_packages(),
     python_requires=REQUIRES_PYTHON,
     install_requires=REQUIRED,
