@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 import gym
 from gym import spaces
+from typing import Optional
 from ..replay import ArrayDeque
 from ..prelude import Array
 
@@ -143,26 +144,56 @@ class ClipRewardEnv(gym.RewardWrapper):
 
 
 class WarpFrame(gym.ObservationWrapper):
-    def __init__(self, env, width=84, height=84, grayscale=True):
-        """Warp frames to 84x84 as done in the Nature paper and later work."""
-        gym.ObservationWrapper.__init__(self, env)
-        self.width = width
-        self.height = height
-        self.grayscale = grayscale
-        self.observation_space = spaces.Box(
+    def __init__(self, env, width=84, height=84, grayscale=True, dict_space_key=None):
+        """
+        Warp frames to 84x84 as done in the Nature paper and later work.
+        If the environment uses dictionary observations, `dict_space_key` can be specified
+        which indicates which observation should be warped.
+        """
+        super().__init__(env)
+        self._width = width
+        self._height = height
+        self._grayscale = grayscale
+        self._key = dict_space_key
+        if self._grayscale:
+            num_colors = 1
+        else:
+            num_colors = 3
+
+        new_space = gym.spaces.Box(
             low=0,
             high=255,
-            shape=(self.height, self.width, 1 if grayscale else 3),
-            dtype=np.uint8
+            shape=(self._height, self._width, num_colors),
+            dtype=np.uint8,
         )
+        if self._key is None:
+            original_space = self.observation_space
+            self.observation_space = new_space
+        else:
+            original_space = self.observation_space.spaces[self._key]
+            self.observation_space.spaces[self._key] = new_space
+        assert original_space.dtype == np.uint8 and len(original_space.shape) == 3
 
-    def observation(self, frame):
-        if self.grayscale:
+    def observation(self, obs):
+        if self._key is None:
+            frame = obs
+        else:
+            frame = obs[self._key]
+
+        if self._grayscale:
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-        frame = cv2.resize(frame, (self.width, self.height), interpolation=cv2.INTER_AREA)
-        if self.grayscale:
+        frame = cv2.resize(
+            frame, (self._width, self._height), interpolation=cv2.INTER_AREA
+        )
+        if self._grayscale:
             frame = np.expand_dims(frame, -1)
-        return frame
+
+        if self._key is None:
+            obs = frame
+        else:
+            obs = obs.copy()
+            obs[self._key] = frame
+        return obs
 
 
 class FrameStack(gym.Wrapper):
@@ -226,25 +257,54 @@ class LazyFrames:
             out = out.astype(dtype)
         return out
 
-    def __len__(self):
-        return len(self._force())
-
     def __getitem__(self, i):
-        return self._force()[:, i]
+        return self._force()[i]
+
+    def count(self):
+        frames = self._force()
+        return frames.shape[frames.ndim - 1]
+
+    def frame(self, i):
+        return self._force()[..., i]
 
 
 class FlickerFrame(gym.ObservationWrapper):
     """Stochastically flicker frames."""
-    def __init__(self, env: gym.Env) -> None:
-        super().__init__(self, env)
+    def __init__(self, env: gym.Env, p: float = 0.5) -> None:
+        super().__init__(env)
+        self.p = p
 
     def observation(self, obs: Array) -> Array:
-        return obs if np.random.randint() else np.zeros_like(obs)
+        if self.unwrapped.np_random.uniform() < self.p:
+            return obs
+        else:
+            return np.zeros_like(obs)
+
+
+class StickyActionEnv(gym.Wrapper):
+    """Repeat the same action stochastically
+    From https://github.com/openai/random-network-distillation/blob/master/atari_wrappers.py
+    """
+    def __init__(self, env: gym.Env, p: float = 0.25) -> None:
+        super().__init__(env)
+        self.p = p
+        self.last_action = 0
+
+    def reset(self) -> None:
+        self.last_action = 0
+        return self.env.reset()
+
+    def step(self, action):
+        if self.p <= self.unwrapped.np_random.uniform():
+            self.last_action = action
+        return self.env.step(self.last_action)
 
 
 def make_atari(
         env_id: str,
         timelimit: bool = True,
+        override_timelimit: Optional[int] = None,
+        v4: bool = False,
         sticky_actions: bool = False,
         noop_reset: bool = True,
 ) -> gym.Env:
@@ -252,6 +312,10 @@ def make_atari(
     env = gym.make('{}NoFrameskip-{}'.format(env_id, version))
     if not timelimit:
         env = env.env
+    if timelimit and override_timelimit is not None:
+        env._max_episode_steps = override_timelimit
+    if sticky_actions:
+        env = StickyActionEnv(env)
     if noop_reset:
         env = NoopResetEnv(env, noop_max=30)
     env = MaxAndSkipEnv(env, skip=4)
@@ -260,7 +324,7 @@ def make_atari(
 
 def wrap_deepmind(
         env: gym.Env,
-        episodic_life: bool = True,
+        episodic_life: bool = False,
         fire_reset: bool = False,
         clip_reward: bool = True,
         flicker_frame: bool = False,

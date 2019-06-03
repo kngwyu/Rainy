@@ -8,31 +8,60 @@ from .obs_wrappers import AddTimeStep, TransposeObs
 from .parallel import DummyParallelEnv, EnvGen, MultiProcEnv, ParallelEnv
 from .parallel_wrappers import FrameStackParallel, NormalizeObs, \
     NormalizeReward, ParallelEnvWrapper
-from ..prelude import State
+from ..prelude import Self, State
+
+
+class AtariConfig:
+    STYLES = ['deepmind', 'baselines', 'dopamine']
+
+    def __init__(self) -> None:
+        self.timelimit = True
+        self.override_timelimit: Optional[int] = None
+        self.v4 = False
+        self.sticky_actions = False
+        self.noop_reset = True
+        self.episodic_life = False
+        self.fire_reset = False
+        self.clip_reward = True
+        self.flicker_frame = False
+        self.frame_stack = True
+
+    @staticmethod
+    def from_style(style: str) -> Self:
+        if style not in self.STYLES:
+            raise ValueError('You have to choose a style from {}'.format(self.STYLES))
+        cfg = AtariConfig()
+        if style is 'deepmind':
+            pass
+        elif style == 'baselines':
+            cfg.fire_reset = True
+        elif style == 'dopamine':
+            cfg.timelimit = False
+            cfg.v4 = True
+            cfg.noop_reset = False
+            cfg.episodic_life = True
+        return cfg
 
 
 class Atari(EnvExt):
-    STYLES = ['deepmind', 'baselines', 'dopamine']
-
-    def __init__(
-            self,
-            name: str,
-            style: str = 'deepmind',
-            flicker_frame: bool = False,
-            frame_stack: bool = True,
-    ) -> None:
-        assert style in self.STYLES, \
-            'You have to choose a style from {}'.format(self.STYLES)
-        if style is 'dopamine':
-            env = make_atari(name, timelimit=False, sticky_actions=True, noop_reset=False)
-        else:
-            env = make_atari(name)
+    def __init__(self, name: str, cfg: AtariConfig = AtariConfig(), **kwargs) -> None:
+        cfg.__dict__.update(kwargs)
+        env = make_atari(
+            name,
+            timelimit=cfg.timelimit,
+            override_timelimit=cfg.override_timelimit,
+            v4=cfg.v4,
+            sticky_actions=cfg.sticky_actions,
+            noop_reset=cfg.noop_reset,
+        )
         env = RewardMonitor(env)
         env = wrap_deepmind(
             env,
-            episodic_life=style is 'dopamine',
-            fire_reset=style is 'baselines',
-            frame_stack=frame_stack
+            episodic_life=cfg.episodic_life,
+            fire_reset=cfg.fire_reset,
+            clip_reward=cfg.clip_reward,
+            flicker_frame=cfg.flicker_frame,
+            frame_stack=cfg.frame_stack
         )
         env = TransposeObs(env)
         super().__init__(env)
