@@ -17,11 +17,11 @@ class PpoAgent(A2cAgent):
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
-        nbatchs = -(-self.config.nsteps * self.config.nworkers) // self.config.ppo_minibatch_size
+        nbatchs = (self.config.nsteps * self.config.nworkers) // self.config.ppo_minibatch_size
         self.num_updates = self.config.ppo_epochs * nbatchs
 
     def members_to_save(self) -> Tuple[str, ...]:
-        return ('net', 'clip_eps', 'clip_cooler', 'optimizer')
+        return 'net', 'clip_eps', 'clip_cooler', 'optimizer'
 
     def _policy_loss(self, policy: Policy, advantages: Tensor, old_log_probs: Tensor) -> Tensor:
         prob_ratio = torch.exp(policy.log_prob() - old_log_probs)
