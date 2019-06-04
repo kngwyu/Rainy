@@ -4,7 +4,7 @@ from typing import Callable, Optional, Tuple
 from .log import ExperimentLog
 from ..agents import Agent
 from ..config import Config
-from ..run import eval_agent, train_agent, random_agent, SAVE_FILE_DEFAULT
+from .. import run
 
 
 @click.group()
@@ -27,7 +27,7 @@ def train(ctx: dict, comment: Optional[str], prefix: str) -> None:
         c.logger.set_dir_from_script_path(scr, comment=comment, prefix=prefix)
     c.logger.set_stderr()
     ag = ctx.obj['make_agent'](c)
-    train_agent(ag)
+    run.train_agent(ag)
     print("random play: {}, trained: {}".format(ag.random_episode(), ag.eval_episode()))
 
 
@@ -41,12 +41,26 @@ def random(ctx: dict, save: bool, render: bool, replay: bool, action_file: str) 
     c = ctx.obj['config']
     ag = ctx.obj['make_agent'](c)
     action_file = fname if save else None
-    random_agent(ag, render=render, replay=replay, action_file=action_file)
+    run.random_agent(ag, render=render, replay=replay, action_file=action_file)
+
+
+@rainy_cli.command()
+@click.pass_context
+@click.argument('logdir')
+@click.option('--model', type=str, default=run.SAVE_FILE_DEFAULT)
+@click.option('--additional-steps', type=int, default=100)
+def retrain(ctx: dict, logdir: str, model: str, additional_steps: int) -> None:
+    c = ctx.obj['config']
+    log = c.logger.retrive(logdir)
+    c.logger.set_stderr()
+    ag = ctx.obj['make_agent'](c)
+    run.retrain_agent(ag, log, load_file_name=model, additional_steps=additional_steps)
+    print("random play: {}, trained: {}".format(ag.random_episode(), ag.eval_episode()))
 
 
 @rainy_cli.command()
 @click.argument('logdir', required=True, type=str)
-@click.option('--model', type=str, default=SAVE_FILE_DEFAULT)
+@click.option('--model', type=str, default=run.SAVE_FILE_DEFAULT)
 @click.option('--render', is_flag=True)
 @click.option('--replay', is_flag=True)
 @click.option('--action-file', type=str, default='best-actions.json')
@@ -54,7 +68,7 @@ def random(ctx: dict, save: bool, render: bool, replay: bool, action_file: str) 
 def eval(ctx: dict, logdir: str, model: str, render: bool, replay: bool, action_file: str) -> None:
     c = ctx.obj['config']
     ag = ctx.obj['make_agent'](c)
-    eval_agent(
+    run.eval_agent(
         ag,
         logdir,
         load_file_name=model,

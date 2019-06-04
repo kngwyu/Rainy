@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 from .agents import Agent, EpisodeResult
 from .prelude import Array
+from .utils.log import ExperimentLog
 
 SAVE_FILE_DEFAULT = 'rainy-agent.pth'
 SAVE_FILE_OLD = 'rainy-agent.save'
@@ -32,6 +33,8 @@ def _reward_and_length(results: List[EpisodeResult]) -> Tuple[Array[float], Arra
 
 def train_agent(
         ag: Agent,
+        episode_offset: int = 0,
+        saveid_start: int = 0,
         save_file_name: str = SAVE_FILE_DEFAULT,
         action_file_name: str = ACTION_FILE_DEFAULT,
 ) -> None:
@@ -40,7 +43,7 @@ def train_agent(
     def log_episode(episodes: int, res: List[EpisodeResult]) -> None:
         rewards, length = _reward_and_length(res)
         ag.logger.exp('train', {
-            'episodes': episodes,
+            'episodes': episodes + episode_offset,
             'update-steps': ag.update_steps,
             'reward-mean': float(np.mean(rewards)),
             'reward-min': float(np.min(rewards)),
@@ -79,8 +82,8 @@ def train_agent(
 
     episodes = 0
     steps = 0
+    save_id = saveid_start
     results: List[EpisodeResult] = []
-    save_id = 0
 
     for res in ag.train_episodes(ag.config.max_steps):
         ep_len = len(res)
@@ -102,18 +105,9 @@ def train_agent(
     ag.close()
 
 
-def eval_agent(
-        ag: Agent,
-        log_dir: str,
-        load_file_name: str = SAVE_FILE_DEFAULT,
-        render: bool = False,
-        replay: bool = False,
-        action_file: Optional[str] = None,
-) -> None:
-    path = Path(log_dir)
-
+def _load_agent(load_file_name: str, logdir_path: Path, ag: Agent) -> bool:
     def _try_load(fname: str) -> bool:
-        p = path.joinpath(fname)
+        p = logdir_path.joinpath(fname)
         if p.exists():
             ag.load(p.as_posix())
             return True
@@ -123,6 +117,47 @@ def eval_agent(
         if load_file_name == SAVE_FILE_DEFAULT:
             load_file_name = SAVE_FILE_OLD
             continue
+        return False
+    return True
+
+
+def retrain_agent(
+        ag: Agent,
+        log: ExperimentLog,
+        load_file_name: str = SAVE_FILE_DEFAULT,
+        additional_steps: int = 100
+) -> None:
+    path = log.log_path.parent
+    if not _load_agent(load_file_name, path, ag):
+        raise ValueError('Load file {} does not exists'.format())
+    episodes, total = 0, 0
+    for d in reversed(log.unwrapped):
+        if episodes == 0 and 'episodes' in d:
+            episodes = d['episodes']
+        if total == 0 and 'total-steps' in d:
+            total = d['total-steps']
+        if episodes > 0 and total > 0:
+            break
+    save_files = [f for f in path.glob(SAVE_FILE_DEFAULT + '.*')]
+    if len(save_files) > 0:
+        save_id = len(save_files)
+    else:
+        save_id = 0
+    ag.total_steps = total
+    ag.config.max_steps += additional_steps
+    train_agent(ag, episode_offset=episodes, saveid_start=save_id)
+
+
+def eval_agent(
+        ag: Agent,
+        log_dir: str,
+        load_file_name: str = SAVE_FILE_DEFAULT,
+        render: bool = False,
+        replay: bool = False,
+        action_file: Optional[str] = None,
+) -> None:
+    path = Path(log_dir)
+    if not _load_agent(load_file_name, path, ag):
         raise ValueError('Load file {} does not exists'.format())
     if action_file is not None and len(action_file) > 0:
         res = eval_fn(ag, path.joinpath(action_file), render)
