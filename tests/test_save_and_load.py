@@ -25,10 +25,10 @@ def test_ppo_save() -> None:
     ppo = PpoAgent(config())
     ppo.optimizer.param_groups[0]['lr'] = 1.0
     ppo.clip_eps = 0.2
-    ppo.save('ppo-agent.save')
+    ppo.save('ppo-agent.pth')
     ppo.close()
     ppo = PpoAgent(config())
-    path = ppo.config.logger.log_dir.joinpath('ppo-agent.save')
+    path = ppo.config.logger.log_dir.joinpath('ppo-agent.pth')
     ppo.load(path.as_posix())
     assert ppo.clip_eps == 0.2
     assert ppo.optimizer.param_groups[0]['lr'] == 1.0
