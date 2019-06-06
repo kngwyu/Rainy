@@ -1,6 +1,6 @@
-.agent
-.save
-log.txt
+**/*.pth
+**/log.txt
+**/fingerprint.txt
 .tox/
 *.pyc
 **/__pycache__/
