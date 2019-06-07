@@ -32,7 +32,6 @@ REQUIRED = [
     'Pillow>=5.0',
     'torch>=1.0',
 ]
-TEST = ['pytest>=3.0']
 EXTRA = {
     'ipython': ['ipython>=7.0', 'matplotlib>=3.0', 'ptpython>=2.0'],
     'bullet': ['pybullet>=2.4']
@@ -55,7 +54,6 @@ setup(
     packages=find_packages(),
     python_requires=REQUIRES_PYTHON,
     install_requires=REQUIRED,
-    test_requires=TEST,
     extras_require=EXTRA,
     license='Apache2',
     classifiers=[
