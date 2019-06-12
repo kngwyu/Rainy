@@ -5,6 +5,7 @@ import torch
 from typing import Tuple
 from ..prelude import Array
 from ..utils import Device
+from ..utils.state_dict import TensorStateDict
 
 
 class RunningMeanStd:
@@ -43,7 +44,7 @@ def _update_rms(mean, var, count, batch_mean, batch_var, batch_count):
     return new_mean, new_var, new_count
 
 
-class RunningMeanStdTorch:
+class RunningMeanStdTorch(TensorStateDict):
     """Same as RunningMeanStd, but uses PyTorch Tensor
     """
     def __init__(self, shape: torch.Size, device: Device, epsilon: float = 1.0e-4) -> None:
