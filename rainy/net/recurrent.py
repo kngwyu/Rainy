@@ -51,6 +51,7 @@ def _apply_mask(mask: Optional[Tensor], *args) -> Sequence[Tensor]:
         return tuple(map(lambda x: x * m, args))
 
 
+@torch.jit.script
 def _reshape_batch(x: Tensor, mask: Optional[Tensor], nsteps: int) -> Tuple[Tensor, Tensor]:
     x = x.view(nsteps, -1, x.size(-1))
     if mask is None:

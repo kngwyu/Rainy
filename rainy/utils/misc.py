@@ -1,5 +1,6 @@
 from functools import reduce
 import operator
+import torch
 from torch import Tensor
 from typing import Any, Iterable
 
@@ -8,6 +9,7 @@ def iter_prod(it: Iterable[Any]) -> Any:
     return reduce(operator.mul, it)
 
 
+@torch.jit.script
 def normalize_(t: Tensor, eps: float) -> None:
     mean = t.mean()
     std = t.std()
