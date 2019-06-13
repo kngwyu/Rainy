@@ -129,7 +129,7 @@ def retrain_agent(
 ) -> None:
     path = log.log_path.parent
     if not _load_agent(load_file_name, path, ag):
-        raise ValueError('Load file {} does not exists'.format())
+        raise ValueError('Load file {} does not exists'.format(load_file_name))
     episodes, total = 0, 0
     for d in reversed(log.unwrapped):
         if episodes == 0 and 'episodes' in d:
