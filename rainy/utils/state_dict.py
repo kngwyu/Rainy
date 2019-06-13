@@ -14,7 +14,7 @@ class HasStateDict(ABC):
 
 class TensorStateDict(HasStateDict):
     def state_dict(self) -> dict:
-        all_members = self.__dict__
+        all_members = self.__dict__.copy()
         for key in all_members.keys():
             value = all_members[key]
             if isinstance(value, torch.Tensor):
