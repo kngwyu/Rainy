@@ -5,7 +5,6 @@ from gym.spaces import Discrete
 import numpy as np
 from typing import Tuple
 from .ext import EnvExt, EnvSpec
-from ..utils import iter_prod
 
 ACTION_DIM = 10
 
@@ -21,7 +20,7 @@ class State(Enum):
         return self == State.DEATH or self == State.GOAL
 
     def to_array(self, dim: tuple) -> np.array:
-        return np.repeat(float(self.value) + 1.0, iter_prod(dim)).reshape(dim)
+        return np.repeat(float(self.value) + 1.0, np.prod(dim)).reshape(dim)
 
 
 class DummyEnv(EnvExt):
@@ -50,7 +49,7 @@ class DummyEnv(EnvExt):
     @property
     def spec(self) -> EnvSpec:
         if self.flatten:
-            dim = (iter_prod(self.array_dim),)
+            dim = (np.prod(self.array_dim),)
         else:
             dim = self.array_dim
         return EnvSpec(dim, Discrete(ACTION_DIM))

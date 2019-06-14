@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import numpy as np
 from torch import nn, Tensor
 from typing import Callable, List, Optional, Tuple, Union
 from .block import DqnConv, FcBody, ResNetBody, LinearHead, NetworkBlock
@@ -8,7 +9,6 @@ from .prelude import NetFn
 from .recurrent import DummyRnn, RnnBlock, RnnState
 from ..prelude import Array
 from ..utils import Device
-from ..utils.misc import iter_prod
 
 
 class ActorCriticNet(nn.Module, ABC):
@@ -64,9 +64,9 @@ class SharedBodyACNet(ActorCriticNet):
             recurrent_body: RnnBlock = DummyRnn(),
             device: Device = Device(),
     ) -> None:
-        assert body.output_dim == iter_prod(actor_head.input_dim), \
+        assert body.output_dim == np.prod(actor_head.input_dim), \
             'body output and action_head input must have a same dimention'
-        assert body.output_dim == iter_prod(critic_head.input_dim), \
+        assert body.output_dim == np.prod(critic_head.input_dim), \
             'body output and action_head input must have a same dimention'
         super().__init__()
         self.body = body

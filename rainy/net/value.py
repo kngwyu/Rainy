@@ -6,7 +6,6 @@ from typing import Tuple, Union
 from .block import DqnConv, FcBody, LinearHead, NetworkBlock
 from .prelude import NetFn
 from ..utils import Device
-from ..utils.misc import iter_prod
 
 
 class ValuePredictor(ABC):
@@ -29,7 +28,7 @@ class ValueNet(ValuePredictor, nn.Module):
     """State -> [Value..]
     """
     def __init__(self, body: NetworkBlock, head: NetworkBlock, device: Device = Device()) -> None:
-        assert body.output_dim == iter_prod(head.input_dim), \
+        assert body.output_dim == np.prod(head.input_dim), \
             'body output and head input must have a same dimention'
         super(ValueNet, self).__init__()
         self.head = head

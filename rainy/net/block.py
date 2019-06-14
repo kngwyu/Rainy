@@ -1,11 +1,10 @@
 """Defines some reusable NN layers, named as 'Block'
 """
 from abc import ABC, abstractmethod
+import numpy as np
 from torch import nn, Tensor
-import torch.nn.functional as F
 from typing import List, Sequence, Tuple
 from .init import Initializer
-from ..utils.misc import iter_prod
 
 
 class NetworkBlock(nn.Module, ABC):
@@ -167,7 +166,7 @@ class ResNetBody(NetworkBlock):
         ])
         self.relu = nn.ReLU(inplace=True)
         conved = calc_cnn_hidden(maxpools, *input_dim[1:])
-        fc_in = iter_prod((channels[-1], *conved))
+        fc_in = np.prod((channels[-1], *conved))
         self.fc = nn.Linear(fc_in, fc_out)
 
     def forward(self, x: Tensor) -> Tensor:
@@ -228,7 +227,7 @@ def make_cnns(
     for ic, oc, param in zip([channel] + hiddens, hiddens, params):
         res.append(nn.Conv2d(ic, oc, *param))
     hidden = (hidden_channels[-1], *calc_cnn_hidden(params, width, height))
-    return res, iter_prod(hidden)
+    return res, np.prod(hidden)
 
 
 def calc_cnn_hidden(params: Sequence[tuple], width: int, height: int) -> Tuple[int, int]:
