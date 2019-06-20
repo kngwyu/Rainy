@@ -109,7 +109,7 @@ class KfacPreConditioner(PreConditioner):
             self.params.append({'params': params, 'mod': mod, 'layer_type': layer_type})
         super().__init__(self.params, {})
 
-    def save_grad(self, f: Callable[[], Any]) -> Any:
+    def with_saving_grad(self, f: Callable[[], Any]) -> Any:
         self._save_grad = True
         res = f()
         self._save_grad = False

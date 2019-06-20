@@ -12,12 +12,14 @@ class AcktrAgent(A2cAgent):
         self.precond = config.preconditioner(self.net)
 
     def _pre_backward(self, policy: Policy, value: torch.Tensor) -> None:
+        """Calculate emprical fisher loss
+        """
         self.net.zero_grad()
         policy_fisher_loss = -policy.log_prob().mean()
         sample_value = torch.randn_like(value) + value.detach()
         value_fisher_loss = -(value - sample_value).pow(2).mean()
         fisher_loss = policy_fisher_loss + value_fisher_loss
-        self.precond.save_grad(lambda: fisher_loss.backward(retain_graph=True))
+        self.precond.with_saving_grad(lambda: fisher_loss.backward(retain_graph=True))
 
     def _step_optimizer(self) -> None:
         """Approximates F^-1∇h and apply it.
