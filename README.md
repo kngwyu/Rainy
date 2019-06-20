@@ -4,13 +4,13 @@
 
 Reinforcement learning utilities and algrithm implementations using PyTorch.
 
-# API documentation
+## API documentation
 COMING SOON
 
-# Supported python version
+## Supported python version
 Python >= 3.6.1
 
-# Run examples
+## Run examples
 Though this project is still WIP, all examples are verified to work.
 
 First, install [pipenv](https://pipenv.readthedocs.io/en/latest/).
@@ -52,7 +52,7 @@ log.plot_reward(12 * 20, max_steps=int(4e5), title='ACKTR cart pole')
 ```
 ![ACKTR cart pole](./pictures/acktr-cart-pole.png)
 
-# Implementation Status
+## Implementation Status
 
 |**Algorithm** |**Multi Worker(Sync)**|**Recurrent**                   |**Discrete Action** |**Continuous Action**|
 | ------------ | -------------------- | ------------------------------ | ------------------ | ------------------- |
@@ -64,25 +64,30 @@ log.plot_reward(12 * 20, max_steps=int(4e5), title='ACKTR cart pole')
 <sup><sup>(1): It's very unstable </sup></sup><br>
 <sup><sup>(2): Needs https://openreview.net/forum?id=HyMTkQZAb implemented </sup></sup><br>
 
-# References
+## Sub packages
 
-## DQN (Deep Q Network)
+- [intrinsic-rewards](https://github.com/kngwyu/intrinsic-rewards)
+  - Contains an implementation of RND(Random Network Disitillation)
+
+## References
+
+### DQN (Deep Q Network)
 - https://www.nature.com/articles/nature14236/
 
-## DDQN (Double DQN)
+### DDQN (Double DQN)
 - https://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/viewPaper/12389
 
-## A2C (Advantage Actor Critic)
+### A2C (Advantage Actor Critic)
 - http://proceedings.mlr.press/v48/mniha16.pdf , https://arxiv.org/abs/1602.01783 (A3C, original version)
 - https://blog.openai.com/baselines-acktr-a2c/ (A2C, synchronized version)
 
-## ACKTR (Actor Critic using Kronecker-Factored Trust Region)
+### ACKTR (Actor Critic using Kronecker-Factored Trust Region)
 - https://papers.nips.cc/paper/7112-scalable-trust-region-method-for-deep-reinforcement-learning-using-kronecker-factored-approximation
 
-## PPO (Proximal Policy Optimization)
+### PPO (Proximal Policy Optimization)
 - https://arxiv.org/abs/1707.06347
 
-# Implementaions I referenced
+## Implementaions I referenced
 I referenced mainly openai baselines, but all these pacakages were useful.
 
 Thanks!
@@ -97,7 +102,7 @@ https://github.com/chainer/chainerrl
 
 https://github.com/Thrandis/EKFAC-pytorch (for ACKTR)
 
-# License
+## License
 This project is licensed under Apache License, Version 2.0
 ([LICENSE-APACHE](LICENSE) or http://www.apache.org/licenses/LICENSE-2.0).
 
