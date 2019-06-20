@@ -8,7 +8,7 @@ from .prelude import NetFn
 from ..utils import Device
 
 
-class ValuePredictor(ABC):
+class QFunction(ABC):
     @abstractmethod
     def action_values(self, state: ndarray, nostack: bool = False) -> Tensor:
         pass
@@ -24,13 +24,13 @@ class ValuePredictor(ABC):
         pass
 
 
-class ValueNet(ValuePredictor, nn.Module):
+class QValueNet(QFunction, nn.Module):
     """State -> [Value..]
     """
     def __init__(self, body: NetworkBlock, head: NetworkBlock, device: Device = Device()) -> None:
         assert body.output_dim == np.prod(head.input_dim), \
             'body output and head input must have a same dimention'
-        super(ValueNet, self).__init__()
+        super().__init__()
         self.head = head
         if device.is_multi_gpu():
             self.body = device.data_parallel(body)
@@ -61,16 +61,16 @@ class ValueNet(ValuePredictor, nn.Module):
 
 
 def dqn_conv(*args, **kwargs) -> NetFn:
-    def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> ValueNet:
+    def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> QValueNet:
         body = DqnConv(state_dim, *args, **kwargs)
         head = LinearHead(body.output_dim, action_dim)
-        return ValueNet(body, head, device=device)
+        return QValueNet(body, head, device=device)
     return _net  # type: ignore
 
 
 def fc(*args, **kwargs) -> NetFn:
-    def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> ValueNet:
+    def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> QValueNet:
         body = FcBody(state_dim[0], *args, **kwargs)
         head = LinearHead(body.output_dim, action_dim)
-        return ValueNet(body, head, device=device)
+        return QValueNet(body, head, device=device)
     return _net

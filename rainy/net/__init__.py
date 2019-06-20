@@ -4,4 +4,4 @@ from .block import calc_cnn_hidden, make_cnns
 from .init import InitFn, Initializer
 from .policy import Policy, PolicyHead
 from .recurrent import DummyRnn, GruBlock, LstmBlock, RnnBlock, RnnState
-from .value import ValueNet, ValuePredictor
+from .value import QFunction, QValueNet

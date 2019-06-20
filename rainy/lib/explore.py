@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from torch.optim import Optimizer
-from ..net.value import ValuePredictor
+from ..net.value import QFunction
 from ..prelude import Array
 
 
@@ -47,14 +47,14 @@ class DummyCooler(Cooler):
 
 class Explorer(ABC):
     @abstractmethod
-    def select_action(self, state: Array, value_pred: ValuePredictor) -> int:
+    def select_action(self, state: Array, value_pred: QFunction) -> int:
         pass
 
 
 class Greedy(Explorer):
     """deterministic greedy policy
     """
-    def select_action(self, state: Array, value_pred: ValuePredictor) -> int:
+    def select_action(self, state: Array, value_pred: QFunction) -> int:
         return value_pred.action_values(state).detach().argmax().item()
 
 
@@ -65,7 +65,7 @@ class EpsGreedy(Explorer):
         self.epsilon = epsilon
         self.cooler = cooler
 
-    def select_action(self, state: Array, value_pred: ValuePredictor) -> int:
+    def select_action(self, state: Array, value_pred: QFunction) -> int:
         old_eps = self.epsilon
         self.epsilon = self.cooler()
         if np.random.rand() < old_eps:
