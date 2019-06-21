@@ -53,16 +53,16 @@ class RunningMeanStdTorch(TensorStateDict):
         self.count = torch.tensor(epsilon, dtype=torch.float64, device=device.unwrapped)
         self.device = device
 
+    @torch.no_grad()
     def update(self, x: torch.Tensor) -> None:
-        with torch.no_grad():
-            _update_rms_torch(
-                self.mean,
-                self.var,
-                self.count,
-                x.mean(dim=0),
-                x.var(dim=0, unbiased=False),
-                torch.tensor(x.size(0), device=self.device.unwrapped)
-            )
+        _update_rms_torch(
+            self.mean,
+            self.var,
+            self.count,
+            x.mean(dim=0),
+            x.var(dim=0, unbiased=False),
+            torch.tensor(x.size(0), device=self.device.unwrapped)
+        )
 
     def std(self, eps: float = 1.0e-8) -> torch.Tensor:
         return torch.sqrt(self.var + eps)

@@ -33,11 +33,11 @@ def zero() -> InitFn:
 def lstm_bias(forget: float = 1.0, other: float = 0.0) -> InitFn:
     """Set forget bias and others separately.
     """
+    @torch.no_grad()
     def __set_bias(t: Tensor) -> None:
-        with torch.no_grad():
-            i = len(t) // 4
-            t.fill_(other)
-            t[i:2 * i].fill_(forget)
+        i = len(t) // 4
+        t.fill_(other)
+        t[i:2 * i].fill_(forget)
     return partial(__set_bias)
 
 

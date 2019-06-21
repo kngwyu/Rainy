@@ -32,10 +32,9 @@ class DqnAgent(OneStepAgent):
     def members_to_save(self) -> Tuple[str, ...]:
         return "net", "target_net", "policy", "total_steps"
 
+    @torch.no_grad()
     def eval_action(self, state: Array) -> Action:
-        with torch.no_grad():
-            res = self.eval_policy.select_action(state, self.net)
-        return res  # type: ignore
+        return self.eval_policy.select_action(state, self.net)  # type: ignore
 
     def step(self, state: State) -> Tuple[State, float, bool, dict]:
         train_started = self.total_steps > self.config.train_start
