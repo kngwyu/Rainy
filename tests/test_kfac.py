@@ -19,7 +19,8 @@ def test_kfac():
         precond = KfacPreConditioner(net)
     out = net(torch.randn(*in_shape))
     loss = nn.MSELoss()(out, torch.randn(in_shape[0], 10))
-    precond.with_saving_grad(lambda: loss.backward())
+    with precond.save_grad():
+        loss.backward()
     precond.step()
     for group in precond.param_groups:
         state = precond.state[group['params'][0]]

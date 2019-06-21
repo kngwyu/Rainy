@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from enum import Enum
 import math
 import torch
@@ -225,3 +226,9 @@ class KfacPreConditioner(PreConditioner):
                 beta=self.beta,
                 alpha=(1 - self.beta) / scale,
             )
+
+    @contextmanager
+    def save_grad(self) -> None:
+        self._save_grad = True
+        yield
+        self._save_grad = False
