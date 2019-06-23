@@ -42,6 +42,11 @@ class RnnBlock(Generic[RS], nn.Module):
     def initial_state(self, batch_size: int, device: Device) -> RS:
         pass
 
+    @staticmethod
+    @abstractmethod
+    def concat_states(states: Sequence[RnnState]) -> RnnState:
+        pass
+
 
 def _apply_mask(mask: Optional[Tensor], *args) -> Sequence[Tensor]:
     if mask is None:
@@ -98,7 +103,7 @@ class LstmBlock(RnnBlock[LstmState]):
             self,
             input_dim: int,
             output_dim: int,
-            initializer: Initializer = Initializer(bias_init = lstm_bias()),
+            initializer: Initializer = Initializer(bias_init=lstm_bias()),
             **kwargs
     ) -> None:
         super().__init__(input_dim, output_dim)
@@ -128,6 +133,12 @@ class LstmBlock(RnnBlock[LstmState]):
     def initial_state(self, batch_size: int, device: Device) -> LstmState:
         zeros = device.zeros((batch_size, self.input_dim))
         return LstmState(zeros, zeros, squeeze=False)
+
+    @staticmethod
+    def concat_states(states: Sequence[LstmState]) -> LstmState:
+        h = torch.cat(tuple(s.h for s in states), dim=0)
+        c = torch.cat(tuple(s.c for s in states), dim=0)
+        return LstmState(h, c)
 
 
 class GruState(RnnState):
@@ -181,6 +192,11 @@ class GruBlock(RnnBlock[GruState]):
     def initial_state(self, batch_size: int, device: Device) -> GruState:
         return GruState(device.zeros((batch_size, self.input_dim)))
 
+    @staticmethod
+    def concat_states(states: Sequence[GruState]) -> GruState:
+        mapped_states = tuple(s.h for s in states)
+        return GruState(torch.cat(mapped_states, dim=0))
+
 
 class DummyState(RnnState):
     def __getitem__(self, x: Union[Sequence[int], int]) -> Self:
@@ -212,3 +228,7 @@ class DummyRnn(RnnBlock[DummyState]):
 
     def initial_state(self, batch_size: int, device: Device) -> DummyState:
         return self.DUMMY_STATE
+
+    @staticmethod
+    def concat_states(states: Sequence[DummyState]) -> DummyState:
+        return DummyRnn.DUMMY_STATE

@@ -107,7 +107,7 @@ class RolloutBatch(NamedTuple):
     values: Tensor
     old_log_probs: Tensor
     advantages: Tensor
-    rnn_init: RnnState
+    rnn_states: RnnState
 
 
 class RolloutSampler:
@@ -138,7 +138,7 @@ class RolloutSampler:
         self.returns = storage.returns[:-1].flatten()
         self.values = storage.batch_values.flatten()
         self.old_log_probs = storage.batch_log_probs()
-        self.rnn_init = storage.rnn_states[0]
+        self.rnn_states = rnn.concat_states(storage.rnn_states[:-1])
         self.advantages = storage.advs[:-1].flatten()
         if adv_normalize_eps is not None:
             normalize_(self.advantages, adv_normalize_eps)
@@ -152,12 +152,12 @@ class RolloutSampler:
             self.values[i],
             self.old_log_probs[i],
             self.advantages[i],
-            self.rnn_init[i[:len(i) // self.nsteps]]
+            self.rnn_states[i]
         )
 
     def __iter__(self) -> Iterator[RolloutBatch]:
         sampler_cls = FeedForwardBatchSampler \
-            if self.rnn_init is DummyRnn.DUMMY_STATE else RecurrentBatchSampler
+            if self.rnn_states[0] is DummyRnn.DUMMY_STATE else RecurrentBatchSampler
         for i in sampler_cls(self.nsteps, self.nworkers, self.minibatch_size):  # type: ignore
             yield self._make_batch(i)
 

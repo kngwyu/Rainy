@@ -62,7 +62,7 @@ class PpoAgent(A2cAgent):
         )
         for _ in range(self.config.ppo_epochs):
             for batch in sampler:
-                policy, value, _ = self.net(batch.states, batch.rnn_init, batch.masks)
+                policy, value, _ = self.net(batch.states, batch.rnn_states, batch.masks)
                 policy.set_action(batch.actions)
                 policy_loss = self._policy_loss(policy, batch.advantages, batch.old_log_probs)
                 value_loss = self._value_loss(value, batch.values, batch.returns)
