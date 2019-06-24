@@ -45,10 +45,10 @@ class RnnBlock(Generic[RS], nn.Module):
 
 def _apply_mask(mask: Optional[Tensor], *args) -> Sequence[Tensor]:
     if mask is None:
-        return tuple(map(lambda x: x.unsqueeze(0), args))
+        return tuple(x.unsqueeze(0) for x in args)
     else:
         m = mask.view(1, -1, 1)
-        return tuple(map(lambda x: x * m, args))
+        return tuple(x * m for x in args)
 
 
 @torch.jit.script

@@ -26,8 +26,8 @@ def eval_fn(
 
 
 def _reward_and_length(results: List[EpisodeResult]) -> Tuple[Array[float], Array[float]]:
-    rewards = np.array(list(map(lambda t: t.reward, results)))
-    length = np.array(list(map(lambda t: t.length, results)))
+    rewards = np.array([t.reward for t in results])
+    length = np.array([t.length for t in results])
     return rewards, length
 
 

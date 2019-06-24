@@ -56,7 +56,7 @@ class LogWrapper:
                 'LogWrapper({}) doesn\'t have the logging key {}. Available keys: {}'
                 .format(self.name, key, self.keys())
             )
-        return list(map(lambda d: d[key], self.inner))
+        return [d[key] for d in self.inner]
 
     def is_empty(self) -> bool:
         return len(self.inner) == 0
