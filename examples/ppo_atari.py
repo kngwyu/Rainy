@@ -18,7 +18,7 @@ def config() -> Config:
     # ppo params
     c.nworkers = 8
     c.nsteps = 128
-    c.value_loss_weight = 0.5
+    c.value_loss_weight = 1.0
     c.gae_lambda = 0.95
     c.ppo_minibatch_size = 32 * 8
     c.ppo_clip = 0.1

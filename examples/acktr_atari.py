@@ -21,7 +21,7 @@ def config() -> Config:
     c.nworkers = 32
     c.nsteps = 20
     c.set_parallel_env(atari_parallel())
-    c.value_loss_weight = 0.5
+    c.value_loss_weight = 1.0
     c.use_gae = True
     c.lr_min = 0.0
     c.max_steps = int(2e7)

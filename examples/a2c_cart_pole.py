@@ -13,7 +13,7 @@ def config() -> rainy.Config:
     c.set_parallel_env(MultiProcEnv)
     c.set_optimizer(lambda params: Adam(params, lr=0.001))
     c.grad_clip = 0.1
-    c.value_loss_weight = 0.1
+    c.value_loss_weight = 0.2
     c.use_gae = False
     c.eval_deterministic = True
     c.eval_freq = None

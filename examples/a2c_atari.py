@@ -21,7 +21,7 @@ def config() -> Config:
     c.nsteps = 5
     c.set_parallel_env(atari_parallel())
     c.grad_clip = 0.5
-    c.value_loss_weight = 0.5
+    c.value_loss_weight = 1.0
     c.use_gae = False
     c.max_steps = int(2e7)
     c.eval_env = Atari('Breakout')

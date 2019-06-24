@@ -69,7 +69,7 @@ class PpoAgent(A2cAgent):
                 entropy_loss = policy.entropy().mean()
                 self.optimizer.zero_grad()
                 (policy_loss
-                 + self.config.value_loss_weight * value_loss
+                 + self.config.value_loss_weight * 0.5 * value_loss
                  - self.config.entropy_weight * entropy_loss).backward()
                 nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
                 self.optimizer.step()

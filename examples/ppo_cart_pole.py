@@ -12,7 +12,7 @@ def config() -> rainy.Config:
     c.nsteps = 32
     c.set_parallel_env(MultiProcEnv)
     c.set_optimizer(lambda params: Adam(params, lr=2.5e-4, eps=1.0e-4))
-    c.value_loss_weight = 0.1
+    c.value_loss_weight = 0.2
     c.grad_clip = 0.1
     c.gae_lambda = 0.95
     c.ppo_minibatch_size = 64

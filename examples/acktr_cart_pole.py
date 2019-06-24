@@ -24,7 +24,7 @@ def config() -> Config:
     c.gae_lambda = 0.95
     c.use_gae = False
     c.lr_min = 0.0
-    c.value_loss_weight = 0.1
+    c.value_loss_weight = 0.2
     c.entropy_weight = 0.01
     c.eval_freq = None
     return c
