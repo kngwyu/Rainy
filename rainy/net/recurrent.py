@@ -21,7 +21,7 @@ class RnnState(ABC):
         pass
 
     @abstractmethod
-    def mul_(self, x: Tensor) -> None:
+    def unsqueeze(self) -> Self:
         pass
 
 
@@ -92,6 +92,9 @@ class LstmState(RnnState):
         self.h.mul_(x)
         self.c.mul_(x)
 
+    def unsqueeze(self) -> Self:
+        return LstmState(self.h.unsqueeze(0), self.c.unsqueeze(0))
+
 
 class LstmBlock(RnnBlock[LstmState]):
     def __init__(
@@ -146,6 +149,9 @@ class GruState(RnnState):
     def mul_(self, x: Tensor) -> None:
         self.h.mul_(x)
 
+    def unsqueeze(self) -> Self:
+        return GruState(self.h.unsqueeze(0))
+
 
 class GruBlock(RnnBlock[GruState]):
     def __init__(
@@ -192,8 +198,8 @@ class DummyState(RnnState):
     def fill_(self, f: float) -> None:
         pass
 
-    def mul_(self, x: Tensor) -> None:
-        pass
+    def unsqueeze(self) -> Self:
+        return self
 
 
 class DummyRnn(RnnBlock[DummyState]):

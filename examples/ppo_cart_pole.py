@@ -7,7 +7,7 @@ from torch.optim import Adam
 
 def config() -> rainy.Config:
     c = rainy.Config()
-    c.max_steps = int(1e6)
+    c.max_steps = int(1e4)
     c.nworkers = 8
     c.nsteps = 32
     c.set_parallel_env(MultiProcEnv)
@@ -19,7 +19,7 @@ def config() -> rainy.Config:
     c.use_gae = True
     c.ppo_clip = 0.2
     c.eval_freq = None
-    # c.set_net_fn('actor-critic', rainy.net.actor_critic.fc_shared(rnn=rainy.net.GruBlock))
+    c.set_net_fn('actor-critic', rainy.net.actor_critic.fc_shared(rnn=rainy.net.GruBlock))
     return c
 
 

@@ -50,9 +50,6 @@ class TeState(recurrent.RnnState):
     def fill_(self, f):
         self.h.fill_(f)
 
-    def mul_(self, f):
-        self.h.mul_(f)
-
 
 @pytest.mark.parametrize('penv, is_recurrent', [
     (DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 6), False),

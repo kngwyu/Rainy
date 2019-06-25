@@ -33,7 +33,7 @@ class A2cAgent(NStepParallelAgent[State]):
             # treat as batch_size == 1
             state = np.stack([state])
         with torch.no_grad():
-            policy, self.eval_rnns[0] = self.net.policy(state, self.eval_rnns[0])
+            policy, self.eval_rnns[0] = self.net.policy(state, self.eval_rnns[0].unsqueeze())
         if self.config.eval_deterministic:
             return policy.best_action().squeeze().cpu().numpy()
         else:
@@ -42,6 +42,7 @@ class A2cAgent(NStepParallelAgent[State]):
     def eval_action_parallel(
             self,
             states: Array,
+            mask: torch.Tensor,
             ent: Optional[Array[float]] = None
     ) -> Array[Action]:
         with torch.no_grad():

@@ -10,15 +10,17 @@ SAVE_FILE_OLD = 'rainy-agent.save'
 ACTION_FILE_DEFAULT = 'actions.json'
 
 
-def eval_fn(
+def eval_impl(
         ag: Agent,
         save_file: Optional[Path],
         render: bool = False,
 ) -> List[EpisodeResult]:
     n = ag.config.eval_times
     ag.set_mode(train=False)
-    if save_file is not None:
+    if save_file is not None and save_file.is_file():
         res = [ag.eval_and_save(save_file.as_posix(), render=render) for _ in range(n)]
+    elif hasattr(ag, 'eval_parallel'):
+        res = ag.eval_parallel(n)
     else:
         res = [ag.eval_episode(render=render) for _ in range(n)]
     ag.set_mode(train=True)
@@ -60,9 +62,9 @@ def train_agent(
                 episodes,
                 action_file.suffix
             ))
-            res = eval_fn(ag, fname, False)
+            res = eval_impl(ag, fname, False)
         else:
-            res = eval_fn(ag, None, False)
+            res = eval_impl(ag, None, False)
         rewards, length = _reward_and_length(res)
         ag.logger.exp('eval', {
             'total-steps': ag.total_steps,
@@ -159,10 +161,10 @@ def eval_agent(
     path = Path(log_dir)
     if not _load_agent(load_file_name, path, ag):
         raise ValueError('Load file {} does not exists'.format())
-    if action_file is not None and len(action_file) > 0:
-        res = eval_fn(ag, path.joinpath(action_file), render)
+    if ag.config.save_eval_actions and action_file is not None:
+        res = eval_impl(ag, path.joinpath(action_file), render)
     else:
-        res = eval_fn(ag, None, render)
+        res = eval_impl(ag, None, render)
     print('{}'.format(res))
     if render:
         input('--Press Enter to exit--')
@@ -191,4 +193,3 @@ def random_agent(
         except Exception:
             print('--replay was specified, but environment has no function named replay')
     ag.close()
-
