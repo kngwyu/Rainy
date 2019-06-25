@@ -4,7 +4,7 @@ from torch import nn, Tensor
 from typing import Callable, List, Optional, Tuple, Union
 from .block import DqnConv, FcBody, ResNetBody, LinearHead, NetworkBlock
 from .init import Initializer, orthogonal
-from .policy import CategoricalHead, Policy, PolicyHead
+from .policy import CategoricalDist, Policy, PolicyDist
 from .prelude import NetFn
 from .recurrent import DummyRnn, RnnBlock, RnnState
 from ..prelude import Array
@@ -60,7 +60,7 @@ class SharedBodyACNet(ActorCriticNet):
             body: NetworkBlock,
             actor_head: NetworkBlock,  # policy
             critic_head: NetworkBlock,  # value
-            policy_head: PolicyHead,
+            policy_dist: PolicyDist,
             recurrent_body: RnnBlock = DummyRnn(),
             device: Device = Device(),
     ) -> None:
@@ -74,7 +74,7 @@ class SharedBodyACNet(ActorCriticNet):
         self.body = body
         self.actor_head = actor_head
         self.critic_head = critic_head
-        self.policy_head = policy_head
+        self.policy_dist = policy_dist
         self._rnn_body = recurrent_body
         self.to(device.unwrapped)
 
@@ -109,7 +109,7 @@ class SharedBodyACNet(ActorCriticNet):
             masks: Optional[Tensor] = None,
     ) -> Tuple[Policy, RnnState]:
         features, rnn_next = self._features(states, rnns, masks)
-        return self.policy_head(self.actor_head(features)), rnn_next
+        return self.policy_dist(self.actor_head(features)), rnn_next
 
     def value(
             self,
@@ -128,7 +128,7 @@ class SharedBodyACNet(ActorCriticNet):
     ) -> Tuple[Policy, Tensor, RnnState]:
         features, rnn_next = self._features(states, rnns, masks)
         policy, value = self.actor_head(features), self.critic_head(features)
-        return self.policy_head(policy), value.squeeze(), rnn_next
+        return self.policy_dist(policy), value.squeeze(), rnn_next
 
 
 def policy_init() -> Initializer:
@@ -139,18 +139,18 @@ def policy_init() -> Initializer:
 
 def _make_ac_shared(
         body: NetworkBlock,
-        policy_head: PolicyHead,
+        policy_dist: PolicyDist,
         device: Device,
         rnn: Callable[[int, int], RnnBlock],
 ) -> SharedBodyACNet:
     rnn_ = rnn(body.output_dim, body.output_dim)
-    ac_head = LinearHead(body.output_dim, policy_head.input_dim, policy_init())
+    ac_head = LinearHead(body.output_dim, policy_dist.input_dim, policy_init())
     cr_head = LinearHead(body.output_dim, 1)
-    return SharedBodyACNet(body, ac_head, cr_head, policy_head, recurrent_body=rnn_, device=device)
+    return SharedBodyACNet(body, ac_head, cr_head, policy_dist, recurrent_body=rnn_, device=device)
 
 
 def ac_conv(
-        policy: Callable[[int, Device], PolicyHead] = CategoricalHead,
+        policy: Callable[[int, Device], PolicyDist] = CategoricalDist,
         hidden_channels: Tuple[int, int, int] = (32, 64, 32),
         output_dim: int = 256,
         rnn: Callable[[int, int], RnnBlock] = DummyRnn,
@@ -161,13 +161,13 @@ def ac_conv(
     """
     def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> SharedBodyACNet:
         body = DqnConv(state_dim, hidden_channels=hidden_channels, output_dim=output_dim, **kwargs)
-        policy_head = policy(action_dim, device)
-        return _make_ac_shared(body, policy_head, device, rnn)
+        policy_dist = policy(action_dim, device)
+        return _make_ac_shared(body, policy_dist, device, rnn)
     return _net  # type: ignore
 
 
 def fc_shared(
-        policy: Callable[[int, Device], PolicyHead] = CategoricalHead,
+        policy: Callable[[int, Device], PolicyDist] = CategoricalDist,
         rnn: Callable[[int, int], RnnBlock] = DummyRnn,
         **kwargs
 ) -> NetFn:
@@ -175,13 +175,13 @@ def fc_shared(
     """
     def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> SharedBodyACNet:
         body = FcBody(state_dim[0], **kwargs)
-        policy_head = policy(action_dim, device)
-        return _make_ac_shared(body, policy_head, device, rnn)
+        policy_dist = policy(action_dim, device)
+        return _make_ac_shared(body, policy_dist, device, rnn)
     return _net
 
 
 def impala_conv(
-        policy: Callable[[int, Device], PolicyHead] = CategoricalHead,
+        policy: Callable[[int, Device], PolicyDist] = CategoricalDist,
         channels: List[int] = [16, 32, 32],
         rnn: Callable[[int, int], RnnBlock] = DummyRnn,
         **kwargs
@@ -190,6 +190,6 @@ def impala_conv(
     """
     def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> SharedBodyACNet:
         body = ResNetBody(state_dim, channels, **kwargs)
-        policy_head = policy(action_dim, device)
-        return _make_ac_shared(body, policy_head, device, rnn)
+        policy_dist = policy(action_dim, device)
+        return _make_ac_shared(body, policy_dist, device, rnn)
     return _net  # type: ignore

@@ -3,7 +3,7 @@ from test_env import DummyEnv
 import torch
 from rainy.lib.rollout import RolloutSampler, RolloutStorage
 from rainy.envs import DummyParallelEnv, MultiProcEnv, ParallelEnv
-from rainy.net.policy import CategoricalHead
+from rainy.net.policy import CategoricalDist
 from rainy.net import recurrent
 from rainy.utils import Device
 
@@ -19,11 +19,11 @@ def test_storage(penv: ParallelEnv) -> None:
     states = penv.reset()
     storage = RolloutStorage(NSTEP, NWORKERS, Device())
     storage.set_initial_state(states)
-    policy_head = CategoricalHead(ACTION_DIM)
+    policy_dist = CategoricalDist(ACTION_DIM)
     for _ in range(NSTEP):
         state, reward, done, _ = penv.step([None] * NWORKERS)
         value = torch.rand(NWORKERS, dtype=torch.float32)
-        policy = policy_head(torch.rand(NWORKERS, ACTION_DIM))
+        policy = policy_dist(torch.rand(NWORKERS, ACTION_DIM))
         storage.push(state, reward, done, value=value, policy=policy)
     batch = storage.batch_states(penv)
     batch_shape = torch.Size((NSTEP * NWORKERS,))
@@ -50,6 +50,9 @@ class TeState(recurrent.RnnState):
     def fill_(self, f):
         self.h.fill_(f)
 
+    def unsqueeze(self):
+        return TeState(self.h.unsqueeze(0))
+
 
 @pytest.mark.parametrize('penv, is_recurrent', [
     (DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 6), False),
@@ -65,11 +68,11 @@ def test_sampler(penv: ParallelEnv, is_recurrent: bool) -> None:
     rnns = TeState(torch.arange(NWORKERS)) if is_recurrent else recurrent.DummyRnn.DUMMY_STATE
     storage = RolloutStorage(NSTEP, NWORKERS, Device())
     storage.set_initial_state(states, rnn_state=rnns)
-    policy_head = CategoricalHead(ACTION_DIM)
+    policy_dist = CategoricalDist(ACTION_DIM)
     for _ in range(NSTEP):
         state, reward, done, _ = penv.step([None] * NWORKERS)
         value = torch.rand(NWORKERS, dtype=torch.float32)
-        policy = policy_head(torch.rand(NWORKERS, ACTION_DIM))
+        policy = policy_dist(torch.rand(NWORKERS, ACTION_DIM))
         storage.push(state, reward, done, rnn_state=rnns, policy=policy, value=value)
     MINIBATCH = 12
     rnn_test = set()

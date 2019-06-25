@@ -56,7 +56,7 @@ class GaussianPolicy(Policy):
         return self.dist.log_prob(self.action()).sum(-1)
 
 
-class PolicyHead(ABC, nn.Module):
+class PolicyDist(ABC, nn.Module):
     def __init__(self, action_dim: int, *args, **kwargs) -> None:
         super().__init__()
         self.action_dim = action_dim
@@ -70,14 +70,14 @@ class PolicyHead(ABC, nn.Module):
         pass
 
 
-class CategoricalHead(PolicyHead):
+class CategoricalDist(PolicyDist):
     """Categorical policy with no learnable parameter
     """
     def forward(self, x: Tensor) -> Policy:
         return CategoricalPolicy(Categorical(logits=x))
 
 
-class GaussinanHead(PolicyHead):
+class GaussinanDist(PolicyDist):
     """Gaussian policy which takes both mean and stdev as inputs
     """
     @property
@@ -90,7 +90,7 @@ class GaussinanHead(PolicyHead):
         return GaussianPolicy(Normal(mean, F.softplus(stddev)))
 
 
-class SeparateStdGaussinanHead(PolicyHead):
+class SeparateStdGaussinanDist(PolicyDist):
     """Gaussian policy which takes only mean as an input, and has a standard deviation
        independent with states, as a lernable parameter.
     """

@@ -3,14 +3,14 @@ from rainy import Config, net
 from rainy.agents import A2cAgent
 import rainy.utils.cli as cli
 from rainy.envs import PyBullet, pybullet_parallel
-from rainy.net.policy import SeparateStdGaussinanHead
+from rainy.net.policy import SeparateStdGaussianDist
 from torch.optim import Adam
 
 
 def config() -> Config:
     c = Config()
     c.set_env(lambda: PyBullet('Hopper'))
-    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(policy=SeparateStdGaussinanHead))
+    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(policy=SeparateStdGaussianDist))
     c.set_parallel_env(pybullet_parallel())
     c.max_steps = int(1e6)
     c.nworkers = 12
