@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 import numpy as np
+from torch import Tensor
 from torch.optim import Optimizer
+from typing import Callable
 from ..net.value import QFunction
 from ..prelude import Array
 
@@ -46,16 +48,22 @@ class DummyCooler(Cooler):
 
 
 class Explorer(ABC):
+    def select_action(self, state: Array, qfunc: QFunction) -> int:
+        return self._select_from_fn(lambda: qfunc.action_values(state).detach(), qfunc.action_dim)
+
+    def select_from_value(self, value: Tensor) -> int:
+        return self._select_from_fn(lambda: value)
+
     @abstractmethod
-    def select_action(self, state: Array, value_pred: QFunction) -> int:
+    def _select_from_fn(self, value_fn: Callable[[], Tensor], action_dim: int) -> int:
         pass
 
 
 class Greedy(Explorer):
     """deterministic greedy policy
     """
-    def select_action(self, state: Array, value_pred: QFunction) -> int:
-        return value_pred.action_values(state).detach().argmax().item()
+    def _select_from_fn(self, value_fn: Callable[[], Tensor], _action_dim: int) -> int:
+        return value_fn().argmax().item()
 
 
 class EpsGreedy(Explorer):
@@ -65,10 +73,9 @@ class EpsGreedy(Explorer):
         self.epsilon = epsilon
         self.cooler = cooler
 
-    def select_action(self, state: Array, value_pred: QFunction) -> int:
+    def _select_from_fn(self, value_fn: Callable[[], Tensor], action_dim: int) -> int:
         old_eps = self.epsilon
         self.epsilon = self.cooler()
         if np.random.rand() < old_eps:
-            action_dim = value_pred.action_dim
             return np.random.randint(0, action_dim)
-        return value_pred.action_values(state).detach().argmax().item()
+        return value_fn().argmax().item()

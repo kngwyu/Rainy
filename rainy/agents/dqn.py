@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 import torch
 from torch import nn, Tensor
@@ -13,7 +14,7 @@ class DqnAgent(OneStepAgent):
         super().__init__(config)
         assert self.env.spec.is_discrete(), 'DQN only supports discrete action spaces'
         self.net = config.net('value')
-        self.target_net = config.net('value')
+        self.target_net = deepcopy(self.net)
         self.optimizer = config.optimizer(self.net.parameters())
         self.criterion = nn.MSELoss()
         self.policy = config.explorer()

@@ -79,7 +79,6 @@ class A2cAgent(NStepParallelAgent[State]):
         for _ in range(self.config.nsteps):
             states = self._one_step(states)
         with torch.no_grad():
-            # next_value = self.net.value(self.penv.extract(states))
             next_value = self.net.value(*self._network_in(states))
         if self.config.use_gae:
             gamma, lambda_ = self.config.discount_factor, self.config.gae_lambda

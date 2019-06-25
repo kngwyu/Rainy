@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from torch import nn, Tensor
 from torch.distributions import Categorical, Distribution, Normal
 from torch.nn import functional as F
+from typing import Any
+from ..prelude import Self
 from ..utils import Device
 
 
@@ -20,6 +22,10 @@ class Policy(ABC):
 
     def set_action(self, action: Tensor) -> None:
         self._action = action
+
+    @abstractmethod
+    def __getitem__(self, idx: Any) -> Self:
+        pass
 
     @abstractmethod
     def best_action(self) -> Tensor:
@@ -43,6 +49,9 @@ class CategoricalPolicy(Policy):
 
     def entropy(self) -> Tensor:
         return self.dist.entropy()
+
+    def __getitem__(self, idx: Any) -> Self:
+        return CategoricalPolicy(Categorical(logits=self.dist.logits[idx]))
 
 
 class GaussianPolicy(Policy):

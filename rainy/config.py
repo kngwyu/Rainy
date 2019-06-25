@@ -2,7 +2,7 @@ from torch import nn
 from torch.optim import Optimizer, RMSprop
 from typing import Callable, Dict, Optional, Tuple
 from .envs import ClassicalControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEnv
-from .net import actor_critic, value
+from .net import actor_critic, option_critic, value
 from .net.prelude import NetFn, Params
 from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
 from .lib.kfac import KfacPreConditioner, PreConditioner
@@ -60,6 +60,12 @@ class Config:
         self.ppo_value_clip = True
         self.ppo_clip_min: Optional[float] = None  # Mujoco: None Atari: 0.0
 
+        # For option critic
+        self.opt_epsilon_init = 0.1
+        self.opt_epsilon_minimal = None
+        self.opt_epsilon_eval = 0.05
+        self.opt_termination_xi = 0.01
+
         # Logger and logging frequency
         self.logger = Logger()
         self.episode_log_freq = 100
@@ -76,6 +82,7 @@ class Config:
         self.__net: Dict[str, NetFn] = {
             'value': value.fc(),
             'actor-critic': actor_critic.fc_shared(),
+            'option-critic': option_critic.fc_shared(num_options=8),
         }
 
         # Environments
@@ -154,19 +161,20 @@ class Config:
     def set_net_fn(self, name: str, net: NetFn) -> None:
         self.__net[name] = net
 
-    def lr_cooler(self, initial: float) -> Cooler:
-        if self.lr_min is None:
+    def _get_cooler(self, initial: float, minimal: Optional[float], update_span: int) -> Cooler:
+        if minimal is None:
             return DummyCooler(initial)
-        update_steps = self.max_steps // (self.nsteps * self.nworkers)
-        return LinearCooler(initial, self.lr_min, update_steps)
+        return LinearCooler(initial, minimal, self.max_steps // update_span)
+
+    def lr_cooler(self, initial: float) -> Cooler:
+        return self._get_cooler(initial, self.lr_min, self.nsteps * self.nworkers)
 
     def clip_cooler(self) -> Cooler:
-        if self.ppo_clip_min is None:
-            return DummyCooler(self.ppo_clip)
-        update_steps = self.max_steps // (self.nsteps * self.nworkers)
-        return LinearCooler(self.ppo_clip, self.ppo_clip_min, update_steps)
+        return self._get_cooler(self.ppo_clip, self.ppo_clip_min, self.nsteps * self.nworkers)
+
+    def opt_epsilon_cooler(self) -> Cooler:
+        return self._get_cooler(self.opt_epsilon_init, self.opt_epsilon_minimal, self.nworkers)
 
     def __repr__(self) -> str:
         d = filter(lambda t: not t[0].startswith('_Config'), self.__dict__.items())
         return 'Config: ' + str(dict(d))
-

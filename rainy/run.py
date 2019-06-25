@@ -4,6 +4,7 @@ from typing import List, Optional, Tuple
 from .agents import Agent, EpisodeResult
 from .prelude import Array
 from .utils.log import ExperimentLog
+from .utils.misc import has_freq_in_interval
 
 SAVE_FILE_DEFAULT = 'rainy-agent.pth'
 SAVE_FILE_OLD = 'rainy-agent.save'
@@ -76,9 +77,6 @@ def train_agent(
             'length-mean': float(np.mean(length)),
         })
 
-    def interval(turn: int, width: int, freq: Optional[int]) -> bool:
-        return freq and turn != 0 and turn // freq != (turn - width) // freq  # type: ignore
-
     def truncate_episode(episodes: int, freq: Optional[int]) -> int:
         return episodes - episodes % freq if freq else episodes
 
@@ -93,13 +91,13 @@ def train_agent(
         step_diff = ag.total_steps - steps
         steps = ag.total_steps
         results += res
-        if interval(episodes, ep_len, ag.config.episode_log_freq):
+        if has_freq_in_interval(episodes, ep_len, ag.config.episode_log_freq):
             eps = truncate_episode(episodes, ag.config.episode_log_freq)
             log_episode(eps, results[:eps])
             results = results[eps:]
-        if interval(steps, step_diff, ag.config.eval_freq):
+        if has_freq_in_interval(steps, step_diff, ag.config.eval_freq):
             log_eval()
-        if interval(steps, step_diff, ag.config.save_freq):
+        if has_freq_in_interval(steps, step_diff, ag.config.save_freq):
             ag.save(save_file_name + '.{}'.format(save_id))
             save_id += 1
     log_eval()
