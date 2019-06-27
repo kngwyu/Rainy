@@ -1,7 +1,7 @@
 from copy import deepcopy
+import numpy as np
 import torch
-from torch import Tensor
-from torch.distributions import Categorical
+from torch import nn, Tensor
 from typing import Optional, Tuple
 from .base import NStepParallelAgent
 from ..config import Config
@@ -45,7 +45,7 @@ class A2ocRolloutStorage(RolloutStorage[State]):
         self.returns[-1] = next_value
         rewards = self.device.tensor(self.rewards)
         for i in reversed(range(self.nsteps)):
-            self.returns[i] = self.returns[i + 1] * gamma * self.masks[i + 1] + rewards[i]
+            self.returns[i] = gamma * self.masks[i + 1] * self.returns[i + 1] + rewards[i]
             opt, prev_opt = self.option_list[i + 1], self.option_list[i]
             opt_q, eps = self.values[i], self.eps_list[i]
             self.advs[i] = self.returns[i] - opt_q.gather(1, opt.unsqueeze(-1)).squeeze_(-1)
@@ -145,7 +145,8 @@ class A2ocAgent(NStepParallelAgent[State]):
         eps = self.opt_epsilon_cooler()
         options = _sample_option(opt_q, beta, eps, self.prev_options, self.is_initial_states)
         policy = opt_policy[self.worker_indices, options]
-        next_states, rewards, done, info = self.penv.step(policy.action().squeeze().cpu().numpy())
+        actions = policy.action().squeeze().cpu().numpy()
+        next_states, rewards, done, info = self.penv.step(actions)
         self.episode_length += 1
         self.rewards += rewards
         self.report_reward(done, info)
@@ -185,10 +186,10 @@ class A2ocAgent(NStepParallelAgent[State]):
 
         opt_policy, opt_q, beta = self.net(self.storage.batch_states(self.penv))
         policy = opt_policy[self.batch_indices, options]
-        policy.set_action(self.storage.batch_actions())
+        batch_actions = self.storage.batch_actions()
+        policy.set_action(batch_actions)
 
-        expected_v = opt_q.gather(1, options)
-        v_loss = (expected_v - ret).pow(2).mean()
+        v_loss = (opt_q.gather(1, options) - ret).pow(2).mean()
         policy_loss = -(policy.log_prob() * adv).mean()
         beta_loss = beta.gather(1, prev_options).mul(beta_adv).mul(masks).mean()
         entropy = policy.entropy().mean()
@@ -196,6 +197,7 @@ class A2ocAgent(NStepParallelAgent[State]):
 
         self.optimizer.zero_grad()
         (policy_loss + 0.5 * v_loss + beta_loss + entropy_loss).backward()
+        nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
         self.optimizer.step()
 
         self.report_loss(

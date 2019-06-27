@@ -61,8 +61,7 @@ class Config:
         self.ppo_clip_min: Optional[float] = None  # Mujoco: None Atari: 0.0
 
         # For option critic
-        self.opt_epsilon_init = 0.1
-        self.opt_epsilon_minimal = None
+        self.__opt_epsilon_cooler = lambda: LinearCooler(1.0, 0.1, int(1e4))
         self.opt_epsilon_eval = 0.05
         self.opt_termination_xi = 0.01
 
@@ -126,6 +125,12 @@ class Config:
     def set_eval_explorer(self, eval_exp: Callable[[], Explorer]) -> None:
         self.__eval_explore = eval_exp
 
+    def opt_epsilon_cooler(self) -> Cooler:
+        return self.__opt_epsilon_cooler()
+
+    def set_opt_epsilon_cooler(self, cooler: Callable[[], Cooler]) -> None:
+        self.__opt_epsilon_cooler = cooler
+
     def optimizer(self, params: Params) -> Optimizer:
         return self.__optim(params)
 
@@ -171,9 +176,6 @@ class Config:
 
     def clip_cooler(self) -> Cooler:
         return self._get_cooler(self.ppo_clip, self.ppo_clip_min, self.nsteps * self.nworkers)
-
-    def opt_epsilon_cooler(self) -> Cooler:
-        return self._get_cooler(self.opt_epsilon_init, self.opt_epsilon_minimal, self.nworkers)
 
     def __repr__(self) -> str:
         d = filter(lambda t: not t[0].startswith('_Config'), self.__dict__.items())
