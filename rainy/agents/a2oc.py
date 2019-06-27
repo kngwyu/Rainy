@@ -181,7 +181,7 @@ class A2ocAgent(NStepParallelAgent[State]):
         prev_options, options = self.storage.batch_options()
         adv = self.storage.advs[:-1].flatten()
         beta_adv = self.storage.beta_adv.flatten()
-        ret = self.storage.returns[-1].flatten()
+        ret = self.storage.returns[:-1].flatten()
         masks = self.storage.batch_masks()
 
         opt_policy, opt_q, beta = self.net(self.storage.batch_states(self.penv))
@@ -189,8 +189,8 @@ class A2ocAgent(NStepParallelAgent[State]):
         batch_actions = self.storage.batch_actions()
         policy.set_action(batch_actions)
 
-        v_loss = (opt_q.gather(1, options) - ret).pow(2).mean()
         policy_loss = -(policy.log_prob() * adv).mean()
+        v_loss = (opt_q.gather(1, options) - ret).pow(2).mean()
         beta_loss = beta.gather(1, prev_options).mul(beta_adv).mul(masks).mean()
         entropy = policy.entropy().mean()
         entropy_loss = -self.config.entropy_weight * entropy
