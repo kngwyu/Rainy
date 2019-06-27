@@ -1,4 +1,3 @@
-from copy import deepcopy
 import numpy as np
 import torch
 from torch import nn, Tensor
@@ -6,9 +5,8 @@ from typing import Optional, Tuple
 from .base import NStepParallelAgent
 from ..config import Config
 from ..lib.rollout import RolloutStorage
-from ..net import OptionCriticNet
+from ..net import OptionCriticNet, Policy
 from ..prelude import Action, Array, State
-from ..utils.misc import has_freq_in_interval
 
 
 class A2ocRolloutStorage(RolloutStorage[State]):
@@ -39,7 +37,7 @@ class A2ocRolloutStorage(RolloutStorage[State]):
 
     def batch_options(self) -> Tuple[Tensor, Tensor]:
         batch_opt = torch.cat(self.option_list, dim=0)
-        return batch_opt[:-self.nworkers].unsqueeze(-1), batch_opt[self.nworkers:].unsqueeze(-1)
+        return batch_opt[:-self.nworkers], batch_opt[self.nworkers:]
 
     def calc_returns(self, next_value: Tensor, gamma: float, xi: float) -> None:
         self.returns[-1] = next_value
@@ -48,7 +46,8 @@ class A2ocRolloutStorage(RolloutStorage[State]):
             self.returns[i] = gamma * self.masks[i + 1] * self.returns[i + 1] + rewards[i]
             opt, prev_opt = self.option_list[i + 1], self.option_list[i]
             opt_q, eps = self.values[i], self.eps_list[i]
-            self.advs[i] = self.returns[i] - opt_q.gather(1, opt.unsqueeze(-1)).squeeze_(-1)
+            v = opt_q.gather(1, opt.unsqueeze(-1)).squeeze_(-1)
+            self.advs[i] = self.returns[i] - v
             v = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(dim=-1)
             q = opt_q.gather(1, prev_opt.unsqueeze(-1)).squeeze_(-1)
             self.beta_adv[i] = q - v + xi
@@ -89,43 +88,39 @@ class A2ocAgent(NStepParallelAgent[State]):
         super().__init__(config)
         self.net: OptionCriticNet = config.net('option-critic')
         self.noptions = self.net.num_options
-        self.target_net = deepcopy(self.net)
         self.optimizer = config.optimizer(self.net.parameters())
-        self.worker_indices = torch.arange(
-            config.nworkers,
-            device=self.config.device.unwrapped,
-            dtype=torch.long
-        )
-        self.batch_indices = torch.arange(
-            config.nworkers * config.nsteps,
-            device=self.config.device.unwrapped,
-            dtype=torch.long
-        )
+        self.worker_indices = config.device.indices(config.nworkers)
+        self.batch_indices = config.device.indices(config.nworkers * config.nsteps)
         self.storage = A2ocRolloutStorage(self.storage, self.noptions)
         self.opt_epsilon_cooler = config.opt_epsilon_cooler()
         self.is_initial_states = config.device.ones(config.nworkers, dtype=torch.uint8)
+        self.is_initial_states_eval = config.device.ones(config.nworkers, dtype=torch.uint8)
 
     def members_to_save(self) -> Tuple[str, ...]:
         return ("net",)
+
+    def eval_reset(self) -> None:
+        self.is_initial_states_eval.fill_(0)
+
+    @torch.no_grad()
+    def _eval_policy(self, states: Array, indices: Tensor) -> Policy:
+        opt_policy, opt_q, beta = self.net(states)
+        options = _sample_option(
+            opt_q,
+            beta,
+            self.config.opt_epsilon_eval,
+            self.prev_options,
+            self.is_initial_states
+        )
+        return opt_policy[indices, options[:indices.size(0)]]
 
     def eval_action(self, state: Array) -> Action:
         if len(state.shape) == len(self.net.state_dim):
             # treat as batch_size == 1
             state = np.stack([state])
-        with torch.no_grad():
-            opt_policy, opt_q, beta = self.net(states)
-            options = _sample_option(
-                opt_q,
-                beta,
-                self.config.opt_epsilon_eval,
-                self.prev_options,
-                self.is_initial_states
-            )
-            policy = opt_policy[self.worker_indices, options]
-        if self.config.eval_deterministic:
-            return policy.best_action().squeeze().cpu().numpy()
-        else:
-            return policy.action().squeeze().cpu().numpy()
+        policy = self._eval_policy(state, self.config.device.tensor([0], dtype=torch.long))
+        act = policy.best_action() if self.config.eval_deterministic else policy.action()
+        return act.squeeze().cpu().numpy()
 
     def eval_action_parallel(
             self,
@@ -133,7 +128,11 @@ class A2ocAgent(NStepParallelAgent[State]):
             mask: torch.Tensor,
             ent: Optional[Array[float]] = None
     ) -> Array[Action]:
-        pass
+        policy = self._eval_policy(states, self.worker_indices)
+        if ent is not None:
+            ent += policy.entropy().cpu().numpy()
+        act = policy.best_action() if self.config.eval_deterministic else policy.action()
+        return act.squeeze().cpu().numpy()
 
     @property
     def prev_options(self) -> Tensor:
@@ -163,13 +162,8 @@ class A2ocAgent(NStepParallelAgent[State]):
         return (1 - beta) * opt_q[idx] + beta * opt_q.max(dim=-1)[0]
 
     def nstep(self, states: Array[State]) -> Array[State]:
-        step_before = self.total_steps
         for _ in range(self.config.nsteps):
             states = self._one_step(states)
-
-        # sync target network
-        if has_freq_in_interval(step_before, self.batch_indices.size(0), self.config.sync_freq):
-            self.target_net.load_state_dict(self.net.state_dict())
 
         next_value = self._next_value(states)
         self.storage.calc_returns(
@@ -190,19 +184,22 @@ class A2ocAgent(NStepParallelAgent[State]):
         policy.set_action(batch_actions)
 
         policy_loss = -(policy.log_prob() * adv).mean()
-        v_loss = (opt_q.gather(1, options) - ret).pow(2).mean()
-        beta_loss = beta.gather(1, prev_options).mul(beta_adv).mul(masks).mean()
+        beta_loss = beta.gather(1, prev_options.unsqueeze(-1)).mul(beta_adv).mul(masks).mean()
+        value_loss = (opt_q.gather(1, options.unsqueeze(-1)) - ret).pow(2).mean()
         entropy = policy.entropy().mean()
-        entropy_loss = -self.config.entropy_weight * entropy
 
         self.optimizer.zero_grad()
-        (policy_loss + 0.5 * v_loss + beta_loss + entropy_loss).backward()
+        (policy_loss
+         + beta_loss
+         + self.config.value_loss_weight * 0.5 * value_loss
+         - self.config.entropy_weight * entropy).backward()
         nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
         self.optimizer.step()
 
         self.report_loss(
             policy_loss=policy_loss.item(),
-            v_loss=v_loss.item(),
+            value_loss=value_loss.item(),
+            beta_loss=beta_loss.item(),
             entropy=entropy.item(),
         )
         self.storage.reset()

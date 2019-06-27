@@ -21,11 +21,7 @@ class DqnAgent(OneStepAgent):
         self.eval_policy = config.eval_explorer()
         self.replay = config.replay_buffer()
         assert self.replay.feed == DqnReplayFeed
-        self.batch_indices = torch.arange(
-            config.replay_batch_size,
-            device=self.config.device.unwrapped,
-            dtype=torch.long
-        )
+        self.batch_indices = config.device.indices(config.replay_batch_size)
 
     def set_mode(self, train: bool = True) -> None:
         self.net.train(mode=train)
