@@ -20,7 +20,7 @@ def eval_impl(
     ag.set_mode(train=False)
     if save_file is not None and save_file.is_file():
         res = [ag.eval_and_save(save_file.as_posix(), render=render) for _ in range(n)]
-    elif hasattr(ag, 'eval_parallel'):
+    elif hasattr(ag, 'eval_parallel') and not render:
         res = ag.eval_parallel(n)
     else:
         res = [ag.eval_episode(render=render) for _ in range(n)]
