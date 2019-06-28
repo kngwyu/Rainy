@@ -31,12 +31,12 @@ class DqnAgent(OneStepAgent):
 
     @torch.no_grad()
     def eval_action(self, state: Array) -> Action:
-        return self.eval_policy.select_action(state, self.net)  # type: ignore
+        return self.eval_policy.select_action(state, self.net).item()  # type: ignore
 
     def step(self, state: State) -> Tuple[State, float, bool, dict]:
         train_started = self.total_steps > self.config.train_start
         if train_started:
-            action = self.policy.select_action(self.env.extract(state), self.net)
+            action = self.policy.select_action(self.env.extract(state), self.net).item()
         else:
             action = self.env.spec.random_action()
         next_state, reward, done, info = self.env.step(action)

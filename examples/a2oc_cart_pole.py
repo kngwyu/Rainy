@@ -7,12 +7,12 @@ from torch import optim
 
 def config() -> rainy.Config:
     c = rainy.Config()
-    c.max_steps = int(1e3)
+    c.max_steps = int(2e5)
     c.nworkers = 12
     c.nsteps = 5
     c.set_parallel_env(MultiProcEnv)
-    c.set_optimizer(lambda params: optim.RMSprop(params, lr=0.001))
-    c.grad_clip = 0.5
+    c.set_optimizer(lambda params: optim.RMSprop(params, lr=0.0007))
+    c.grad_clip = 1.0
     c.eval_freq = None
     c.entropy_weight = 0.001
     c.value_loss_weight = 1.0

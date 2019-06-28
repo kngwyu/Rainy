@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from torch import nn, Tensor
-from torch.distributions import Categorical, Distribution, Normal
+from torch.distributions import Bernoulli, Categorical, Distribution, Normal
 from torch.nn import functional as F
 from typing import Any
-from ..prelude import Self
+from ..prelude import Array, Self
 from ..utils import Device
 
 
@@ -18,7 +18,10 @@ class Policy(ABC):
     def action(self) -> Tensor:
         if self._action is None:
             self._action = self.dist.sample().detach()
-        return self._action
+        return self._action.squeeze()
+
+    def action_as_np(self) -> Array:
+        return self.action().cpu().numpy()
 
     def set_action(self, action: Tensor) -> None:
         self._action = action
@@ -38,6 +41,20 @@ class Policy(ABC):
     @abstractmethod
     def entropy(self) -> Tensor:
         pass
+
+
+class BernoulliPolicy(Policy):
+    def best_action(self) -> Tensor:
+        return self.dist.probs > 0.5
+
+    def log_prob(self) -> Tensor:
+        return self.dist.log_prob(self.action())
+
+    def entropy(self) -> Tensor:
+        return self.dist.entropy()
+
+    def __getitem__(self, idx: Any) -> Tensor:
+        return BernoulliPolicy(Bernoulli(logits=self.dist.logits[idx]))
 
 
 class CategoricalPolicy(Policy):
@@ -77,6 +94,13 @@ class PolicyDist(ABC, nn.Module):
     @abstractmethod
     def forward(self, t: Tensor) -> Policy:
         pass
+
+
+class BernoulliDist(PolicyDist):
+    """Bernoulli policy with no learnable parameter
+    """
+    def forward(self, x: Tensor) -> Policy:
+        return BernoulliPolicy(Bernoulli(logits=x))
 
 
 class CategoricalDist(PolicyDist):

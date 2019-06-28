@@ -1,5 +1,5 @@
 import torch
-from torch import nn, Tensor
+from torch import LongTensor, nn, Tensor
 from typing import List, Union
 from numpy import ndarray
 from ..prelude import Self
@@ -60,7 +60,7 @@ class Device:
     def is_multi_gpu(self) -> bool:
         return len(self.gpu_indices) > 1
 
-    def indices(self, end: int, start: int = 0) -> Tensor:
+    def indices(self, end: int, start: int = 0) -> LongTensor:
         return torch.arange(start=start, end=end, device=self.device, dtype=torch.long)
 
     def __all_gpu(self) -> List[int]:

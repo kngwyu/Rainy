@@ -61,8 +61,6 @@ class Config:
         self.ppo_clip_min: Optional[float] = None  # Mujoco: None Atari: 0.0
 
         # For option critic
-        self.__opt_epsilon_cooler = lambda: LinearCooler(1.0, 0.1, int(1e4))
-        self.opt_epsilon_eval = 0.05
         self.opt_termination_xi = 0.01
 
         # Logger and logging frequency
@@ -124,12 +122,6 @@ class Config:
 
     def set_eval_explorer(self, eval_exp: Callable[[], Explorer]) -> None:
         self.__eval_explore = eval_exp
-
-    def opt_epsilon_cooler(self) -> Cooler:
-        return self.__opt_epsilon_cooler()
-
-    def set_opt_epsilon_cooler(self, cooler: Callable[[], Cooler]) -> None:
-        self.__opt_epsilon_cooler = cooler
 
     def optimizer(self, params: Params) -> Optimizer:
         return self.__optim(params)

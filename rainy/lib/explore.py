@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-import numpy as np
-from torch import Tensor
+import torch
+from torch import LongTensor, Tensor
 from torch.optim import Optimizer
-from typing import Callable
 from ..net.value import QFunction
 from ..prelude import Array
 
@@ -48,22 +47,19 @@ class DummyCooler(Cooler):
 
 
 class Explorer(ABC):
-    def select_action(self, state: Array, qfunc: QFunction) -> int:
-        return self._select_from_fn(lambda: qfunc.action_values(state).detach(), qfunc.action_dim)
-
-    def select_from_value(self, value: Tensor) -> int:
-        return self._select_from_fn(lambda: value)
+    def select_action(self, state: Array, qfunc: QFunction) -> LongTensor:
+        return self.select_from_value(qfunc.action_values(state).detach())
 
     @abstractmethod
-    def _select_from_fn(self, value_fn: Callable[[], Tensor], action_dim: int) -> int:
-        pass
+    def select_from_value(self, value: Tensor) -> LongTensor:
+        return self._select_from_fn(lambda: value, value.size(-1))
 
 
 class Greedy(Explorer):
     """deterministic greedy policy
     """
-    def _select_from_fn(self, value_fn: Callable[[], Tensor], _action_dim: int) -> int:
-        return value_fn().argmax().item()
+    def select_from_value(self, value: Tensor) -> LongTensor:
+        return value.argmax(-1)
 
 
 class EpsGreedy(Explorer):
@@ -73,9 +69,11 @@ class EpsGreedy(Explorer):
         self.epsilon = epsilon
         self.cooler = cooler
 
-    def _select_from_fn(self, value_fn: Callable[[], Tensor], action_dim: int) -> int:
+    def select_from_value(self, value: Tensor) -> LongTensor:
         old_eps = self.epsilon
         self.epsilon = self.cooler()
-        if np.random.rand() < old_eps:
-            return np.random.randint(0, action_dim)
-        return value_fn().argmax().item()
+        out_shape, action_dim = value.shape[:-1], value.size(-1)
+        greedy = value.argmax(-1).view(-1).cpu()
+        random = torch.randint(action_dim, value.shape[:-1]).view(-1)
+        res = torch.where(torch.zeros(out_shape).view(-1) < old_eps, random, greedy)
+        return res.reshape(out_shape).to(value.device)

@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
-import torch
 from torch import nn, Tensor
 from typing import Callable, Tuple, Union
 from .actor_critic import policy_init
 from .block import DqnConv, FcBody, LinearHead, NetworkBlock
-from .policy import CategoricalDist, Policy, PolicyDist
+from .policy import BernoulliDist, BernoulliPolicy, CategoricalDist, Policy, PolicyDist
 from .prelude import NetFn
 from ..prelude import Array
 from ..utils import Device
@@ -14,11 +13,11 @@ class OptionCriticNet(nn.Module, ABC):
     """Network for option critic
     """
     @abstractmethod
-    def q_and_beta(self, states: Union[Array, Tensor]) -> Tuple[Tensor, Tensor]:
+    def opt_q(self, states: Union[Array, Tensor]) -> Tensor:
         pass
 
     @abstractmethod
-    def forward(self, states: Union[Array, Tensor]) -> Tuple[Policy, Tensor, Tensor]:
+    def forward(self, states: Union[Array, Tensor]) -> Tuple[Policy, Tensor, BernoulliPolicy]:
         pass
 
 
@@ -40,6 +39,7 @@ class SharedBodyOCNet(OptionCriticNet):
         self.optq_head = optq_head
         self.beta_head = beta_head
         self.policy_dist = policy_dist
+        self.beta_dist = BernoulliDist(1)
         self.num_options = optq_head.output_dim
         self.action_dim = actor_head.output_dim // self.num_options
         self.device = device
@@ -49,17 +49,15 @@ class SharedBodyOCNet(OptionCriticNet):
     def state_dim(self) -> Tuple[int, ...]:
         return self.body.input_dim
 
-    def q_and_beta(self, states: Union[Array, Tensor]) -> Tuple[Tensor, Tensor]:
+    def opt_q(self, states: Union[Array, Tensor]) -> Tensor:
         feature = self.body(self.device.tensor(states))
-        opt_q = self.optq_head(feature)
-        beta = torch.sigmoid(self.beta_head(feature))
-        return opt_q, beta
+        return self.optq_head(feature)
 
-    def forward(self, states: Union[Array, Tensor]) -> Tuple[Policy, Tensor, Tensor]:
+    def forward(self, states: Union[Array, Tensor]) -> Tuple[Policy, Tensor, BernoulliPolicy]:
         feature = self.body(self.device.tensor(states))
         policy = self.actor_head(feature).view(-1, self.num_options, self.action_dim)
         opt_q = self.optq_head(feature)
-        beta = torch.sigmoid(self.beta_head(feature))
+        beta = self.beta_dist(self.beta_head(feature))
         return self.policy_dist(policy), opt_q, beta
 
 

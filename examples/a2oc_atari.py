@@ -4,7 +4,7 @@ import os
 from rainy import Config, net
 from rainy.agents import A2ocAgent
 from rainy.envs import Atari, atari_parallel
-from rainy.lib.explore import DummyCooler
+from rainy.lib.explore import DummyCooler, EpsGreedy
 import rainy.utils.cli as cli
 from torch.optim import RMSprop
 
@@ -15,7 +15,7 @@ def config() -> Config:
     c.set_optimizer(
         lambda params: RMSprop(params, lr=1e-4, alpha=0.99, eps=1e-5)
     )
-    c.set_opt_epsilon_cooler(lambda: DummyCooler(0.1))
+    c.set_explorer(lambda: EpsGreedy(1.0, DummyCooler(0.1)))
     c.set_net_fn('option-critic', net.option_critic.conv_shared(num_options=4))
     c.nworkers = 16
     c.nsteps = 5
