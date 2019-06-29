@@ -11,13 +11,11 @@ from ..net.policy import Policy, BernoulliPolicy
 from ..prelude import Action, Array, State
 
 
-class A2ocRolloutStorage(RolloutStorage[State]):
+class AocRolloutStorage(RolloutStorage[State]):
     def __init__(self, raw: RolloutStorage, num_options: int) -> None:
         self.__dict__.update(raw.__dict__)
-        init_option = self.device.zeros(self.nworkers, dtype=torch.long)
-        is_new_option = self.device.ones(self.nworkers, dtype=torch.uint8)
-        self.options: List[LongTensor] = [init_option]
-        self.is_new_options: List[LongTensor] = [is_new_option]
+        self.options = [self.device.zeros(self.nworkers, dtype=torch.long)]
+        self.is_new_options = [self.device.ones(self.nworkers, dtype=torch.uint8)]
         self.epsilons: List[float] = []
         self.beta_adv = torch.zeros_like(self.batch_values)
         self.noptions = num_options
@@ -29,28 +27,31 @@ class A2ocRolloutStorage(RolloutStorage[State]):
         self.is_new_options = [self.is_new_options[-1]]
         self.epsilons.clear()
 
-    def push_options(self, option: LongTensor, is_new_option: ByteTensor, epsilon: float) -> None:
+    def push_options(self, option: LongTensor, is_new_option: Tensor, epsilon: float) -> None:
         self.options.append(option)
         self.is_new_options.append(is_new_option)
         self.epsilons.append(epsilon)
 
     def batch_options(self) -> Tuple[Tensor, Tensor]:
-        return torch.cat(self.options[1:], dim=0)
+        batched = torch.cat(self.options, dim=0)
+        return batched[:-self.nworkers], batched[self.nworkers:]
 
-    def calc_returns(self, next_value: Tensor, gamma: float, xi: float) -> None:
+    def calc_returns(self, next_value: Tensor, gamma: float, delib_cost: float) -> None:
         self.returns[-1] = next_value
         rewards = self.device.tensor(self.rewards)
         for i in reversed(range(self.nsteps)):
-            self.returns[i] = gamma * self.masks[i + 1] * self.returns[i + 1] + rewards[i]
+            ret = gamma * self.masks[i + 1] * self.returns[i + 1] + rewards[i]
+            self.returns[i] = ret - self.is_new_options[i].float() * self.masks[i] * delib_cost
             opt = self.options[i + 1]
             opt_q, eps = self.values[i], self.epsilons[i]
             self.advs[i] = self.returns[i] - opt_q[self.worker_indices, opt]
             v = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(dim=-1)
-            self.beta_adv[i] = opt_q[self.worker_indices, opt] - v + xi
+            self.beta_adv[i] = opt_q[self.worker_indices, opt].mul(v)
 
 
-class A2ocAgent(NStepParallelAgent[State]):
-    """A2OC: Advantage Actor Option Critic
+class AocAgent(NStepParallelAgent[State]):
+    """AOC: Adavantage Option Critic
+    It's a synchronous batched version of A2OC: Asynchronou Adavantage Option Critic
     """
     def __init__(self, config: Config) -> None:
         super().__init__(config)
@@ -59,7 +60,7 @@ class A2ocAgent(NStepParallelAgent[State]):
         self.optimizer = config.optimizer(self.net.parameters())
         self.worker_indices = config.device.indices(config.nworkers)
         self.batch_indices = config.device.indices(config.nworkers * config.nsteps)
-        self.storage = A2ocRolloutStorage(self.storage, self.noptions)
+        self.storage = AocRolloutStorage(self.storage, self.noptions)
         self.opt_explorer: EpsGreedy = config.explorer()
         if not isinstance(self.opt_explorer, EpsGreedy):
             return ValueError('Currently only Epsilon Greedy is supported as Explorer')
@@ -148,22 +149,23 @@ class A2ocAgent(NStepParallelAgent[State]):
         self.storage.calc_returns(
             next_value,
             self.config.discount_factor,
-            self.config.opt_termination_xi
+            self.config.opt_delib_cost,
         )
 
-        options = self.storage.batch_options()
+        prev_options, options = self.storage.batch_options()
         adv = self.storage.advs[:-1].flatten()
         beta_adv = self.storage.beta_adv.flatten()
         ret = self.storage.returns[:-1].flatten()
         masks = self.storage.batch_masks()
 
         opt_policy, opt_q, beta = self.net(self.storage.batch_states(self.penv))
-        policy = opt_policy[self.batch_indices, options]
+        policy = opt_policy[self.batch_indices, prev_options]
         batch_actions = self.storage.batch_actions()
         policy.set_action(batch_actions)
 
         policy_loss = -(policy.log_prob() * adv).mean()
-        term_prob = beta[self.batch_indices, options].dist.probs
+        term_prob = beta[self.batch_indices, prev_options].dist.probs
+        beta_adv += self.config.opt_delib_cost + self.config.opt_beta_adv_merginal
         beta_loss = term_prob.mul(masks).mul(beta_adv).mean()
         value_loss = (opt_q[self.batch_indices, options] - ret).pow(2).mean()
         entropy = policy.entropy().mean()

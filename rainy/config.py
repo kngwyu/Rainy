@@ -61,7 +61,8 @@ class Config:
         self.ppo_clip_min: Optional[float] = None  # Mujoco: None Atari: 0.0
 
         # For option critic
-        self.opt_termination_xi = 0.01
+        self.opt_beta_adv_merginal = 0.0
+        self.opt_delib_cost = 0.02
 
         # Logger and logging frequency
         self.logger = Logger()

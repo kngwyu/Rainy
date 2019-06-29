@@ -2,7 +2,7 @@ import pytest
 from test_env import DummyEnv
 import torch
 from typing import Optional
-from rainy.agents.a2oc import A2ocRolloutStorage
+from rainy.agents.aoc import AocRolloutStorage
 from rainy.lib.rollout import RolloutSampler, RolloutStorage
 from rainy.envs import DummyParallelEnv, MultiProcEnv, ParallelEnv
 from rainy.net.policy import CategoricalDist
@@ -49,7 +49,7 @@ def test_oc_storage() -> None:
     NWORKERS = penv.num_envs
     NOPTIONS = 4
     storage = Device()
-    storage = A2ocRolloutStorage(get_storage(penv), NOPTIONS)
+    storage = AocRolloutStorage(get_storage(penv), NOPTIONS)
     policy_dist = CategoricalDist(ACTION_DIM)
     for _ in range(NSTEP):
         state, reward, done, _ = penv.step([None] * NWORKERS)
