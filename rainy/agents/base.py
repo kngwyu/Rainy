@@ -276,11 +276,14 @@ class NStepParallelAgent(Agent, Generic[State]):
         self.env.close()
         self.penv.close()
 
+    def _reset(self, initial_states: Array[State]) -> None:
+        self.storage.set_initial_state(initial_states, self.rnn_init())
+
     def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
         if self.config.seed is not None:
             self.penv.seed([self.config.seed] * self.config.nworkers)
         states = self.penv.reset()
-        self.storage.set_initial_state(states, self.rnn_init())
+        self._reset(states)
         step = self.config.nsteps * self.config.nworkers
         while True:
             states = self.nstep(states)

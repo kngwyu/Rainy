@@ -60,6 +60,7 @@ log.plot_reward(12 * 20, max_steps=int(4e5), title='ACKTR cart pole')
 |PPO           |:heavy_check_mark:    |:heavy_check_mark:<sup>(1)</sup>|:heavy_check_mark:  |:heavy_check_mark:   |
 |A2C           |:heavy_check_mark:    |:heavy_check_mark:              |:heavy_check_mark:  |:heavy_check_mark:   |
 |ACKTR         |:heavy_check_mark:    |:x:<sup>(2)</sup>               |:heavy_check_mark:  |:heavy_check_mark:   |
+|AOC           |:heavy_check_mark:    |:x:                             |:heavy_check_mark:  |:heavy_check_mark:   |
 
 <sup><sup>(1): It's very unstable </sup></sup><br>
 <sup><sup>(2): Needs https://openreview.net/forum?id=HyMTkQZAb implemented </sup></sup><br>
@@ -87,6 +88,10 @@ log.plot_reward(12 * 20, max_steps=int(4e5), title='ACKTR cart pole')
 ### PPO (Proximal Policy Optimization)
 - https://arxiv.org/abs/1707.06347
 
+### AOC (Advantage Option Critic)
+- https://arxiv.org/abs/1609.05140 (DQN-like option critic)
+- https://arxiv.org/abs/1709.04571 (A3C-like option critic called A2OC)
+
 ## Implementaions I referenced
 I referenced mainly openai baselines, but all these pacakages were useful.
 
@@ -101,6 +106,8 @@ https://github.com/ShangtongZhang/DeepRL
 https://github.com/chainer/chainerrl
 
 https://github.com/Thrandis/EKFAC-pytorch (for ACKTR)
+
+https://github.com/jeanharb/a2oc_delib (for AOC)
 
 ## License
 This project is licensed under Apache License, Version 2.0

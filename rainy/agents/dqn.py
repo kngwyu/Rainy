@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 import torch
 from torch import nn, Tensor
@@ -13,18 +14,14 @@ class DqnAgent(OneStepAgent):
         super().__init__(config)
         assert self.env.spec.is_discrete(), 'DQN only supports discrete action spaces'
         self.net = config.net('value')
-        self.target_net = config.net('value')
+        self.target_net = deepcopy(self.net)
         self.optimizer = config.optimizer(self.net.parameters())
         self.criterion = nn.MSELoss()
         self.policy = config.explorer()
         self.eval_policy = config.eval_explorer()
         self.replay = config.replay_buffer()
         assert self.replay.feed == DqnReplayFeed
-        self.batch_indices = torch.arange(
-            config.replay_batch_size,
-            device=self.config.device.unwrapped,
-            dtype=torch.long
-        )
+        self.batch_indices = config.device.indices(config.replay_batch_size)
 
     def set_mode(self, train: bool = True) -> None:
         self.net.train(mode=train)
@@ -34,12 +31,12 @@ class DqnAgent(OneStepAgent):
 
     @torch.no_grad()
     def eval_action(self, state: Array) -> Action:
-        return self.eval_policy.select_action(state, self.net)  # type: ignore
+        return self.eval_policy.select_action(state, self.net).item()  # type: ignore
 
     def step(self, state: State) -> Tuple[State, float, bool, dict]:
         train_started = self.total_steps > self.config.train_start
         if train_started:
-            action = self.policy.select_action(self.env.extract(state), self.net)
+            action = self.policy.select_action(self.env.extract(state), self.net).item()
         else:
             action = self.env.spec.random_action()
         next_state, reward, done, info = self.env.step(action)

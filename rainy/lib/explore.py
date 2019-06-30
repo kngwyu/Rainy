@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-import numpy as np
+import torch
+from torch import LongTensor, Tensor
 from torch.optim import Optimizer
 from ..net.value import QFunction
 from ..prelude import Array
@@ -46,16 +47,19 @@ class DummyCooler(Cooler):
 
 
 class Explorer(ABC):
+    def select_action(self, state: Array, qfunc: QFunction) -> LongTensor:
+        return self.select_from_value(qfunc.action_values(state).detach())
+
     @abstractmethod
-    def select_action(self, state: Array, value_pred: QFunction) -> int:
-        pass
+    def select_from_value(self, value: Tensor) -> LongTensor:
+        return self._select_from_fn(lambda: value, value.size(-1))
 
 
 class Greedy(Explorer):
     """deterministic greedy policy
     """
-    def select_action(self, state: Array, value_pred: QFunction) -> int:
-        return value_pred.action_values(state).detach().argmax().item()
+    def select_from_value(self, value: Tensor) -> LongTensor:
+        return value.argmax(-1)
 
 
 class EpsGreedy(Explorer):
@@ -65,10 +69,11 @@ class EpsGreedy(Explorer):
         self.epsilon = epsilon
         self.cooler = cooler
 
-    def select_action(self, state: Array, value_pred: QFunction) -> int:
+    def select_from_value(self, value: Tensor) -> LongTensor:
         old_eps = self.epsilon
         self.epsilon = self.cooler()
-        if np.random.rand() < old_eps:
-            action_dim = value_pred.action_dim
-            return np.random.randint(0, action_dim)
-        return value_pred.action_values(state).detach().argmax().item()
+        out_shape, action_dim = value.shape[:-1], value.size(-1)
+        greedy = value.argmax(-1).view(-1).cpu()
+        random = torch.randint(action_dim, value.shape[:-1]).view(-1)
+        res = torch.where(torch.zeros(out_shape).view(-1) < old_eps, random, greedy)
+        return res.reshape(out_shape).to(value.device)

@@ -1,11 +1,22 @@
 import pytest
 from test_env import DummyEnv
 import torch
+from typing import Optional
+from rainy.agents.aoc import AocRolloutStorage
 from rainy.lib.rollout import RolloutSampler, RolloutStorage
 from rainy.envs import DummyParallelEnv, MultiProcEnv, ParallelEnv
 from rainy.net.policy import CategoricalDist
 from rainy.net import recurrent
 from rainy.utils import Device
+
+NSTEP = 4
+ACTION_DIM = 3
+
+
+def get_storage(penv: ParallelEnv, rnns: Optional[recurrent.RnnState] = None) -> RolloutStorage:
+    ret = RolloutStorage(NSTEP, penv.num_envs, Device())
+    ret.set_initial_state(penv.reset(), rnn_state=rnns)
+    return ret
 
 
 @pytest.mark.parametrize('penv', [
@@ -13,12 +24,8 @@ from rainy.utils import Device
     MultiProcEnv(lambda: DummyEnv(array_dim=(16, 16)), 6)
 ])
 def test_storage(penv: ParallelEnv) -> None:
-    NSTEP = 4
-    ACTION_DIM = 3
     NWORKERS = penv.num_envs
-    states = penv.reset()
-    storage = RolloutStorage(NSTEP, NWORKERS, Device())
-    storage.set_initial_state(states)
+    storage = get_storage(penv)
     policy_dist = CategoricalDist(ACTION_DIM)
     for _ in range(NSTEP):
         state, reward, done, _ = penv.step([None] * NWORKERS)
@@ -34,6 +41,27 @@ def test_storage(penv: ParallelEnv) -> None:
     assert sampler.masks.shape == batch_shape
     assert sampler.values.shape == batch_shape
     assert sampler.old_log_probs.shape == batch_shape
+    penv.close()
+
+
+def test_oc_storage() -> None:
+    penv = DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 6)
+    NWORKERS = penv.num_envs
+    NOPTIONS = 4
+    storage = Device()
+    storage = AocRolloutStorage(get_storage(penv), NOPTIONS)
+    policy_dist = CategoricalDist(ACTION_DIM)
+    for _ in range(NSTEP):
+        state, reward, done, _ = penv.step([None] * NWORKERS)
+        value = torch.rand(NWORKERS, NOPTIONS)
+        policy = policy_dist(torch.rand(NWORKERS, ACTION_DIM))
+        storage.push(state, reward, done, value=value, policy=policy)
+        options = torch.randint(NOPTIONS, (NWORKERS,), device=storage.device.unwrapped)
+        is_new_options = torch.randint(2, (NWORKERS,), device=storage.device.unwrapped).byte()
+        storage.push_options(options, is_new_options, 0.5)
+    next_value = torch.randn(NWORKERS, NOPTIONS).max(dim=-1)[0]
+    storage.calc_returns(next_value, 0.99, 0.01)
+    assert tuple(storage.beta_adv.shape) == (NSTEP, NWORKERS)
     penv.close()
 
 
@@ -61,13 +89,9 @@ class TeState(recurrent.RnnState):
     (DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 8), True),
 ])
 def test_sampler(penv: ParallelEnv, is_recurrent: bool) -> None:
-    NSTEP = 4
-    ACTION_DIM = 3
     NWORKERS = penv.num_envs
-    states = penv.reset()
     rnns = TeState(torch.arange(NWORKERS)) if is_recurrent else recurrent.DummyRnn.DUMMY_STATE
-    storage = RolloutStorage(NSTEP, NWORKERS, Device())
-    storage.set_initial_state(states, rnn_state=rnns)
+    storage = get_storage(penv, rnns=rnns)
     policy_dist = CategoricalDist(ACTION_DIM)
     for _ in range(NSTEP):
         state, reward, done, _ = penv.step([None] * NWORKERS)
