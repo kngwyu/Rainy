@@ -28,7 +28,7 @@ def config() -> Config:
     c.use_reward_monitor = True
     c.eval_deterministic = False
     c.episode_log_freq = 100
-    c.opt_delib_cost = 0.02
+    c.opt_delib_cost = 0.025
     c.opt_beta_adv_merginal = 0.01
     c.eval_freq = None
     c.save_freq = None
