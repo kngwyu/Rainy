@@ -3,6 +3,7 @@ from torch import nn, Tensor
 from typing import Tuple
 from .a2c import A2cAgent
 from ..lib.rollout import RolloutSampler
+from ..lib import mpi
 from ..config import Config
 from ..envs import State
 from ..net import Policy
@@ -19,6 +20,7 @@ class PpoAgent(A2cAgent):
         self.clip_eps = config.ppo_clip
         nbatchs = (self.config.nsteps * self.config.nworkers) // self.config.ppo_minibatch_size
         self.num_updates = self.config.ppo_epochs * nbatchs
+        self.optimizer = mpi.setup(self.net, self.optimizer)
 
     def members_to_save(self) -> Tuple[str, ...]:
         return 'net', 'clip_eps', 'clip_cooler', 'optimizer'
@@ -71,8 +73,7 @@ class PpoAgent(A2cAgent):
                 (policy_loss
                  + self.config.value_loss_weight * 0.5 * value_loss
                  - self.config.entropy_weight * entropy_loss).backward()
-                nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
-                self.optimizer.step()
+                mpi.clip_and_step(self.net, self.config.grad_clip, self.optimizer)
                 p, v, e = p + policy_loss.item(), v + value_loss.item(), e + entropy_loss.item()
 
         self.lr_cooler.lr_decay(self.optimizer)

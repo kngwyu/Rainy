@@ -5,6 +5,7 @@ from .agents import Agent, EpisodeResult
 from .prelude import Array
 from .utils.log import ExperimentLog
 from .utils.misc import has_freq_in_interval
+from .lib.mpi import IS_MPI_ROOT
 
 SAVE_FILE_DEFAULT = 'rainy-agent.pth'
 SAVE_FILE_OLD = 'rainy-agent.save'
@@ -91,13 +92,13 @@ def train_agent(
         step_diff = ag.total_steps - steps
         steps = ag.total_steps
         results += res
-        if has_freq_in_interval(episodes, ep_len, ag.config.episode_log_freq):
+        if has_freq_in_interval(episodes, ep_len, ag.config.episode_log_freq) and IS_MPI_ROOT:
             eps = truncate_episode(episodes, ag.config.episode_log_freq)
             log_episode(eps, results[:eps])
             results = results[eps:]
-        if has_freq_in_interval(steps, step_diff, ag.config.eval_freq):
+        if has_freq_in_interval(steps, step_diff, ag.config.eval_freq) and IS_MPI_ROOT:
             log_eval()
-        if has_freq_in_interval(steps, step_diff, ag.config.save_freq):
+        if has_freq_in_interval(steps, step_diff, ag.config.save_freq) and IS_MPI_ROOT:
             ag.save(save_file_name + '.{}'.format(save_id))
             save_id += 1
     log_eval()

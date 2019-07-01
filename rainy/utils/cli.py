@@ -4,6 +4,7 @@ from typing import Callable, Optional, Tuple
 from .log import ExperimentLog
 from ..agents import Agent
 from ..config import Config
+from ..lib import mpi
 from .. import run
 
 
@@ -28,7 +29,8 @@ def train(ctx: dict, comment: Optional[str], prefix: str) -> None:
     c.logger.set_stderr()
     ag = ctx.obj['make_agent'](c)
     run.train_agent(ag)
-    print("random play: {}, trained: {}".format(ag.random_episode(), ag.eval_episode()))
+    if mpi.IS_MPI_ROOT:
+        print("random play: {}, trained: {}".format(ag.random_episode(), ag.eval_episode()))
 
 
 @rainy_cli.command()

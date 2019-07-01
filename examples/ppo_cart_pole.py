@@ -7,7 +7,7 @@ from torch.optim import Adam
 
 def config() -> rainy.Config:
     c = rainy.Config()
-    c.max_steps = int(1e6)
+    c.max_steps = int(1e5)
     c.nworkers = 8
     c.nsteps = 32
     c.set_parallel_env(MultiProcEnv)

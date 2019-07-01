@@ -8,6 +8,7 @@ from pathlib import Path
 import sys
 from typing import Any, Dict, List, Optional, Set
 
+
 NORMAL_FORMATTER = logging.Formatter('%(levelname)s %(asctime)s: %(name)s: %(message)s')
 JSON_FORMATTER = logging.Formatter('%(levelname)s::%(message)s')
 FINGERPRINT = 'fingerprint.txt'
@@ -72,15 +73,15 @@ class ExperimentLog:
     """Structured log file.
        Used to get graphs or else from rainy log files.
     """
-    def __init__(self, file_or_dir_name: str) -> None:
+    def __init__(self, file_or_dir_name: str, empty: bool = False) -> None:
         path = Path(file_or_dir_name)
-        if path.is_dir():
+        if path.is_dir() and not empty:
             log_path = path.joinpath(LOGFILE)
             self.fingerprint = path.joinpath(FINGERPRINT).read_text()
         else:
             log_path = path
             self.fingerprint = ''
-        self.log = _load_log_file(log_path)
+        self.log = [] if empty else _load_log_file(log_path)
         self._available_keys: Set[str] = set()
         self.log_path = log_path
 
@@ -159,6 +160,7 @@ class Logger(logging.Logger):
 
     def __init__(self) -> None:
         super().__init__('rainy', EXP)
+
         self._log_dir: Optional[Path] = None
         self.exp_start = datetime.now()
         self.time_offset = 0.0
@@ -240,3 +242,32 @@ class Logger(logging.Logger):
         msg[self.ELAPSED] = delta.total_seconds() + self.time_offset
         msg['name'] = name
         self._log(EXP, json.dumps(msg, sort_keys=True), args, **kwargs)  # type: ignore
+
+
+class DummyLogger(Logger):
+    def __init__(self) -> None:
+        pass
+
+    def set_dir_from_script_path(
+            self,
+            script_path_: str,
+            comment: Optional[str] = None,
+            prefix: str = '',
+    ) -> None:
+        pass
+
+    def set_dir(self, log_dir: Path, comment: Optional[str] = None) -> None:
+        pass
+
+    def retrive(self, log_dir: str) -> ExperimentLog:
+        return ExperimentLog(log_dir, empty=True)
+
+    def set_stderr(self, level: int = EXP) -> None:
+        pass
+
+    @property
+    def log_dir(self) -> Optional[Path]:
+        return None
+
+    def exp(self, name: str, msg: dict, *args, **kwargs) -> None:
+        pass
