@@ -1,4 +1,5 @@
 import torch
+from torch import Tensor
 from torch.optim import Optimizer
 from typing import Tuple
 from ..prelude import Array
@@ -6,6 +7,9 @@ try:
     import horovod.torch as hvd
     hvd.init()
     IS_MPI_ROOT = hvd.rank() == 0
+
+    if hvd.size() == 1:
+        raise ModuleNotFoundError('When hvd.size() == 1 we do not use horovod')
 
     def setup(model: torch.nn.Module, opt: Optimizer) -> Optimizer:
         hvd.broadcast_parameters(model.state_dict(), root_rank=0)
@@ -31,6 +35,15 @@ try:
         t = torch.from_numpy(arr)
         hvd.allreduce_(t, average=average)
 
+    def array_mean_and_var(arr: Array) -> Tuple[Array, Array]:
+        m, v = tensor_mean_and_var(torch.from_numpy(arr))
+        return m.numpy(), v.numpy()
+
+    def tensor_mean_and_var(t: Tensor) -> Tuple[Tensor, Tensor]:
+        mean = hvd.allreduce_(t.mean(dim=0))
+        var = hvd.allreduce_((t - mean).pow(2).mean(dim=0))
+        return mean, var
+
 except ModuleNotFoundError:
 
     IS_MPI_ROOT = True
@@ -53,3 +66,9 @@ except ModuleNotFoundError:
 
     def array_reduce_(arr: Array, average: bool = True) -> None:
         pass
+
+    def array_mean_and_var(arr: Array) -> Tuple[Array, Array]:
+        return arr.mean(axis=0), arr.var(axis=0)
+
+    def tensor_mean_and_var(t: Tensor) -> Tuple[Tensor, Tensor]:
+        return t.mean(dim=0), t.var(dim=0, unbiased=False)

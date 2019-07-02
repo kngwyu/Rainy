@@ -1,5 +1,5 @@
 import torch
-from torch import nn, Tensor
+from torch import Tensor
 from typing import Tuple
 from .a2c import A2cAgent
 from ..lib.rollout import RolloutSampler
@@ -80,6 +80,6 @@ class PpoAgent(A2cAgent):
         self.clip_eps = self.clip_cooler()
         self.storage.reset()
 
-        p, v, e = map(lambda x: x / float(self.num_updates), (p, v, e))
+        p, v, e = (x / self.num_updates for x in (p, v, e))
         self.report_loss(policy_loss=p, value_loss=v, entropy_loss=e)
         return states
