@@ -1,6 +1,6 @@
 from torch import nn
 from torch.optim import Optimizer, RMSprop
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 from .envs import ClassicalControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEnv
 from .net import actor_critic, option_critic, value
 from .net.prelude import NetFn, Params
@@ -33,6 +33,7 @@ class Config:
 
         # For the cases you can't set seed in constructor, like gym.atari
         self.seed: Optional[int] = None
+        self.parallel_seeds: List[int] = []
 
         # For DQN-like algorithms
         self.sync_freq = 200
@@ -151,6 +152,12 @@ class Config:
 
     def set_parallel_env(self, parallel_env: Callable[[EnvGen, int], ParallelEnv]):
         self.__parallel_env = parallel_env
+
+    def set_parallel_seeds(self, penv: ParallelEnv) -> None:
+        if len(self.parallel_seeds) == self.nworkers:
+            penv.seed(self.parallel_seeds)
+        elif self.seed is not None:
+            penv.seed([self.seed] * self.nworkers)
 
     def net(self, name: str) -> nn.Module:
         assert self.state_dim[0] != 0
