@@ -81,6 +81,9 @@ class GaussianPolicy(Policy):
     def log_prob(self) -> Tensor:
         return self.dist.log_prob(self.action()).sum(-1)
 
+    def __getitem__(self, idx: Any) -> Self:
+        return GaussianPolicy(Normal(self.dist.mean[idx], self.dist.stddev[idx]))
+
 
 class PolicyDist(ABC, nn.Module):
     def __init__(self, action_dim: int, *args, **kwargs) -> None:
@@ -123,7 +126,7 @@ class GaussinanDist(PolicyDist):
         return GaussianPolicy(Normal(mean, F.softplus(stddev)))
 
 
-class SeparateStdGaussinanDist(PolicyDist):
+class SeparateStdGaussianDist(PolicyDist):
     """Gaussian policy which takes only mean as an input, and has a standard deviation
        independent with states, as a lernable parameter.
     """

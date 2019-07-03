@@ -2,6 +2,7 @@ import torch
 from torch import LongTensor, nn, Tensor
 from typing import List, Union
 from numpy import ndarray
+from ..lib import mpi
 from ..prelude import Self
 
 
@@ -64,7 +65,13 @@ class Device:
         return torch.arange(start=start, end=end, device=self.device, dtype=torch.long)
 
     def __all_gpu(self) -> List[int]:
-        return list(range(torch.cuda.device_count()))
+        ngpus = torch.cuda.device_count()
+        size, rank = mpi.local_size_and_rank()
+        if size > 1:
+            if ngpus < size:
+                return ValueError(f'Too many local processes {size} for {ngpus} gpus')
+            return [rank]
+        return list(range(ngpus))
 
     def __use_cpu(self) -> None:
         self.gpu_indices = []

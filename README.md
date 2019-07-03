@@ -16,7 +16,7 @@ Though this project is still WIP, all examples are verified to work.
 First, install [pipenv](https://pipenv.readthedocs.io/en/latest/).
 E.g. you can install it via
 ``` bash
-pip install pipenv --user
+pip3 install pipenv --user
 ```
 
 Then, clone this repository and create a virtual environment in it.
@@ -52,15 +52,30 @@ log.plot_reward(12 * 20, max_steps=int(4e5), title='ACKTR cart pole')
 ```
 ![ACKTR cart pole](./pictures/acktr-cart-pole.png)
 
+## Run examples with MPI or NCCL
+Distributed training is supported via [horovod](https://horovod.readthedocs.io/en/latest/).
+I recommend installing it in your `site-packages`(= not in the virtualenv).
+E.g., if you want to use it with NCLL, you can install it via
+```bash
+sudo env HOROVOD_GPU_ALLREDUCE=NCCL pip3 install --no-cache-dir horovod
+```
+
+Once you install it, you can run the training script using `horovodrun` command.
+
+E.g., if you want to use two hosts(localhost and anotherhost) and run `ppo_atari.py`, use
+```bash
+horovodrun -np 2 -H localhost:1,anotherhost:1 pipenv run python examples/ppo_atari.py train
+```
+
 ## Implementation Status
 
-|**Algorithm** |**Multi Worker(Sync)**|**Recurrent**                   |**Discrete Action** |**Continuous Action**|
-| ------------ | -------------------- | ------------------------------ | ------------------ | ------------------- |
-|DQN/Double DQN|:x:                   |:x:                             |:heavy_check_mark:  |:x:                  |
-|PPO           |:heavy_check_mark:    |:heavy_check_mark:<sup>(1)</sup>|:heavy_check_mark:  |:heavy_check_mark:   |
-|A2C           |:heavy_check_mark:    |:heavy_check_mark:              |:heavy_check_mark:  |:heavy_check_mark:   |
-|ACKTR         |:heavy_check_mark:    |:x:<sup>(2)</sup>               |:heavy_check_mark:  |:heavy_check_mark:   |
-|AOC           |:heavy_check_mark:    |:x:                             |:heavy_check_mark:  |:heavy_check_mark:   |
+|**Algorithm** |**Multi Worker(Sync)**|**Recurrent**                   |**Discrete Action** |**Continuous Action**|**MPI**           |
+| ------------ | -------------------- | ------------------------------ | ------------------ | ------------------- | ---------------- |
+|DQN/Double DQN|:x:                   |:x:                             |:heavy_check_mark:  |:x:                  |:x:               |
+|PPO           |:heavy_check_mark:    |:heavy_check_mark:<sup>(1)</sup>|:heavy_check_mark:  |:heavy_check_mark:   |:heavy_check_mark:|
+|A2C           |:heavy_check_mark:    |:heavy_check_mark:              |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
+|ACKTR         |:heavy_check_mark:    |:x:<sup>(2)</sup>               |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
+|AOC           |:heavy_check_mark:    |:x:                             |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
 
 <sup><sup>(1): It's very unstable </sup></sup><br>
 <sup><sup>(2): Needs https://openreview.net/forum?id=HyMTkQZAb implemented </sup></sup><br>

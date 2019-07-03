@@ -3,6 +3,7 @@
 import numpy as np
 import torch
 from typing import Tuple
+from ..lib import mpi
 from ..prelude import Array
 from ..utils import Device
 from ..utils.state_dict import TensorStateDict
@@ -17,13 +18,14 @@ class RunningMeanStd:
         self.count = epsilon
 
     def update(self, x: Array[float]) -> None:
+        x_mean, x_var = mpi.array_mean_and_var(x)
         self.mean, self.var, self.count = _update_rms(
             self.mean,
             self.var,
             self.count,
-            np.mean(x, axis=0),
-            np.var(x, axis=0),
-            x.shape[0]
+            x_mean,
+            x_var,
+            x.shape[0] * mpi.global_size()
         )
 
     def std(self, eps: float = 1.0e-8) -> Array[float]:
@@ -55,13 +57,14 @@ class RunningMeanStdTorch(TensorStateDict):
 
     @torch.no_grad()
     def update(self, x: torch.Tensor) -> None:
+        x_mean, x_var = mpi.tensor_mean_and_var(x)
         _update_rms_torch(
             self.mean,
             self.var,
             self.count,
-            x.mean(dim=0),
-            x.var(dim=0, unbiased=False),
-            torch.tensor(x.size(0), device=self.device.unwrapped)
+            x_mean,
+            x_var,
+            torch.tensor(x.size(0) * mpi.global_size(), device=self.device.unwrapped)
         )
 
     def std(self, eps: float = 1.0e-8) -> torch.Tensor:

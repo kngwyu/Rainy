@@ -5,9 +5,10 @@ from .envs import ClassicalControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEn
 from .net import actor_critic, option_critic, value
 from .net.prelude import NetFn, Params
 from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
+from .lib import mpi
 from .lib.kfac import KfacPreConditioner, PreConditioner
 from .replay import DqnReplayFeed, ReplayBuffer, UniformReplayBuffer
-from .utils import Device, Logger
+from .utils import Device, DummyLogger, Logger
 
 
 class Config:
@@ -65,7 +66,7 @@ class Config:
         self.opt_delib_cost = 0.02
 
         # Logger and logging frequency
-        self.logger = Logger()
+        self.logger = Logger() if mpi.IS_MPI_ROOT else DummyLogger()
         self.episode_log_freq = 100
         self.loss_log_freq = 1000
         self.eval_freq = 10000

@@ -7,6 +7,7 @@ from torch import nn
 from typing import Callable, Generic, Iterable, List, NamedTuple, Optional, Tuple
 import warnings
 from ..config import Config
+from ..lib import mpi
 from ..lib.rollout import RolloutStorage
 from ..net import DummyRnn, RnnState
 from ..envs import EnvExt
@@ -66,6 +67,8 @@ class Agent(ABC):
         pass
 
     def report_loss(self, **kwargs) -> None:
+        if not mpi.IS_MPI_ROOT:
+            return
         self.loss_stat.update(kwargs)
         if self.update_steps % self.config.loss_log_freq == 0:
             d = self.loss_stat.report_and_reset()
@@ -134,6 +137,8 @@ class Agent(ABC):
         return res
 
     def save(self, filename: str) -> None:
+        if not mpi.IS_MPI_ROOT:
+            return None
         save_dict = {}
         for member_str in self.members_to_save():
             value = getattr(self, member_str)
@@ -149,6 +154,8 @@ class Agent(ABC):
         torch.save(save_dict, log_dir.joinpath(filename))
 
     def load(self, filename: str) -> None:
+        if not mpi.IS_MPI_ROOT:
+            return None
         saved_dict = torch.load(filename, map_location=self.config.device.unwrapped)
         #  For backward compatibility, we need to check both index and name
         for idx, member_str in enumerate(self.members_to_save()):
@@ -284,7 +291,7 @@ class NStepParallelAgent(Agent, Generic[State]):
             self.penv.seed([self.config.seed] * self.config.nworkers)
         states = self.penv.reset()
         self._reset(states)
-        step = self.config.nsteps * self.config.nworkers
+        step = self.config.nsteps * self.config.nworkers * mpi.global_size()
         while True:
             states = self.nstep(states)
             self.total_steps += step
