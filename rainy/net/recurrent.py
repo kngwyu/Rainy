@@ -1,19 +1,19 @@
 from abc import ABC, abstractmethod
 import torch
 from torch import nn, Tensor
-from typing import Generic, Iterable, Optional, Sequence, Tuple, Union, TypeVar
+from typing import Generic, Iterable, List, Optional, Sequence, Tuple, TypeVar
 from .init import lstm_bias, Initializer
-from ..prelude import Self
+from ..prelude import Index, Self
 from ..utils import Device
 
 
 class RnnState(ABC):
     @abstractmethod
-    def __getitem__(self, x: Union[Sequence[int], int]) -> Self:
+    def __getitem__(self, x: Index) -> Self:
         pass
 
     @abstractmethod
-    def __setitem__(self, x: Union[Sequence[int], int], value: Self) -> None:
+    def __setitem__(self, x: Index, value: Self) -> None:
         pass
 
     @abstractmethod
@@ -63,7 +63,7 @@ def _reshape_batch(x: Tensor, mask: Optional[Tensor], nsteps: int) -> Tuple[Tens
 def _haszero_iter(mask: Tensor, nstep: int) -> Iterable[Tuple[int, int]]:
     has_zeros = (mask[1:] == 0.0).any(dim=-1).nonzero().squeeze().cpu()
     if has_zeros.dim() == 0:
-        haszero = [has_zeros.item() + 1]
+        haszero = [int(has_zeros.item() + 1)]
     else:
         haszero = (has_zeros + 1).tolist()
     return zip([0] + haszero, haszero + [nstep])
@@ -77,10 +77,10 @@ class LstmState(RnnState):
             self.h.squeeze_(0)
             self.c.squeeze_(0)
 
-    def __getitem__(self, x: Union[Sequence[int], int]) -> Self:
+    def __getitem__(self, x: Index) -> Self:
         return LstmState(self.h[x], self.c[x])
 
-    def __setitem__(self, x: Union[Sequence[int], int], value: Self) -> None:
+    def __setitem__(self, x: Index, value: Self) -> None:
         self.h[x] = value.h[x]
         self.c[x] = value.c[x]
 
@@ -101,7 +101,7 @@ class LstmBlock(RnnBlock[LstmState]):
             self,
             input_dim: int,
             output_dim: int,
-            initializer: Initializer = Initializer(bias_init = lstm_bias()),
+            initializer: Initializer = Initializer(bias_init=lstm_bias()),
             **kwargs
     ) -> None:
         super().__init__(input_dim, output_dim)
@@ -112,15 +112,15 @@ class LstmBlock(RnnBlock[LstmState]):
             self,
             x: Tensor,
             hidden: LstmState,
-            mask: Optional[Tensor] = None
+            mask_: Optional[Tensor] = None
     ) -> Tuple[Tensor, LstmState]:
         in_shape = x.shape
         if in_shape == hidden.h.shape:
-            out, (h, c) = self.lstm(x.unsqueeze(0), _apply_mask(mask, hidden.h, hidden.c))
+            out, (h, c) = self.lstm(x.unsqueeze(0), _apply_mask(mask_, hidden.h, hidden.c))
             return out.squeeze(0), LstmState(h, c)
         # forward Nsteps altogether
         nsteps = in_shape[0] // hidden.h.size(0)
-        x, mask = _reshape_batch(x, mask, nsteps)
+        x, mask = _reshape_batch(x, mask_, nsteps)
         res, h, c = [], hidden.h, hidden.c
         for start, end in _haszero_iter(mask, nsteps):
             m = mask[start].view(1, -1, 1)
@@ -137,10 +137,10 @@ class GruState(RnnState):
     def __init__(self, h: Tensor) -> None:
         self.h = h
 
-    def __getitem__(self, x: Union[Sequence[int], int]) -> Self:
+    def __getitem__(self, x: Index) -> Self:
         return GruState(self.h[x])
 
-    def __setitem__(self, x: Union[Sequence[int], int], value: Self) -> None:
+    def __setitem__(self, x: Index, value: Self) -> None:
         self.h[x] = value.h[x]
 
     def fill_(self, f: float) -> None:
@@ -169,15 +169,15 @@ class GruBlock(RnnBlock[GruState]):
             self,
             x: Tensor,
             hidden: GruState,
-            mask: Optional[Tensor] = None
+            mask_: Optional[Tensor] = None
     ) -> Tuple[Tensor, GruState]:
         in_shape = x.shape
         if in_shape == hidden.h.shape:
-            out, h = self.gru(x.unsqueeze(0), *_apply_mask(mask, hidden.h))
+            out, h = self.gru(x.unsqueeze(0), *_apply_mask(mask_, hidden.h))
             return out.squeeze(0), GruState(h.squeeze_(0))
         # forward Nsteps altogether
         nsteps = in_shape[0] // hidden.h.size(0)
-        x, mask = _reshape_batch(x, mask, nsteps)
+        x, mask = _reshape_batch(x, mask_, nsteps)
         res, h = [], hidden.h
         for start, end in _haszero_iter(mask, nsteps):
             processed, h = self.gru(x[start:end], h * mask[start].view(1, -1, 1))
@@ -189,10 +189,10 @@ class GruBlock(RnnBlock[GruState]):
 
 
 class DummyState(RnnState):
-    def __getitem__(self, x: Union[Sequence[int], int]) -> Self:
+    def __getitem__(self, x: Index) -> Self:
         return self
 
-    def __setitem__(self, x: Union[Sequence[int], int], value: Self) -> None:
+    def __setitem__(self, x: Index, value: Self) -> None:
         pass
 
     def fill_(self, f: float) -> None:

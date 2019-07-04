@@ -35,7 +35,7 @@ def lstm_bias(forget: float = 1.0, other: float = 0.0) -> InitFn:
     """
     @torch.no_grad()
     def __set_bias(t: Tensor) -> None:
-        i = len(t) // 4
+        i = t.size(0) // 4
         t.fill_(other)
         t[i:2 * i].fill_(forget)
     return partial(__set_bias)
@@ -65,7 +65,7 @@ class Initializer:
         self.bias_init = bias_init
         self.scale = scale
 
-    def __call__(self, mod: Union[nn.Module, nn.Sequential, Iterable[nn.Module]]) -> nn.Module:
+    def __call__(self, mod: nn.Module) -> nn.Module:
         return self.__init_dispatch(mod)
 
     def make_list(self, mods: Iterable[nn.Module]) -> nn.ModuleList:

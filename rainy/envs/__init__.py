@@ -28,10 +28,10 @@ class AtariConfig:
 
     @staticmethod
     def from_style(style: str) -> Self:
-        if style not in self.STYLES:
-            raise ValueError('You have to choose a style from {}'.format(self.STYLES))
+        if style not in AtariConfig.STYLES:
+            raise ValueError('You have to choose a style from {}'.format(AtariConfig.STYLES))
         cfg = AtariConfig()
-        if style is 'deepmind':
+        if style == 'deepmind':
             pass
         elif style == 'baselines':
             cfg.fire_reset = True

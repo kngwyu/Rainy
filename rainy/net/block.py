@@ -50,7 +50,7 @@ class ConvBody(NetworkBlock):
     """
     def __init__(
             self,
-            cnns: List[nn.Module],
+            cnns: Sequence[nn.Conv2d],
             fc: nn.Linear,
             input_dim: Tuple[int, int, int],
             activator: nn.Module = nn.ReLU(inplace=True),
@@ -148,7 +148,7 @@ class ResNetBody(NetworkBlock):
             maxpools: List[tuple] = [(3, 2, 1)] * 3,
             use_batch_norm: bool = True,
             fc_out: int = 256,
-            init: Initializer = Initializer(nonlinearity = 'relu'),
+            init: Initializer = Initializer(nonlinearity='relu'),
     ) -> None:
         def layer(in_channel: int, out_channel: int, maxpool: tuple) -> nn.Sequential:
             return nn.Sequential(
@@ -218,7 +218,7 @@ def make_cnns(
         input_dim: Tuple[int, int, int],
         params: Sequence[tuple],
         hidden_channels: Sequence[int]
-) -> Tuple[List[nn.Module], int]:
+) -> Tuple[List[nn.Conv2d], int]:
     """Make a list of CNNs from lists of parameters.
     """
     channel, width, height = input_dim

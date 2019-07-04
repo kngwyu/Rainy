@@ -253,6 +253,7 @@ class NStepParallelAgent(Agent, Generic[State]):
     def eval_action_parallel(
             self,
             states: Array,
+            mask: torch.Tensor,
             ent: Optional[Array[float]] = None,
     ) -> Array[Action]:
         pass

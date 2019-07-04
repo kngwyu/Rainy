@@ -1,4 +1,5 @@
-from typing import Any, Sequence, TypeVar
+from torch import Tensor
+from typing import Any, List, Sequence, Tuple, TypeVar, Union
 
 
 try:
@@ -12,6 +13,7 @@ except ImportError:
 
 T = TypeVar('T')
 Self = Any
+Index = Union[None, int, slice, Tensor, List[Any], Tuple[Any, ...]]
 
 
 class Array(Sequence[T]):
@@ -23,6 +25,12 @@ class Array(Sequence[T]):
         ...
 
     def transpose(self, *args) -> Self:
+        ...
+
+    def mean(self, **kwargs) -> Self:
+        ...
+
+    def var(self, **kwargs) -> Self:
         ...
 
     def __rsub__(self, value: Any) -> Self:

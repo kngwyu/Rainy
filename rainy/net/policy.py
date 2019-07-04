@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from torch import nn, Tensor
 from torch.distributions import Bernoulli, Categorical, Distribution, Normal
 from torch.nn import functional as F
-from typing import Any
+from typing import Any, Optional
 from ..prelude import Array, Self
 from ..utils import Device
 
@@ -10,10 +10,7 @@ from ..utils import Device
 class Policy(ABC):
     def __init__(self, dist: Distribution) -> None:
         self.dist = dist
-        self._action = None
-
-    def detach_(self) -> None:
-        self.dist.detach_()
+        self._action: Optional[Tensor] = None
 
     def action(self) -> Tensor:
         if self._action is None:

@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch import ByteTensor, LongTensor, nn, Tensor
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 from .base import NStepParallelAgent
 from ..config import Config
 from ..lib.explore import EpsGreedy

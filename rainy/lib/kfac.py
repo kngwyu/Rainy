@@ -162,8 +162,8 @@ class KfacPreConditioner(PreConditioner):
 
     def __fisher_grad(
             self,
-            weight: nn.Parameter,
-            bias: Optional[nn.Parameter],
+            weight: Tensor,
+            bias: Optional[Tensor],
             layer: Layer,
             state: dict
     ) -> Tuple[Tensor, Optional[Tensor]]:
