@@ -231,8 +231,7 @@ class NStepParallelAgent(Agent, Generic[State]):
         self.episode_results.clear()
         if n is None:
             n = self.config.nworkers
-        if self.config.seed is not None:
-            self.penv.seed([self.config.seed] * self.config.nworkers)
+        self.config.set_parallel_seeds(self.penv)
 
         states = self.penv.reset()
         mask = self.config.device.ones(self.config.nworkers)
@@ -287,8 +286,7 @@ class NStepParallelAgent(Agent, Generic[State]):
         self.storage.set_initial_state(initial_states, self.rnn_init())
 
     def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
-        if self.config.seed is not None:
-            self.penv.seed([self.config.seed] * self.config.nworkers)
+        self.config.set_parallel_seeds(self.penv)
         states = self.penv.reset()
         self._reset(states)
         step = self.config.nsteps * self.config.nworkers * mpi.global_size()
