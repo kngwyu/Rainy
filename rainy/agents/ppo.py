@@ -20,7 +20,8 @@ class PpoAgent(A2cAgent):
         self.clip_eps = config.ppo_clip
         nbatchs = (self.config.nsteps * self.config.nworkers) // self.config.ppo_minibatch_size
         self.num_updates = self.config.ppo_epochs * nbatchs
-        self.optimizer = mpi.setup(self.net, self.optimizer)
+        mpi.setup_models(self.net)
+        self.optimizer = mpi.setup_optimizer(self.optimizer)
 
     def members_to_save(self) -> Tuple[str, ...]:
         return 'net', 'clip_eps', 'clip_cooler', 'optimizer'

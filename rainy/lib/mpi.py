@@ -11,10 +11,13 @@ try:
     if hvd.size() == 1:
         raise ModuleNotFoundError('When hvd.size() == 1 we do not use horovod')
 
-    def setup(model: torch.nn.Module, opt: Optimizer) -> Optimizer:
-        hvd.broadcast_parameters(model.state_dict(), root_rank=0)
+    def setup_models(*args) -> None:
+        for model in args:
+            hvd.broadcast_parameters(model.state_dict(), root_rank=0)
+
+    def setup_optimizer(opt: Optimizer) -> Optimizer:
         hvd.broadcast_optimizer_state(opt, root_rank=0)
-        return hvd.DistributedOptimizer(opt, model.named_parameters())
+        return hvd.DistributedOptimizer(opt)
 
     def clip_and_step(model: torch.nn.Module, max_norm: float, opt: Optimizer) -> None:
         opt.synchronize()
@@ -48,7 +51,10 @@ except ModuleNotFoundError:
 
     IS_MPI_ROOT = True
 
-    def setup(model: torch.nn.Module, opt: Optimizer) -> Optimizer:
+    def setup_models(*args) -> None:
+        pass
+
+    def setup_optimizer(opt: Optimizer) -> Optimizer:
         return opt
 
     def broadcast_model(model: torch.nn.Module) -> None:
