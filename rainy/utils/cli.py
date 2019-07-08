@@ -10,11 +10,21 @@ from .. import run
 
 @click.group()
 @click.option('--gpu', required=False, type=int, help='How many gpus you allow Rainy to use')
-@click.option('--seed', type=int, default=None, help='Random seed set before training')
+@click.option('--envname', type=str, default=None, help='Name of environment passed to config_gen')
+@click.option('--seed', type=int, default=None,
+              help='Random seed set before training. Left for backward comaptibility')
 @click.option('--override', type=str, default='', help='Override string(See README for detail)')
 @click.pass_context
-def rainy_cli(ctx: dict, gpu: Tuple[int], seed: Optional[int], override: str) -> None:
+def rainy_cli(
+        ctx: dict,
+        gpu: Tuple[int],
+        envname: Optional[str],
+        seed: Optional[int],
+        override: str
+) -> None:
     ctx.obj['gpu'] = gpu
+    cfg_gen = ctx.obj['config_gen']
+    ctx.obj['config'] = cfg_gen(envname) if envname is not None else cfg_gen()
     ctx.obj['config'].seed = seed
     if len(override) > 0:
         import builtins
@@ -55,7 +65,7 @@ def random(ctx: dict, save: bool, render: bool, replay: bool, action_file: str) 
     run.random_agent(ag, render=render, replay=replay, action_file=action_file)
 
 
-@rainy_cli.command(help='Load a save file and restart training')
+@rainy_cli.command(help='Given the Load a save file and restart training')
 @click.pass_context
 @click.argument('logdir')
 @click.option('--model', type=str, default=run.SAVE_FILE_DEFAULT, help='Name of the save file')
@@ -111,14 +121,13 @@ def ipython(ctx: dict, logdir: Optional[str], vi_mode: bool) -> None:
 
 
 def run_cli(
-        config: Config,
+        config_gen: Callable[..., Config],
         agent_gen: Callable[[Config], Agent],
         script_path: Optional[str] = None
 ) -> rainy_cli:
     obj = {
-        'config': config,
+        'config_gen': config_gen,
         'make_agent': agent_gen,
         'script_path': script_path
     }
     rainy_cli(obj=obj)
-

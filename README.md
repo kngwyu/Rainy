@@ -78,7 +78,7 @@ This CLI has a simple data-driven interface.
 I.e., once you fill a config object, then all commands(train, eval, retarain, and etc.) work.
 So you can start experiments easily without copying and pasting, say, argument parser codes.
 
-However, it has a limitation that you cannot add new options and arguments to each subcommands.
+However, it has a limitation that you cannot add new options.
 
 So Rainy-CLI provides an option named `override`, which executes the given string as a Python code
 with the config object set as `config`.
@@ -88,8 +88,8 @@ Example usage:
 pipenv run python examples/a2c_cart_pole.py --override='config.grad_clip=0.5; config.nsteps=10' train
 ```
 
-If this feature still doesn't satisfy your requirement,
-then unfortunately you need to write your own CLI :cold_sweat:.
+If this feature still doesn't satisfy your requirement, you can
+[override subcommands by `ctx.invoke`](https://click.palletsprojects.com/en/7.x/advanced/#invoking-other-commands).
 
 ## Implementation Status
 

@@ -14,12 +14,12 @@ KFAC_KWARGS = {
 }
 
 
-def config() -> Config:
+def config(envname: str = 'Hopper') -> Config:
     c = Config()
     c.max_steps = int(4e5)
     c.nworkers = 12
     c.nsteps = 20
-    c.set_env(lambda: PyBullet('Hopper'))
+    c.set_env(lambda: PyBullet(envname))
     c.set_net_fn('actor-critic', net.actor_critic.fc_shared(policy=SeparateStdGaussianDist))
     c.set_parallel_env(pybullet_parallel())
     c.set_optimizer(kfac.default_sgd(eta_max=0.1))
@@ -34,4 +34,4 @@ def config() -> Config:
 
 
 if __name__ == '__main__':
-    cli.run_cli(config(), AcktrAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, AcktrAgent, script_path=os.path.realpath(__file__))

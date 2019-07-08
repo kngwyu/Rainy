@@ -6,9 +6,9 @@ from rainy.envs import Atari, atari_parallel
 from torch.optim import Adam
 
 
-def config() -> Config:
+def config(game: str = 'Breakout') -> Config:
     c = Config()
-    c.set_env(lambda: Atari('Breakout', frame_stack=False))
+    c.set_env(lambda: Atari(game, frame_stack=False))
     #  c.set_net_fn('actor-critic', net.actor_critic.ac_conv(rnn=net.GruBlock))
     c.set_net_fn('actor-critic', net.actor_critic.ac_conv())
     c.set_parallel_env(atari_parallel())
@@ -27,7 +27,7 @@ def config() -> Config:
     c.use_reward_monitor = True
     c.lr_min = None  # set 0.0 if you decrease ppo_clip
     # eval settings
-    c.eval_env = Atari('Breakout')
+    c.eval_env = Atari(game)
     c.episode_log_freq = 100
     c.eval_freq = None
     c.save_freq = None
@@ -35,4 +35,4 @@ def config() -> Config:
 
 
 if __name__ == '__main__':
-    cli.run_cli(config(), PpoAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, PpoAgent, script_path=os.path.realpath(__file__))

@@ -7,9 +7,9 @@ from rainy.net.policy import SeparateStdGaussianDist
 from torch.optim import Adam
 
 
-def config() -> Config:
+def config(envname: str = 'Hopper') -> Config:
     c = Config()
-    c.set_env(lambda: PyBullet('Hopper'))
+    c.set_env(lambda: PyBullet(envname))
     c.set_net_fn('actor-critic', net.actor_critic.fc_shared(policy=SeparateStdGaussianDist))
     c.set_parallel_env(pybullet_parallel())
     c.max_steps = int(1e6)
@@ -27,4 +27,4 @@ def config() -> Config:
 
 
 if __name__ == '__main__':
-    cli.run_cli(config(), A2cAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, A2cAgent, script_path=os.path.realpath(__file__))
