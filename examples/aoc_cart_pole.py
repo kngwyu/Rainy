@@ -23,4 +23,4 @@ def config() -> rainy.Config:
 
 
 if __name__ == '__main__':
-    run_cli(config(), rainy.agents.AocAgent, script_path=os.path.realpath(__file__))
+    run_cli(config, rainy.agents.AocAgent, script_path=os.path.realpath(__file__))

@@ -7,9 +7,9 @@ import rainy.utils.cli as cli
 from torch.optim import RMSprop
 
 
-def config() -> Config:
+def config(game: str = 'Breakout') -> Config:
     c = Config()
-    c.set_env(lambda: Atari('Breakout'))
+    c.set_env(lambda: Atari(game))
     c.set_optimizer(
         lambda params: RMSprop(params, lr=0.00025, alpha=0.95, eps=0.01, centered=True)
     )
@@ -20,7 +20,7 @@ def config() -> Config:
     c.train_start = 50000
     c.sync_freq = 10000
     c.max_steps = int(2e7)
-    c.eval_env = Atari('Breakout', episodic_life=False)
+    c.eval_env = Atari(game, episodic_life=False)
     c.eval_freq = None
     c.seed = 1
     c.use_reward_monitor = True
@@ -28,4 +28,4 @@ def config() -> Config:
 
 
 if __name__ == '__main__':
-    cli.run_cli(config(), DoubleDqnAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, DoubleDqnAgent, script_path=os.path.realpath(__file__))
