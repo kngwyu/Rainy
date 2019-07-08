@@ -9,11 +9,12 @@ from ..lib.rollout import RolloutStorage
 from ..net import OptionCriticNet
 from ..net.policy import Policy, BernoulliPolicy
 from ..prelude import Action, Array, State
+from ..utils import Device
 
 
 class AocRolloutStorage(RolloutStorage[State]):
-    def __init__(self, raw: RolloutStorage, num_options: int) -> None:
-        self.__dict__.update(raw.__dict__)
+    def __init__(self, nsteps: int, nworkers: int, device: Device, num_options: int) -> None:
+        super().__init__(nsteps, nworkers, device)
         self.options = [self.device.zeros(self.nworkers, dtype=torch.long)]
         self.is_new_options = [self.device.ones(self.nworkers, dtype=torch.uint8)]
         self.epsilons: List[float] = []
@@ -55,19 +56,23 @@ class AocAgent(NStepParallelAgent[State]):
     """
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.net: OptionCriticNet = config.net('option-critic')
+        self.net: OptionCriticNet = config.net('option-critic')  # type: ignore
         self.noptions = self.net.num_options
         self.optimizer = config.optimizer(self.net.parameters())
         self.worker_indices = config.device.indices(config.nworkers)
         self.batch_indices = config.device.indices(config.nworkers * config.nsteps)
-        self.storage = AocRolloutStorage(self.storage, self.noptions)
-        self.opt_explorer: EpsGreedy = config.explorer()
+        self.storage: AocRolloutStorage[State] = \
+            AocRolloutStorage(config.nsteps, config.nworkers, config.device, self.noptions)
+        self.opt_explorer: EpsGreedy = config.explorer()  # type: ignore
         if not isinstance(self.opt_explorer, EpsGreedy):
             return ValueError('Currently only Epsilon Greedy is supported as Explorer')
-        self.eval_prev_options = config.device.zeros(config.nworkers, dtype=torch.long)
+        self.eval_prev_options: LongTensor = config.device.zeros(config.nworkers, dtype=torch.long)
 
     def members_to_save(self) -> Tuple[str, ...]:
-        return ("net",)
+        return 'net', 'opt_explorer'
+
+    def _reset(self, initial_states: Array[State]) -> None:
+        self.storage.set_initial_state(initial_states)
 
     def eval_reset(self) -> None:
         self.eval_prev_options.fill_(0)
@@ -82,7 +87,8 @@ class AocAgent(NStepParallelAgent[State]):
         do_options_end = current_beta.action()
         use_new_options = do_options_end.add(1.0 - self.storage.masks[-1]) > 0.9
         epsgreedy_options = self.opt_explorer.select_from_value(opt_q)
-        return torch.where(use_new_options, epsgreedy_options, prev_options), use_new_options
+        options = torch.where(use_new_options, epsgreedy_options, prev_options)
+        return options, use_new_options  # type: ignore
 
     @torch.no_grad()
     def _eval_policy(self, states: Array, indices: Tensor) -> Policy:
@@ -113,11 +119,11 @@ class AocAgent(NStepParallelAgent[State]):
 
     @property
     def prev_options(self) -> LongTensor:
-        return self.storage.options[-1]
+        return self.storage.options[-1]  # type: ignore
 
     @property
     def prev_is_new_options(self) -> ByteTensor:
-        return self.storage.is_new_options[-1]
+        return self.storage.is_new_options[-1]  # type: ignore
 
     @torch.no_grad()
     def _one_step(self, states: Array[State]) -> Array[State]:

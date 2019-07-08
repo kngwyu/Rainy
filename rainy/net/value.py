@@ -32,10 +32,9 @@ class QValueNet(QFunction, nn.Module):
             'body output and head input must have a same dimention'
         super().__init__()
         self.head = head
+        self.body = body
         if device.is_multi_gpu():
-            self.body = device.data_parallel(body)
-        else:
-            self.body = body
+            self.body = device.data_parallel(body)  # type: ignore
         self.device = device
         self.to(self.device.unwrapped)
 

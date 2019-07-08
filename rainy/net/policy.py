@@ -50,7 +50,7 @@ class BernoulliPolicy(Policy):
     def entropy(self) -> Tensor:
         return self.dist.entropy()
 
-    def __getitem__(self, idx: Any) -> Tensor:
+    def __getitem__(self, idx: Any) -> Self:
         return BernoulliPolicy(Bernoulli(logits=self.dist.logits[idx]))
 
 

@@ -4,6 +4,7 @@ from torch import nn
 from typing import Optional, Tuple
 from .base import NStepParallelAgent
 from ..config import Config
+from ..lib.rollout import RolloutStorage
 from ..net import ActorCriticNet, Policy, RnnState
 from ..prelude import Action, Array, State
 
@@ -11,19 +12,24 @@ from ..prelude import Action, Array, State
 class A2cAgent(NStepParallelAgent[State]):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.net: ActorCriticNet = config.net('actor-critic')
+        self.storage: RolloutStorage[State] = \
+            RolloutStorage(config.nsteps, config.nworkers, config.device)
+        self.net: ActorCriticNet = config.net('actor-critic')  # type: ignore
         self.optimizer = config.optimizer(self.net.parameters())
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
         self.eval_rnns = self.rnn_init()
 
     def members_to_save(self) -> Tuple[str, ...]:
-        return ("net",)
+        return 'net', 'lr_cooler'
 
     def set_mode(self, train: bool = True) -> None:
         self.net.train(mode=train)
 
     def rnn_init(self) -> RnnState:
         return self.net.recurrent_body.initial_state(self.config.nworkers, self.config.device)
+
+    def _reset(self, initial_states: Array[State]) -> None:
+        self.storage.set_initial_state(initial_states, self.rnn_init())
 
     def eval_reset(self) -> None:
         self.eval_rnns.fill_(0.0)

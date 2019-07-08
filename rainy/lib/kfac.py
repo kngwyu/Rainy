@@ -6,7 +6,7 @@ import torch
 from torch import nn, Tensor
 from torch.nn import functional as F
 from torch.optim import Optimizer, SGD
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, Generator, List, Optional, Tuple, Union
 import warnings
 from ..net.prelude import Params
 
@@ -153,10 +153,10 @@ class KfacPreConditioner(PreConditioner):
         """Updates gradients
         """
         gw, gb = self.__fisher_grad(weight, bias, layer, state)
-        fisher_norm = (weight.grad * gw).sum().item()
+        fisher_norm = weight.grad.mul(gw).sum().item()
         weight.grad.data.copy_(gw)
         if bias is not None:
-            fisher_norm += (bias.grad * gb).sum().item()
+            fisher_norm += bias.grad.mul(gb).sum().item()
             bias.grad.data.copy_(gb)
         return fisher_norm
 
@@ -228,7 +228,7 @@ class KfacPreConditioner(PreConditioner):
             )
 
     @contextmanager
-    def save_grad(self) -> None:
+    def save_grad(self) -> Generator[None, None, None]:
         self._save_grad = True
         yield
         self._save_grad = False

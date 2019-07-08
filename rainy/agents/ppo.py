@@ -6,14 +6,14 @@ from ..lib.rollout import RolloutSampler
 from ..lib import mpi
 from ..config import Config
 from ..envs import State
-from ..net import Policy
+from ..net import ActorCriticNet, Policy
 from ..prelude import Array
 
 
 class PpoAgent(A2cAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.net: ActorCriticNet = config.net('actor-critic')
+        self.net: ActorCriticNet = config.net('actor-critic')  # type: ignore
         self.optimizer = config.optimizer(self.net.parameters())
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
         self.clip_cooler = config.clip_cooler()
