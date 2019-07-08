@@ -1,7 +1,6 @@
 import pytest
 from test_env import DummyEnv
 import torch
-from typing import Optional
 from rainy.agents.aoc import AocRolloutStorage
 from rainy.lib.rollout import RolloutSampler, RolloutStorage
 from rainy.envs import DummyParallelEnv, MultiProcEnv, ParallelEnv
@@ -13,19 +12,14 @@ NSTEP = 4
 ACTION_DIM = 3
 
 
-def get_storage(penv: ParallelEnv, rnns: Optional[recurrent.RnnState] = None) -> RolloutStorage:
-    ret = RolloutStorage(NSTEP, penv.num_envs, Device())
-    ret.set_initial_state(penv.reset(), rnn_state=rnns)
-    return ret
-
-
 @pytest.mark.parametrize('penv', [
     DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 6),
     MultiProcEnv(lambda: DummyEnv(array_dim=(16, 16)), 6)
 ])
 def test_storage(penv: ParallelEnv) -> None:
     NWORKERS = penv.num_envs
-    storage = get_storage(penv)
+    storage = RolloutStorage(NSTEP, penv.num_envs, Device())
+    storage.set_initial_state(penv.reset())
     policy_dist = CategoricalDist(ACTION_DIM)
     for _ in range(NSTEP):
         state, reward, done, _ = penv.step([None] * NWORKERS)
@@ -48,8 +42,8 @@ def test_oc_storage() -> None:
     penv = DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 6)
     NWORKERS = penv.num_envs
     NOPTIONS = 4
-    storage = Device()
-    storage = AocRolloutStorage(get_storage(penv), NOPTIONS)
+    storage = AocRolloutStorage(NSTEP, penv.num_envs, Device(), NOPTIONS)
+    storage.set_initial_state(penv.reset())
     policy_dist = CategoricalDist(ACTION_DIM)
     for _ in range(NSTEP):
         state, reward, done, _ = penv.step([None] * NWORKERS)
@@ -91,7 +85,8 @@ class TeState(recurrent.RnnState):
 def test_sampler(penv: ParallelEnv, is_recurrent: bool) -> None:
     NWORKERS = penv.num_envs
     rnns = TeState(torch.arange(NWORKERS)) if is_recurrent else recurrent.DummyRnn.DUMMY_STATE
-    storage = get_storage(penv, rnns=rnns)
+    storage = RolloutStorage(NSTEP, penv.num_envs, Device())
+    storage.set_initial_state(penv.reset(), rnn_state=rnns)
     policy_dist = CategoricalDist(ACTION_DIM)
     for _ in range(NSTEP):
         state, reward, done, _ = penv.step([None] * NWORKERS)

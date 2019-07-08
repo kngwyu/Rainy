@@ -6,7 +6,7 @@ from ..net import DummyRnn, Policy, RnnBlock, RnnState
 from ..utils import Device
 from ..utils.misc import normalize_
 from ..utils.sample import FeedForwardBatchSampler, RecurrentBatchSampler
-from ..prelude import Array
+from ..prelude import Array, Index
 
 
 class RolloutStorage(Generic[State]):
@@ -143,7 +143,7 @@ class RolloutSampler:
         if adv_normalize_eps is not None:
             normalize_(self.advantages, adv_normalize_eps)
 
-    def _make_batch(self, i: Array[int]) -> RolloutBatch:
+    def _make_batch(self, i: Index) -> RolloutBatch:
         return RolloutBatch(
             self.states[i],
             self.actions[i],

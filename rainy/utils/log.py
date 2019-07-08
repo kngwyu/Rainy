@@ -6,7 +6,7 @@ import numpy as np
 import git
 from pathlib import Path
 import sys
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Union
 
 
 NORMAL_FORMATTER = logging.Formatter('%(levelname)s %(asctime)s: %(name)s: %(message)s')
@@ -73,7 +73,7 @@ class ExperimentLog:
     """Structured log file.
        Used to get graphs or else from rainy log files.
     """
-    def __init__(self, file_or_dir_name: str, empty: bool = False) -> None:
+    def __init__(self, file_or_dir_name: Union[str, Path], empty: bool = False) -> None:
         path = Path(file_or_dir_name)
         if path.is_dir() and not empty:
             log_path = path.joinpath(LOGFILE)
@@ -212,8 +212,7 @@ class Logger(logging.Logger):
         logfile = self._log_dir.joinpath(LOGFILE)
         if not logfile.exists():
             raise ValueError('Specified log directory {} does have {}'.format(log_dir, LOGFILE))
-        handler = self.filehandler(logfile, EXP)
-        self.addHandler(handler)
+        self.addHandler(self.filehandler(logfile, EXP))
         log = ExperimentLog(logfile)
         d = next(filter(lambda d: self.ELAPSED in d, reversed(log.unwrapped)))
         for d in reversed(log.unwrapped):

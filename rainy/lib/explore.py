@@ -52,14 +52,14 @@ class Explorer(ABC):
 
     @abstractmethod
     def select_from_value(self, value: Tensor) -> LongTensor:
-        return self._select_from_fn(lambda: value, value.size(-1))
+        pass
 
 
 class Greedy(Explorer):
     """deterministic greedy policy
     """
     def select_from_value(self, value: Tensor) -> LongTensor:
-        return value.argmax(-1)
+        return value.argmax(-1)  # type: ignore
 
 
 class EpsGreedy(Explorer):
@@ -76,4 +76,4 @@ class EpsGreedy(Explorer):
         greedy = value.argmax(-1).view(-1).cpu()
         random = torch.randint(action_dim, value.shape[:-1]).view(-1)
         res = torch.where(torch.zeros(out_shape).view(-1) < old_eps, random, greedy)
-        return res.reshape(out_shape).to(value.device)
+        return res.reshape(out_shape).to(value.device)  # type: ignore

@@ -62,14 +62,15 @@ class Device:
         return len(self.gpu_indices) > 1
 
     def indices(self, end: int, start: int = 0) -> LongTensor:
-        return torch.arange(start=start, end=end, device=self.device, dtype=torch.long)
+        res = torch.arange(start=start, end=end, device=self.device, dtype=torch.long)
+        return res  # type: ignore
 
     def __all_gpu(self) -> List[int]:
         ngpus = torch.cuda.device_count()
         size, rank = mpi.local_size_and_rank()
         if size > 1:
             if ngpus < size:
-                return ValueError(f'Too many local processes {size} for {ngpus} gpus')
+                raise ValueError(f'Too many local processes {size} for {ngpus} gpus')
             return [rank]
         return list(range(ngpus))
 

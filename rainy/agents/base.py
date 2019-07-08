@@ -8,7 +8,6 @@ from typing import Callable, Generic, Iterable, List, NamedTuple, Optional, Tupl
 import warnings
 from ..config import Config
 from ..lib import mpi
-from ..lib.rollout import RolloutStorage
 from ..net import DummyRnn, RnnState
 from ..envs import EnvExt
 from ..prelude import Action, Array, State
@@ -208,8 +207,6 @@ class OneStepAgent(Agent, Generic[State]):
 class NStepParallelAgent(Agent, Generic[State]):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.storage: RolloutStorage[State] = \
-            RolloutStorage(config.nsteps, config.nworkers, config.device)
         self.rewards = np.zeros(config.nworkers, dtype=np.float32)
         self.episode_length = np.zeros(config.nworkers, dtype=np.int)
         self.episode_results: List[EpisodeResult] = []
@@ -253,12 +250,17 @@ class NStepParallelAgent(Agent, Generic[State]):
     def eval_action_parallel(
             self,
             states: Array,
+            mask: torch.Tensor,
             ent: Optional[Array[float]] = None,
     ) -> Array[Action]:
         pass
 
     @abstractmethod
     def nstep(self, states: Array[State]) -> Array[State]:
+        pass
+
+    @abstractmethod
+    def _reset(self, initial_states: Array[State]) -> None:
         pass
 
     @property
@@ -281,9 +283,6 @@ class NStepParallelAgent(Agent, Generic[State]):
     def close(self) -> None:
         self.env.close()
         self.penv.close()
-
-    def _reset(self, initial_states: Array[State]) -> None:
-        self.storage.set_initial_state(initial_states, self.rnn_init())
 
     def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
         self.config.set_parallel_seeds(self.penv)

@@ -6,14 +6,14 @@ from ..lib.rollout import RolloutSampler
 from ..lib import mpi
 from ..config import Config
 from ..envs import State
-from ..net import Policy
+from ..net import ActorCriticNet, Policy
 from ..prelude import Array
 
 
 class PpoAgent(A2cAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.net = config.net('actor-critic')
+        self.net: ActorCriticNet = config.net('actor-critic')  # type: ignore
         self.optimizer = config.optimizer(self.net.parameters())
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
         self.clip_cooler = config.clip_cooler()
@@ -51,8 +51,11 @@ class PpoAgent(A2cAgent):
             next_value = self.net.value(*self._network_in(states))
 
         if self.config.use_gae:
-            gamma, lambda_ = self.config.discount_factor, self.config.gae_lambda
-            self.storage.calc_gae_returns(next_value, gamma, lambda_)
+            self.storage.calc_gae_returns(
+                next_value,
+                self.config.discount_factor,
+                self.config.gae_lambda,
+            )
         else:
             self.storage.calc_ac_returns(next_value, self.config.discount_factor)
         p, v, e = (0.0, 0.0, 0.0)

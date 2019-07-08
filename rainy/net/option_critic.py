@@ -30,7 +30,7 @@ class SharedBodyOCNet(OptionCriticNet):
             actor_head: NetworkBlock,
             optq_head: NetworkBlock,
             beta_head: NetworkBlock,
-            policy_dist: PolicyDist = CategoricalDist,
+            policy_dist: PolicyDist,
             device: Device = Device(),
     ) -> None:
         super().__init__()
