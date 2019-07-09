@@ -212,6 +212,7 @@ class NStepParallelAgent(Agent, Generic[State]):
         self.episode_results: List[EpisodeResult] = []
         self.penv = config.parallel_env()
         self.eval_rnns: RnnState = DummyRnn.DUMMY_STATE
+        self.step_width = self.config.nsteps * self.config.nworkers * mpi.global_size()
 
     def eval_parallel(
             self,
@@ -265,7 +266,7 @@ class NStepParallelAgent(Agent, Generic[State]):
 
     @property
     def update_steps(self) -> int:
-        return self.total_steps // (self.config.nsteps * self.config.nworkers)
+        return self.total_steps // self.step_width
 
     def rnn_init(self) -> RnnState:
         return DummyRnn.DUMMY_STATE
@@ -288,10 +289,9 @@ class NStepParallelAgent(Agent, Generic[State]):
         self.config.set_parallel_seeds(self.penv)
         states = self.penv.reset()
         self._reset(states)
-        step = self.config.nsteps * self.config.nworkers * mpi.global_size()
         while True:
             states = self.nstep(states)
-            self.total_steps += step
+            self.total_steps += self.step_width
             if self.episode_results:
                 yield self.episode_results
                 self.episode_results = []
