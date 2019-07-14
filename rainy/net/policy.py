@@ -2,17 +2,21 @@ from abc import ABC, abstractmethod
 from torch import nn, Tensor
 from torch.distributions import Bernoulli, Categorical, Distribution, Normal
 from torch.nn import functional as F
-from typing import Any, Optional
-from ..prelude import Array, Self
+from typing import Optional
+from ..prelude import Array, Index, Self
 from ..utils import Device
 
 
 class Policy(ABC):
+    """An abstaract class that represents parameterized policy.
+    """
     def __init__(self, dist: Distribution) -> None:
         self.dist = dist
         self._action: Optional[Tensor] = None
 
     def action(self) -> Tensor:
+        """Sample actions if this policy has no action cache.
+        """
         if self._action is None:
             self._action = self.dist.sample().detach()
         return self._action.squeeze()
@@ -24,7 +28,7 @@ class Policy(ABC):
         self._action = action
 
     @abstractmethod
-    def __getitem__(self, idx: Any) -> Self:
+    def __getitem__(self, idx: Index) -> Self:
         pass
 
     @abstractmethod
@@ -41,6 +45,9 @@ class Policy(ABC):
 
 
 class BernoulliPolicy(Policy):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(Bernoulli(*args, **kwargs))
+
     def best_action(self) -> Tensor:
         return self.dist.probs > 0.5
 
@@ -50,11 +57,14 @@ class BernoulliPolicy(Policy):
     def entropy(self) -> Tensor:
         return self.dist.entropy()
 
-    def __getitem__(self, idx: Any) -> Self:
-        return BernoulliPolicy(Bernoulli(logits=self.dist.logits[idx]))
+    def __getitem__(self, idx: Index) -> Self:
+        return BernoulliPolicy(logits=self.dist.logits[idx])
 
 
 class CategoricalPolicy(Policy):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(Categorical(*args, **kwargs))
+
     def best_action(self) -> Tensor:
         return self.dist.probs.argmax(dim=-1)
 
@@ -64,11 +74,14 @@ class CategoricalPolicy(Policy):
     def entropy(self) -> Tensor:
         return self.dist.entropy()
 
-    def __getitem__(self, idx: Any) -> Self:
-        return CategoricalPolicy(Categorical(logits=self.dist.logits[idx]))
+    def __getitem__(self, idx: Index) -> Self:
+        return CategoricalPolicy(self.dist.logits[idx])
 
 
 class GaussianPolicy(Policy):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(Normal(*args, **kwargs))
+
     def best_action(self) -> Tensor:
         return self.dist.mean
 
@@ -78,8 +91,8 @@ class GaussianPolicy(Policy):
     def log_prob(self) -> Tensor:
         return self.dist.log_prob(self.action()).sum(-1)
 
-    def __getitem__(self, idx: Any) -> Self:
-        return GaussianPolicy(Normal(self.dist.mean[idx], self.dist.stddev[idx]))
+    def __getitem__(self, idx: Index) -> Self:
+        return GaussianPolicy(self.dist.mean[idx], self.dist.stddev[idx])
 
 
 class PolicyDist(ABC, nn.Module):
@@ -100,14 +113,14 @@ class BernoulliDist(PolicyDist):
     """Bernoulli policy with no learnable parameter
     """
     def forward(self, x: Tensor) -> Policy:
-        return BernoulliPolicy(Bernoulli(logits=x))
+        return BernoulliPolicy(logits=x)
 
 
 class CategoricalDist(PolicyDist):
     """Categorical policy with no learnable parameter
     """
     def forward(self, x: Tensor) -> Policy:
-        return CategoricalPolicy(Categorical(logits=x))
+        return CategoricalPolicy(logits=x)
 
 
 class GaussinanDist(PolicyDist):
@@ -120,7 +133,7 @@ class GaussinanDist(PolicyDist):
     def forward(self, x: Tensor) -> Policy:
         size = x.size(1) // 2
         mean, stddev = x[:, :size], x[:, size:]
-        return GaussianPolicy(Normal(mean, F.softplus(stddev)))
+        return GaussianPolicy(mean, F.softplus(stddev))
 
 
 class SeparateStdGaussianDist(PolicyDist):
@@ -132,4 +145,4 @@ class SeparateStdGaussianDist(PolicyDist):
         self.stddev = nn.Parameter(device.zeros(action_dim))
 
     def forward(self, x: Tensor) -> Policy:
-        return GaussianPolicy(Normal(x, F.softplus(self.stddev)))
+        return GaussianPolicy(x, F.softplus(self.stddev))
