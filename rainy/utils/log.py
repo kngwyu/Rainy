@@ -108,6 +108,29 @@ class ExperimentLog:
             )
         return log
 
+    def find(self, keyname: str) -> Optional[LogWrapper]:
+        log_list = list(filter(lambda log: keyname in log, self.log))
+        if len(log_list) == 0:
+            return None
+        return LogWrapper(log_list[0]['name'], log_list, self.log_path)
+
+    def plot(self, keyname: str) -> None:
+        try:
+            import matplotlib.pyplot as plt
+        except ModuleNotFoundError as e:
+            print('plot_reward need matplotlib installed')
+            raise e
+        log = self.find(keyname)
+        if log is None:
+            print(f'Log with {keyname} is unavailable')
+            return
+        x, y = 'update-steps', keyname
+        plt.plot(np.array(log[x]), log[y])
+        plt.title(keyname)
+        plt.xlabel('update-steps')
+        plt.ylabel(y)
+        plt.show()
+
     def plot_reward(self, batch_size: int, max_steps: int = int(2e7), title: str = '') -> None:
         try:
             import matplotlib.pyplot as plt
