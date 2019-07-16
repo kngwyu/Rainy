@@ -1,4 +1,4 @@
-"""Defines some reusable NN layers, named as 'Block'
+"""Defines some reusable NN layers, called 'Block'
 """
 from abc import ABC, abstractmethod
 import numpy as np

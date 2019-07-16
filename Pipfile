@@ -8,5 +8,8 @@ editable = true
 extras=['ipython']
 path = '.'
 
+[packages]
+torch = '==1.1.0'
+
 [dev-packages]
 pybullet = '>=2.4'
