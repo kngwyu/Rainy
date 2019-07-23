@@ -191,8 +191,8 @@ class Logger(logging.Logger):
     def set_dir_from_script_path(
             self,
             script_path_: str,
-            comment: Optional[str] = None,
             prefix: str = '',
+            fingerprint: Dict[str, str] = {},
     ) -> None:
         script_path = Path(script_path_)
         log_dir = script_path.stem + '-' + self.exp_start.strftime("%y%m%d-%H%M%S")
@@ -207,7 +207,7 @@ class Logger(logging.Logger):
         log_dir_path = Path(log_dir)
         if not log_dir_path.exists():
             log_dir_path.mkdir()
-        self.set_dir(log_dir_path, comment=comment)
+        self.set_dir(log_dir_path, fingerprint=fingerprint)
 
     @staticmethod
     def filehandler(log_path: Path, level: int) -> logging.Handler:
@@ -218,13 +218,13 @@ class Logger(logging.Logger):
         handler.setLevel(level)
         return handler
 
-    def set_dir(self, log_dir: Path, comment: Optional[str] = None) -> None:
+    def set_dir(self, log_dir: Path, fingerprint: Dict[str, str] = {}) -> None:
         self._log_dir = log_dir
         finger = log_dir.joinpath(FINGERPRINT)
         with open(finger.as_posix(), 'w') as f:
             f.write('{}\n'.format(self.exp_start))
-            if comment:
-                f.write(comment)
+            for fkey in fingerprint.keys():
+                f.write('{}: {}\n'.format(fkey, fingerprint[fkey]))
         handler = self.filehandler(Path(log_dir).joinpath(LOGFILE), EXP)
         self.addHandler(handler)
 

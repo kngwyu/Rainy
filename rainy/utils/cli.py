@@ -26,6 +26,8 @@ def rainy_cli(
     cfg_gen = ctx.obj['config_gen']
     ctx.obj['config'] = cfg_gen(envname) if envname is not None else cfg_gen()
     ctx.obj['config'].seed = seed
+    ctx.obj['override'] = override
+    ctx.obj['envname'] = 'Default' if envname is None else envname
     if len(override) > 0:
         import builtins
         try:
@@ -43,7 +45,12 @@ def train(ctx: dict, comment: Optional[str], prefix: str) -> None:
     c = ctx.obj['config']
     scr = ctx.obj['script_path']
     if scr:
-        c.logger.set_dir_from_script_path(scr, comment=comment, prefix=prefix)
+        fingerprint = dict(
+            comment='' if comment is None else comment,
+            envname=ctx.obj['envname'],
+            override=ctx.obj['override']
+        )
+        c.logger.set_dir_from_script_path(scr, prefix=prefix, fingerprint=fingerprint)
     c.logger.set_stderr()
     ag = ctx.obj['make_agent'](c)
     run.train_agent(ag)
