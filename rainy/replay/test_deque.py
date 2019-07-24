@@ -33,13 +33,13 @@ def test_deque_stress() -> None:
     for i in range(N // 2):
         cond = random.randint(1, 4)
         num = random.randint(10, 1000000000)
-        if cond is 1:
+        if cond == 1:
             deq.append(num)
             mydeq.push_back(num)
-        elif cond is 2:
+        elif cond == 2:
             deq.appendleft(num)
             mydeq.push_front(num)
-        elif cond is 3:
+        elif cond == 3:
             assert deq.pop() == mydeq.pop_back()
         else:
             assert deq.popleft() == mydeq.pop_front()

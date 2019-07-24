@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import torch
 from torch import nn, Tensor
-from typing import Generic, Iterable, List, Optional, Sequence, Tuple, TypeVar
+from typing import Generic, Iterable, Optional, Sequence, Tuple, TypeVar
 from .init import lstm_bias, Initializer
 from ..prelude import Index, Self
 from ..utils import Device

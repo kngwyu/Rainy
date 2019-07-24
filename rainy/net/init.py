@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional
 import torch
 from torch import nn, Tensor
 
