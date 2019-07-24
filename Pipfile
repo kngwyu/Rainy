@@ -3,13 +3,13 @@ name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
 
+[packages]
+torch = '==1.1.0'
+
 [packages.rainy]
 editable = true
 extras=['ipython']
 path = '.'
-
-[packages]
-torch = '==1.1.0'
 
 [dev-packages]
 pybullet = '>=2.4'
