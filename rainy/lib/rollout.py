@@ -23,7 +23,6 @@ class RolloutStorage(Generic[State]):
         self.nsteps = nsteps
         self.nworkers = nworkers
         self.device = device
-        self._gae_used = False
 
     def initialized(self) -> bool:
         return len(self.states) != 0
@@ -89,7 +88,6 @@ class RolloutStorage(Generic[State]):
         self.advs[:-1] = self.returns[:-1] - self.batch_values
 
     def calc_gae_returns(self, next_value: Tensor, gamma: float, lambda_: float) -> None:
-        self._gae_used = True
         rewards = self._calc_ret_common(next_value)
         self.advs.fill_(0.0)
         for i in reversed(range(self.nsteps)):

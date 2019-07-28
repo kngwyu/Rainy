@@ -202,8 +202,9 @@ class Logger(logging.Logger):
             repo = git.Repo(script_path, search_parent_directories=True)
             head = repo.head.commit
             log_dir += '-' + head.hexsha[:8]
-        finally:
-            pass
+        except git.exc.InvalidGitRepositoryError:
+            import warnings
+            warnings.warn('{} is not in a git repository'.format(script_path))
         log_dir_path = Path(log_dir)
         if not log_dir_path.exists():
             log_dir_path.mkdir()

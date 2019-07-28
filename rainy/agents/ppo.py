@@ -58,7 +58,7 @@ class PpoAgent(A2cAgent):
             )
         else:
             self.storage.calc_ac_returns(next_value, self.config.discount_factor)
-        p, v, e = (0.0, 0.0, 0.0)
+        p, v, e = 0.0, 0.0, 0.0
         sampler = RolloutSampler(
             self.storage,
             self.penv,
