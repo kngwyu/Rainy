@@ -9,11 +9,11 @@ from .. import run
 
 
 @click.group()
-@click.option('--gpu', required=False, type=int, help='How many gpus you allow Rainy to use')
+@click.option('--gpu', required=False, type=int, help='How many gpus you allow the script to use')
 @click.option('--envname', type=str, default=None, help='Name of environment passed to config_gen')
 @click.option('--seed', type=int, default=None,
               help='Random seed set before training. Left for backward comaptibility')
-@click.option('--override', type=str, default='', help='Override string(See README for detail)')
+@click.option('--override', type=str, default='', help='Override string(see README for detail)')
 @click.pass_context
 def rainy_cli(
         ctx: dict,
@@ -39,7 +39,8 @@ def rainy_cli(
 
 @rainy_cli.command(help='Train agents')
 @click.pass_context
-@click.option('--comment', type=str, default=None, help='Comment wrote to fingerprint.txt')
+@click.option('--comment', type=str, default=None,
+              help='Comment that would be wrote to fingerprint.txt')
 @click.option('--prefix', type=str, default='', help='Prefix of the log directory')
 def train(ctx: dict, comment: Optional[str], prefix: str) -> None:
     c = ctx.obj['config']
@@ -61,7 +62,8 @@ def train(ctx: dict, comment: Optional[str], prefix: str) -> None:
 @rainy_cli.command(help='Run the random agent and show its result')
 @click.option('--save', is_flag=True, help='Save actions')
 @click.option('--render', is_flag=True, help='Render the agent')
-@click.option('--replay', is_flag=True, help='Show replay(works with special environments)')
+@click.option('--replay', is_flag=True,
+              help='Show replay(works only with special environments, e.g., rogue-gym)')
 @click.option('--action-file', type=str,
               default='best-actions.json', help='Name of the action file')
 @click.pass_context
@@ -72,7 +74,7 @@ def random(ctx: dict, save: bool, render: bool, replay: bool, action_file: str) 
     run.random_agent(ag, render=render, replay=replay, action_file=action_file)
 
 
-@rainy_cli.command(help='Given the Load a save file and restart training')
+@rainy_cli.command(help='Given a save file and restart training')
 @click.pass_context
 @click.argument('logdir')
 @click.option('--model', type=str, default=run.SAVE_FILE_DEFAULT, help='Name of the save file')
@@ -87,11 +89,12 @@ def retrain(ctx: dict, logdir: str, model: str, additional_steps: int) -> None:
     print("random play: {}, trained: {}".format(ag.random_episode(), ag.eval_episode()))
 
 
-@rainy_cli.command(help='Load a save file and evaluate the agent')
+@rainy_cli.command(help='Load a specified save file and evaluate the agent')
 @click.argument('logdir')
 @click.option('--model', type=str, default=run.SAVE_FILE_DEFAULT, help='Name of the save file')
 @click.option('--render', is_flag=True, help='Render the agent')
-@click.option('--replay', is_flag=True, help='Show replay(works with special environments)')
+@click.option('--replay', is_flag=True,
+              help='Show replay(works only with special environments, e.g., rogue-gym)')
 @click.option('--action-file', type=str,
               default='best-actions.json', help='Name of the action file')
 @click.pass_context

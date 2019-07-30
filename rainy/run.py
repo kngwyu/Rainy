@@ -16,12 +16,13 @@ def eval_impl(
         ag: Agent,
         save_file: Optional[Path],
         render: bool = False,
+        replay: bool = False,
 ) -> List[EpisodeResult]:
     n = ag.config.eval_times
     ag.set_mode(train=False)
     if save_file is not None and save_file.is_file():
         res = [ag.eval_and_save(save_file.as_posix(), render=render) for _ in range(n)]
-    elif hasattr(ag, 'eval_parallel') and not render:
+    elif hasattr(ag, 'eval_parallel') and not render and not replay:
         res = ag.eval_parallel(n)  # type: ignore
     else:
         res = [ag.eval_episode(render=render) for _ in range(n)]
@@ -64,9 +65,9 @@ def train_agent(
                 episodes,
                 action_file.suffix
             ))
-            res = eval_impl(ag, fname, False)
+            res = eval_impl(ag, fname)
         else:
-            res = eval_impl(ag, None, False)
+            res = eval_impl(ag, None)
         rewards, length = _reward_and_length(res)
         ag.logger.exp('eval', {
             'total-steps': ag.total_steps,
@@ -160,10 +161,8 @@ def eval_agent(
     path = Path(log_dir)
     if not _load_agent(load_file_name, path, ag):
         raise ValueError('Load file {} does not exists'.format())
-    if ag.config.save_eval_actions and action_file is not None:
-        res = eval_impl(ag, path.joinpath(action_file), render)
-    else:
-        res = eval_impl(ag, None, render)
+    save_file = path.joinpath if ag.config.save_eval_actions and action_file else None
+    res = eval_impl(ag, save_file, render, replay)
     print('{}'.format(res))
     if render:
         input('--Press Enter to exit--')
