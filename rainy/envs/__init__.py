@@ -42,6 +42,18 @@ class AtariConfig:
             cfg.episodic_life = True
         return cfg
 
+    @staticmethod
+    def rnd_config() -> Self:
+        """The same configuration as https://github.com/openai/random-network-distillation
+        """
+        c = AtariConfig()
+        c = rainy.envs.AtariConfig()
+        c.override_timelimit = 4500 * 4
+        c.noop_reset = False
+        c.sticky_actions = True
+        c.v4 = True
+        return c
+
 
 class Atari(EnvExt):
     def __init__(self, name: str, cfg: AtariConfig = AtariConfig(), **kwargs) -> None:
