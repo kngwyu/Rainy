@@ -226,17 +226,22 @@ def make_cnns(
     res = []
     for ic, oc, param in zip([channel] + hiddens, hiddens, params):
         res.append(nn.Conv2d(ic, oc, *param))
-    hidden = (hidden_channels[-1], *calc_cnn_hidden(params, width, height))
+    hidden = (hidden_channels[-1], *calc_cnn_hidden(params, height, width))
     return res, np.prod(hidden)
 
 
-def calc_cnn_hidden(params: Sequence[tuple], width: int, height: int) -> Tuple[int, int]:
+def calc_cnn_hidden(params: Sequence[tuple], height: int, width: int) -> Tuple[int, int]:
     """Calcurate hidden dim of a CNN.
        See https://pytorch.org/docs/stable/nn.html#torch.nn.Conv2d for detail.
     """
     for param in params:
-        kernel, stride, padding = param if len(param) > 2 else (*param, 0)
-        width = (width - kernel + 2 * padding) // stride + 1
-        height = (height - kernel + 2 * padding) // stride + 1
+        kernel, stride, pad = param if len(param) > 2 else (*param, 0)
+        if isinstance(pad, int):
+            h_pad, w_pad = pad, pad
+        else:
+            h_pad, w_pad = pad
+        height = (height - kernel + 2 * h_pad) // stride + 1
+        width = (width - kernel + 2 * w_pad) // stride + 1
     assert width > 0 and height > 0, 'Convolution makes dim < 0!!!'
-    return width, height
+    print(height, width)
+    return height, width
