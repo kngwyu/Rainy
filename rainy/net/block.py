@@ -243,5 +243,4 @@ def calc_cnn_hidden(params: Sequence[tuple], height: int, width: int) -> Tuple[i
         height = (height - kernel + 2 * h_pad) // stride + 1
         width = (width - kernel + 2 * w_pad) // stride + 1
     assert width > 0 and height > 0, 'Convolution makes dim < 0!!!'
-    print(height, width)
     return height, width
