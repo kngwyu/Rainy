@@ -91,6 +91,10 @@ class Config:
         self.__eval_env: Optional[EnvExt] = None
         self.__paralle_env = lambda env_gen, num_w: DummyParallelEnv(env_gen, num_w)
 
+    @property
+    def batch_size(self) -> int:
+        return self.nworkers * self.nsteps
+
     def env(self) -> EnvExt:
         env = self.__env()
         if self.state_dim == (0,):

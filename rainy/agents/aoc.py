@@ -60,7 +60,7 @@ class AocAgent(NStepParallelAgent[State]):
         self.noptions = self.net.num_options
         self.optimizer = config.optimizer(self.net.parameters())
         self.worker_indices = config.device.indices(config.nworkers)
-        self.batch_indices = config.device.indices(config.nworkers * config.nsteps)
+        self.batch_indices = config.device.indices(config.batch_size)
         self.storage: AocRolloutStorage[State] = \
             AocRolloutStorage(config.nsteps, config.nworkers, config.device, self.noptions)
         self.opt_explorer: EpsGreedy = config.explorer()  # type: ignore
