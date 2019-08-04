@@ -6,8 +6,12 @@ from torch import nn, Tensor
 InitFn = partial
 
 
-def uniform(mean: float = 0., var: float = 1.) -> InitFn:
-    return partial(nn.init.uniform_, a=mean, b=var)
+def uniform(min: float = -1.0, max: float = 1.0) -> InitFn:
+    return partial(nn.init.uniform_, a=min, b=max)
+
+
+def normal(mean: float = 0.0, std: float = 1.0) -> InitFn:
+    return partial(nn.init.normal_, mean=mean, std=std)
 
 
 def orthogonal(gain: float = 1.) -> InitFn:
