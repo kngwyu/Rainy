@@ -107,7 +107,7 @@ If this feature still doesn't satisfy your requirement, you can
 ## Sub packages
 
 - [intrinsic-rewards](https://github.com/kngwyu/intrinsic-rewards)
-  - Contains an implementation of RND(Random Network Disitillation)
+  - Contains an implementation of RND(Random Network Distillation)
 
 ## References
 
