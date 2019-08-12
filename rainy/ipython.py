@@ -13,6 +13,8 @@ def ipython(log_dir: Optional[str], vi_mode: bool) -> None:
         open_log = ExperimentLog  # noqa
     try:
         from ptpython.ipython import embed
+        import matplotlib as mpl
+        mpl.use('TkAgg')
         from matplotlib import pyplot as plt  # noqa
         import rainy  # noqa
         del log_dir
