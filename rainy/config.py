@@ -76,7 +76,9 @@ class Config:
         self.save_eval_actions = False
 
         # Optimizer and preconditioner
-        self.__optim = lambda params: RMSprop(params, 0.001)
+        self.__optim: Dict[Optional[str], Callable[[], Optimizer]] = {
+            None: lambda params: RMSprop(params, 0.001)
+        }
         self.__precond = lambda net: KfacPreConditioner(net)
 
         # Network
@@ -131,11 +133,15 @@ class Config:
     def set_eval_explorer(self, eval_exp: Callable[[], Explorer]) -> None:
         self.__eval_explore = eval_exp
 
-    def optimizer(self, params: Params) -> Optimizer:
-        return self.__optim(params)
+    def optimizer(self, params: Params, key: Optional[str] = None) -> Optimizer:
+        return self.__optim[key](params)
 
-    def set_optimizer(self, optim: Callable[[Params], Optimizer]) -> None:
-        self.__optim = optim
+    def set_optimizer(
+            self,
+            optim: Callable[[Params], Optimizer],
+            key: Optional[str] = None
+    ) -> None:
+        self.__optim[key] = optim
 
     def preconditioner(self, net: nn.Module) -> PreConditioner:
         return self.__precond(net)
