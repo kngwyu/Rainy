@@ -5,4 +5,4 @@ from .init import InitFn, Initializer
 from .option_critic import OptionCriticNet, SharedBodyOCNet
 from .policy import Policy, PolicyDist
 from .recurrent import DummyRnn, GruBlock, LstmBlock, RnnBlock, RnnState
-from .value import QFunction, QValueNet
+from .value import DiscreteQFunction, DiscreteQValueNet

@@ -1,28 +1,20 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from rainy.utils import Device
 from torch import nn
 from typing import Union
 from .block import FcBody, LinearHead, NetworkBlock
 from .init import Initializer
+from .value import ContinuousQFunction
 from ..prelude import Array
 
 
-class DeterministicACNet(nn.Module, ABC):
-    def action(self, states: Union[Array, Tensor]) -> Tensor:
-        pass
-
-    def q_value(self, states: Union[Array, Tensor], action: Union[Array, Tensor]) -> Tensor:
-        pass
-
-    def forward(
-            self,
-            states: Union[Array, Tensor],
-            action: Union[Array, Tensor]
-    ) -> Tuple[Tensor, Tensor]:
+class DeterministicPolicyNet(ABC):
+    @abstractmethod
+    def action(self, state: Union[Array, Tensor]) -> Tensor:
         pass
 
 
-class DdpgACNet(DeterministicACNet):
+class DdpgACNet(nn.Module, ContinuousQFunction, DeterministicPolicyNet):
     def __init__(
             self,
             actor_body: NetworkBlock,

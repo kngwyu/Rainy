@@ -1,16 +1,21 @@
 from abc import ABC, abstractmethod
 import numpy as np
-from numpy import ndarray
 from torch import nn, Tensor
 from typing import Tuple, Union
 from .block import DqnConv, FcBody, LinearHead, NetworkBlock
-from .prelude import NetFn
+from .prelude import Array, NetFn
 from ..utils import Device
 
 
-class QFunction(ABC):
+class ContinuousQFunction(ABC):
     @abstractmethod
-    def action_values(self, state: ndarray, nostack: bool = False) -> Tensor:
+    def q_value(self, states: Union[Array, Tensor], action: Union[Array, Tensor]) -> Tensor:
+        pass
+
+
+class DiscreteQFunction(ABC):
+    @abstractmethod
+    def q_values(self, state: Array, nostack: bool = False) -> Tensor:
         pass
 
     @property
@@ -24,7 +29,7 @@ class QFunction(ABC):
         pass
 
 
-class QValueNet(QFunction, nn.Module):
+class DiscreteQValueNet(DiscreteQFunction, nn.Module):
     """State -> [Value..]
     """
     def __init__(self, body: NetworkBlock, head: NetworkBlock, device: Device = Device()) -> None:
@@ -38,13 +43,13 @@ class QValueNet(QFunction, nn.Module):
         self.device = device
         self.to(self.device.unwrapped)
 
-    def action_values(self, state: ndarray, nostack: bool = False) -> Tensor:
+    def q_values(self, state: Array, nostack: bool = False) -> Tensor:
         if nostack:
             return self.forward(state)
         else:
             return self.forward(np.stack([state]))
 
-    def forward(self, x: Union[ndarray, Tensor]) -> Tensor:
+    def forward(self, x: Union[Array, Tensor]) -> Tensor:
         x = self.device.tensor(x)
         x = self.body(x)
         x = self.head(x)
@@ -60,16 +65,20 @@ class QValueNet(QFunction, nn.Module):
 
 
 def dqn_conv(*args, **kwargs) -> NetFn:
-    def _net(state_dim: Tuple[int, int, int], action_dim: int, device: Device) -> QValueNet:
+    def _net(
+            state_dim: Tuple[int, int, int],
+            action_dim: int,
+            device: Device
+    ) -> DiscreteQValueNet:
         body = DqnConv(state_dim, *args, **kwargs)
         head = LinearHead(body.output_dim, action_dim)
-        return QValueNet(body, head, device=device)
+        return DiscreteQValueNet(body, head, device=device)
     return _net  # type: ignore
 
 
 def fc(*args, **kwargs) -> NetFn:
-    def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> QValueNet:
+    def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> DiscreteQValueNet:
         body = FcBody(state_dim[0], *args, **kwargs)
         head = LinearHead(body.output_dim, action_dim)
-        return QValueNet(body, head, device=device)
+        return DiscreteQValueNet(body, head, device=device)
     return _net

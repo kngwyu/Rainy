@@ -5,21 +5,20 @@ from torch import nn, Tensor
 from typing import Tuple
 from .base import OneStepAgent
 from ..config import Config
-from ..replay import DqnReplayFeed
 from ..prelude import Action, Array, State
 
 
-class DqnAgent(OneStepAgent):
+class DdpgAgent(OneStepAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.net = config.net('actor-critic')
+        self.net = config.net('ddpg')
         self.target_net = deepcopy(self.net)
-        self.optimizer = config.optimizer(self.net.parameters())
+        self.actor_optim = config.optimizer(self.net.actor.parameters(), key='actor')
+        self.critic_optim = config.optimizer(self.net.actor.parameters(), key='critic')
         self.criterion = nn.MSELoss()
         self.policy = config.explorer()
         self.eval_policy = config.eval_explorer()
         self.replay = config.replay_buffer()
-        assert self.replay.feed == DqnReplayFeed
         self.batch_indices = config.device.indices(config.replay_batch_size)
 
     def set_mode(self, train: bool = True) -> None:

@@ -8,5 +8,5 @@ class DoubleDqnAgent(DqnAgent):
         """Returns Q values of next_states, supposing torch.no_grad() is called
         """
         q_next = self.target_net(next_states)
-        action_values = self.net.action_values(next_states, nostack=True)
-        return q_next[self.batch_indices, action_values.argmax(dim=-1)]
+        q_values = self.net.q_values(next_states, nostack=True)
+        return q_next[self.batch_indices, q_values.argmax(dim=-1)]
