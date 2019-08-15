@@ -1,6 +1,6 @@
 import torch
 from torch import Tensor
-from typing import Optional
+from typing import NoReturn, Optional
 
 
 @torch.jit.script

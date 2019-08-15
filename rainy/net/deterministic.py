@@ -5,7 +5,7 @@ from typing import Union
 from .block import FcBody, LinearHead, NetworkBlock
 from .init import Initializer
 from .value import ContinuousQFunction
-from ..prelude import Array
+from ..prelude import Array, Self
 
 
 class DeterministicPolicyNet(ABC):
@@ -14,7 +14,14 @@ class DeterministicPolicyNet(ABC):
         pass
 
 
-class DdpgACNet(nn.Module, ContinuousQFunction, DeterministicPolicyNet):
+class SoftUpdate(nn.Module):
+    @torch.no_grad()
+    def soft_update(self, other: Self, coef: float) -> None:
+        for s_param, o_param in zip(self.parameters(), other.parameters()):
+            s_param.copy_(s_param * (1.0 - coef) + t_param * coef)
+
+
+class DdpgACNet(SoftUpdate, ContinuousQFunction, DeterministicPolicyNet):
     def __init__(
             self,
             actor_body: NetworkBlock,

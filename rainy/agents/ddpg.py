@@ -15,9 +15,7 @@ class DdpgAgent(OneStepAgent):
         self.target_net = deepcopy(self.net)
         self.actor_optim = config.optimizer(self.net.actor.parameters(), key='actor')
         self.critic_optim = config.optimizer(self.net.actor.parameters(), key='critic')
-        self.criterion = nn.MSELoss()
-        self.policy = config.explorer()
-        self.eval_policy = config.eval_explorer()
+        self.explorer = config.explorer()
         self.replay = config.replay_buffer()
         self.batch_indices = config.device.indices(config.replay_batch_size)
 
@@ -34,9 +32,10 @@ class DdpgAgent(OneStepAgent):
     def step(self, state: State) -> Tuple[State, float, bool, dict]:
         train_started = self.total_steps > self.config.train_start
         if train_started:
-            action = self.policy.select_action(self.env.extract(state), self.net).item()
+            action = self.explorer.add_noise(self.net.action(state))
         else:
             action = self.env.spec.random_action()
+        action = self.env.spec.clip_action(action)
         next_state, reward, done, info = self.env.step(action)
         self.replay.append(state, action, reward, next_state, done)
         if train_started:
