@@ -3,10 +3,11 @@ from torch.optim import Optimizer, RMSprop
 from typing import Callable, Dict, List, Optional, Tuple
 from .envs import ClassicalControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEnv
 from .net import actor_critic, option_critic, value
-from .net.prelude import NetFn, Params
+from .net.prelude import NetFn
 from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
 from .lib import mpi
 from .lib.kfac import KfacPreConditioner, PreConditioner
+from .prelude import Params
 from .replay import DqnReplayFeed, ReplayBuffer, UniformReplayBuffer
 from .utils import Device, DummyLogger, Logger
 

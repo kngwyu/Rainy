@@ -1,6 +1,5 @@
-from torch import nn, Tensor
-from typing import Callable, Iterable, Tuple, Union
+from torch import nn
+from typing import Callable, Tuple
 from ..utils.device import Device
 
 NetFn = Callable[[Tuple[int, ...], int, Device], nn.Module]
-Params = Union[Iterable[Tensor], dict]

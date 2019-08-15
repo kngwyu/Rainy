@@ -1,5 +1,5 @@
 from torch import Tensor
-from typing import Any, List, Sequence, Tuple, TypeVar, Union
+from typing import Any, Iterable, List, Sequence, Tuple, TypeVar, Union
 
 
 try:
@@ -14,6 +14,7 @@ except ImportError:
 T = TypeVar('T')
 Self = Any
 Index = Union[None, int, slice, Tensor, List[Any], Tuple[Any, ...]]
+Params = Union[Iterable[Tensor], dict]
 
 
 class Array(Sequence[T]):

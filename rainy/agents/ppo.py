@@ -77,7 +77,7 @@ class PpoAgent(A2cAgent):
                 (policy_loss
                  + self.config.value_loss_weight * 0.5 * value_loss
                  - self.config.entropy_weight * entropy_loss).backward()
-                mpi.clip_and_step(self.net, self.config.grad_clip, self.optimizer)
+                mpi.clip_and_step(self.net.parameters(), self.config.grad_clip, self.optimizer)
                 p, v, e = p + policy_loss.item(), v + value_loss.item(), e + entropy_loss.item()
 
         self.lr_cooler.lr_decay(self.optimizer)

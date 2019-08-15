@@ -2,7 +2,7 @@ import torch
 from torch import Tensor
 from torch.optim import Optimizer
 from typing import Tuple
-from ..prelude import Array
+from ..prelude import Array, Params
 try:
     import horovod.torch as hvd
     hvd.init()
@@ -19,9 +19,9 @@ try:
         hvd.broadcast_optimizer_state(opt, root_rank=0)
         return hvd.DistributedOptimizer(opt)
 
-    def clip_and_step(model: torch.nn.Module, max_norm: float, opt: Optimizer) -> None:
+    def clip_and_step(params: Params, max_norm: float, opt: Optimizer) -> None:
         opt.synchronize()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
+        torch.nn.utils.clip_grad_norm_(params, max_norm)
         with opt.skip_synchronize():
             opt.step()
 
@@ -63,8 +63,8 @@ except ModuleNotFoundError:
     def local_size_and_rank() -> Tuple[int, int]:
         return 1, 0
 
-    def clip_and_step(model: torch.nn.Module, max_norm: float, opt: Optimizer) -> None:
-        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
+    def clip_and_step(params: Params, max_norm: float, opt: Optimizer) -> None:
+        torch.nn.utils.clip_grad_norm_(params, max_norm)
         opt.step()
 
     def global_size() -> int:
