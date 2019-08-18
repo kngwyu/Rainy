@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from rainy.utils import Device
-from torch import nn
-from typing import Sequence, Union
+import torch
+from torch import nn, Tensor
+from typing import Sequence, Tuple, Union
 from .block import FcBody, LinearHead, NetworkBlock
 from .init import Initializer
 from .prelude import NetFn
@@ -19,32 +20,33 @@ class SoftUpdate(nn.Module):
     @torch.no_grad()
     def soft_update(self, other: Self, coef: float) -> None:
         for s_param, o_param in zip(self.parameters(), other.parameters()):
-            s_param.copy_(s_param * (1.0 - coef) + t_param * coef)
+            s_param.copy_(s_param * (1.0 - coef) + o_param * coef)
 
 
 class DdpgNet(SoftUpdate, ContinuousQFunction, DeterministicPolicyNet):
     pass
 
 
-class SeparatedDdpgNet(DdpgACNet):
+class SeparatedDdpgNet(DdpgNet):
     def __init__(
             self,
             actor_body: NetworkBlock,
             critic_body: NetworkBlock,
             action_dim: int,
-            init: Initializer = Initializer(),
+            init: Initializer = Initializer(scale=1.0e-3),
             device: Device = Device(),
     ) -> None:
         super().__init__()
         self.actor = nn.Sequential(
             actor_body,
             LinearHead(actor_body.output_dim, action_dim, init=init),
-            nn.Tanh(inplace=True)
+            nn.Tanh(),
         )
         self.critic = nn.Sequential(
             critic_body,
-            LienarHead(critic_body.output_dim, action_dim, init=init)
+            LinearHead(critic_body.output_dim, 1, init=init)
         )
+        self.to(device.unwrapped)
         self.device = device
 
     def action(self, states: Union[Array, Tensor]) -> Tensor:

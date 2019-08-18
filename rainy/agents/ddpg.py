@@ -13,8 +13,8 @@ class DdpgAgent(OneStepAgent):
         super().__init__(config)
         self.net = config.net('ddpg')
         self.target_net = deepcopy(self.net)
-        self.actor_optim = config.optimizer(self.net.actor.parameters(), key='actor')
-        self.critic_optim = config.optimizer(self.net.critic.parameters(), key='critic')
+        self.actor_opt = config.optimizer(self.net.actor.parameters(), key='actor')
+        self.critic_opt = config.optimizer(self.net.critic.parameters(), key='critic')
         self.explorer = config.explorer()
         self.replay = config.replay_buffer()
         self.batch_indices = config.device.indices(config.replay_batch_size)
@@ -32,7 +32,9 @@ class DdpgAgent(OneStepAgent):
     def step(self, state: State) -> Tuple[State, float, bool, dict]:
         train_started = self.total_steps > self.config.train_start
         if train_started:
-            action = self.explorer.add_noise(self.net.action(state))
+            with torch.no_grad():
+                action = self.net.action(state)
+            action = self.explorer.add_noise(action).cpu().numpy()
         else:
             action = self.env.spec.random_action()
         action = self.env.spec.clip_action(action)
@@ -43,28 +45,29 @@ class DdpgAgent(OneStepAgent):
         return next_state, reward, done, info
 
     @torch.no_grad()
-    def _next(self, next_states: Array) -> Tuple[Tensor, Tensor]:
-        return self.target_net(next_states)
+    def _next(self, next_states: Array, next_actions: Array) -> Tuple[Tensor, Tensor]:
+        return self.target_net(next_states, next_actions)
 
     def _train(self) -> None:
         obs = self.replay.sample(self.config.replay_batch_size)
         obs = [ob.to_ndarray(self.env.extract) for ob in obs]
         states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
+        mask = self.config.device.tensor(1.0 - done)
         a_next, q_next = self._next(states, actions)
-        q_next *= self.config.device.tensor(1.0 - done) * self.config.discount_factor
-        q_next += self.config.device.tensor(rewards)
-        q_current = self.net.q_value(states, actions)
+        q_next.squeeze_() \
+              .mul_(mask * self.config.discount_factor) \
+              .add_(self.config.device.tensor(rewards))
+        q_current = self.net.q_value(states, actions).squeeze_()
 
-        critic_loss = (q_current - q_next).pow(2).mul(0.5).sum(-1).mean()
+        critic_loss = (q_current - q_next).pow(2).mul(0.5).mean()
         self.net.zero_grad()
         critic_loss.backward()
         self.critic_opt.step()
 
         action = self.net.action(states)
-        policy_loss = -self.net.q_value(states.detach(), action).mean()
+        policy_loss = -self.net.q_value(states, action).mean()
 
         self.net.zero_grad()
         policy_loss.backward()
         self.actor_opt.step()
-
         self.target_net.soft_update(self.net, self.config.soft_update_coef)

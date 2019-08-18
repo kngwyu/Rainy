@@ -90,5 +90,35 @@ class EpsGreedy(Explorer):
 
 
 class GaussianNoise(Explorer):
-    def __init__(self):
-        pass
+    def __init__(self, std: Cooler = DummyCooler(0.2)) -> None:
+        self.std = std
+
+    def add_noise(self, action: Tensor) -> Tensor:
+        return torch.randn_like(action).mul_(self.std()) + action
+
+    def select_from_value(self, value: Tensor) -> LongTensor:
+        raise NotImplementedError()
+
+
+class OrnsteinUhlenbeck(Explorer):
+    def __init__(
+            self,
+            std: Cooler = DummyCooler(0.2),
+            theta: float = 0.15,
+            dt: float = 1e-2
+    ) -> None:
+        self.theta = theta
+        self.mu = 0.0
+        self.std = std
+        self.dt = dt
+        self.x_prev = None
+
+    def add_noise(self, action: Tensor):
+        if self.x_prev is None:
+            self.x_prev = torch.zeros_like(action)
+        self.x_prev += self.x_prev.sub(self.mu).mul_(self.theta) + \
+            torch.randn_like(action).mul_(self.std()).mul_(self.dt.sqrt())
+        return self.x_prev + action
+
+    def select_from_value(self, value: Tensor) -> LongTensor:
+        raise NotImplementedError()

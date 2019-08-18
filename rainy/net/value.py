@@ -3,8 +3,9 @@ import numpy as np
 from torch import nn, Tensor
 from typing import Tuple, Union
 from .block import DqnConv, FcBody, LinearHead, NetworkBlock
-from .prelude import Array, NetFn
+from .prelude import NetFn
 from ..utils import Device
+from ..prelude import Array
 
 
 class ContinuousQFunction(ABC):
