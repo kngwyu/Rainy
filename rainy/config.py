@@ -42,6 +42,9 @@ class Config:
             lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000))
         self.__eval_explore: Callable[[], Explorer] = lambda: EpsGreedy(0.01, DummyCooler(0.01))
 
+        # For DDPG-like algorithms
+        self.soft_update_coef = 200
+
         # For multi worker algorithms
         self.nworkers = 1
 

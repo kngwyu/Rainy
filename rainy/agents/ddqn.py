@@ -1,9 +1,11 @@
+import torch
 from torch import Tensor
 from .dqn import DqnAgent
 from ..prelude import Array
 
 
 class DoubleDqnAgent(DqnAgent):
+    @torch.no_grad()
     def _q_next(self, next_states: Array) -> Tensor:
         """Returns Q values of next_states, supposing torch.no_grad() is called
         """

@@ -45,6 +45,7 @@ class DqnAgent(OneStepAgent):
             self._train()
         return next_state, reward, done, info
 
+    @torch.no_grad()
     def _q_next(self, next_states: Array) -> Tensor:
         return self.target_net(next_states).max(1)[0]
 
@@ -52,8 +53,7 @@ class DqnAgent(OneStepAgent):
         obs = self.replay.sample(self.config.replay_batch_size)
         obs = [ob.to_ndarray(self.env.extract) for ob in obs]
         states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
-        with torch.no_grad():
-            q_next = self._q_next(next_states)
+        q_next = self._q_next(next_states)
         q_next *= self.config.device.tensor(1.0 - done) * self.config.discount_factor
         q_next += self.config.device.tensor(rewards)
         q_current = self.net(states)[self.batch_indices, actions]
