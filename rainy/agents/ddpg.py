@@ -16,6 +16,7 @@ class DdpgAgent(OneStepAgent):
         self.actor_opt = config.optimizer(self.net.actor.parameters(), key='actor')
         self.critic_opt = config.optimizer(self.net.critic.parameters(), key='critic')
         self.explorer = config.explorer()
+        self.eval_explorer = config.eval_explorer()
         self.replay = config.replay_buffer()
         self.batch_indices = config.device.indices(config.replay_batch_size)
 
@@ -27,7 +28,8 @@ class DdpgAgent(OneStepAgent):
 
     @torch.no_grad()
     def eval_action(self, state: Array) -> Action:
-        return self.eval_policy.select_action(state, self.net).item()  # type: ignore
+        action = self.eval_explorer.add_noise(self.net.action(state))
+        return action.cpu().numpy()  # type: ignore
 
     def step(self, state: State) -> Tuple[State, float, bool, dict]:
         train_started = self.total_steps > self.config.train_start

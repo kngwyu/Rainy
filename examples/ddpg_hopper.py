@@ -2,7 +2,7 @@ import os
 from rainy import Config
 from rainy.agents import DdpgAgent
 from rainy.envs import PyBullet
-from rainy.lib.explore import GaussianNoise
+from rainy.lib import explore
 import rainy.utils.cli as cli
 from torch.optim import Adam
 
@@ -14,9 +14,10 @@ def config(envname: str = 'Hopper') -> Config:
     c.set_optimizer(lambda params: Adam(params, lr=1e-4), key='actor')
     c.set_optimizer(lambda params: Adam(params, lr=1e-3), key='critic')
     c.replay_size = int(1e6)
-    c.batch_size = 64
+    c.replay_batch_size = 64
     c.train_start = int(1e4)
-    c.set_explorer(lambda: GaussianNoise())
+    c.set_explorer(lambda: explore.GaussianNoise())
+    c.set_eval_explorer(lambda: explore.Greedy())
     c.eval_deterministic = False
     c.eval_freq = None
     return c
