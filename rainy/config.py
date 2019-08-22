@@ -43,7 +43,7 @@ class Config:
         self.__eval_explore: Callable[[], Explorer] = lambda: EpsGreedy(0.01, DummyCooler(0.01))
 
         # For DDPG-like algorithms
-        self.soft_update_coef = 0.005
+        self.soft_update_coef = 5e-3
 
         # For multi worker algorithms
         self.nworkers = 1

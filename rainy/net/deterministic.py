@@ -4,7 +4,7 @@ import torch
 from torch import nn, Tensor
 from typing import Sequence, Tuple, Union
 from .block import FcBody, LinearHead, NetworkBlock
-from .init import Initializer
+from .init import Initializer, kaiming_uniform
 from .prelude import NetFn
 from .value import ContinuousQFunction
 from ..prelude import Array, Self
@@ -33,8 +33,9 @@ class SeparatedDdpgNet(DdpgNet):
             actor_body: NetworkBlock,
             critic_body: NetworkBlock,
             action_dim: int,
-            init: Initializer = Initializer(scale=1.0e-3),
+            action_coef: float = 1.0,
             device: Device = Device(),
+            init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
     ) -> None:
         super().__init__()
         self.actor = nn.Sequential(
@@ -47,11 +48,12 @@ class SeparatedDdpgNet(DdpgNet):
             LinearHead(critic_body.output_dim, 1, init=init)
         )
         self.to(device.unwrapped)
+        self.action_coef = action_coef
         self.device = device
 
     def action(self, states: Union[Array, Tensor]) -> Tensor:
         s = self.device.tensor(states)
-        return self.actor(s)
+        return self.actor(s).mul(self.action_coef)
 
     def q_value(self, states: Union[Array, Tensor], action: Union[Array, Tensor]) -> Tensor:
         s = self.device.tensor(states)
@@ -67,17 +69,26 @@ class SeparatedDdpgNet(DdpgNet):
         s = self.device.tensor(states)
         a = self.device.tensor(action)
         sa = torch.cat((s, a), dim=1)
-        return self.actor(s), self.critic(sa)
+        return self.actor(s).mul(self.action_coef), self.critic(sa)
 
 
 def fc_seprated(
+        action_coef: float = 1.0,
         actor_units: Sequence[int] = [400, 300],
         critic_units: Sequence[int] = [400, 300],
+        init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
 ) -> NetFn:
     """FC body head ActorCritic network
     """
     def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> SeparatedDdpgNet:
-        actor_body = FcBody(state_dim[0], units=actor_units)
-        critic_body = FcBody(state_dim[0] + action_dim, units=critic_units)
-        return SeparatedDdpgNet(actor_body, critic_body, action_dim, device=device)
+        actor_body = FcBody(state_dim[0], units=actor_units, init=init)
+        critic_body = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
+        return SeparatedDdpgNet(
+            actor_body,
+            critic_body,
+            action_dim,
+            action_coef=action_coef,
+            device=device,
+            init=init,
+        )
     return _net

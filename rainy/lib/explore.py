@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import torch
 from torch import LongTensor, Tensor
 from torch.optim import Optimizer
+from typing import Optional
 from ..net.value import DiscreteQFunction
 from ..prelude import Array
 
@@ -90,11 +91,15 @@ class EpsGreedy(Explorer):
 
 
 class GaussianNoise(Explorer):
-    def __init__(self, std: Cooler = DummyCooler(0.2)) -> None:
+    def __init__(self, std: Cooler = DummyCooler(0.1), clip: Optional[float] = None) -> None:
         self.std = std
+        self.clip = clip
 
     def add_noise(self, action: Tensor) -> Tensor:
-        return torch.randn_like(action).mul_(self.std()) + action
+        noise = torch.randn_like(action).mul_(self.std())
+        if self.clip is not None:
+            noise.clamp_(-self.clip, self.clip)
+        return noise + action
 
     def select_from_value(self, value: Tensor) -> LongTensor:
         raise NotImplementedError()

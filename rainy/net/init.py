@@ -18,12 +18,12 @@ def orthogonal(gain: float = 1.) -> InitFn:
     return partial(nn.init.orthogonal_, gain=gain)
 
 
-def kaiming_normal(nonlinearity: str = 'relu') -> InitFn:
-    return partial(nn.init.kaiming_normal_, nonlinearity=nonlinearity)
+def kaiming_normal(**kwargs) -> InitFn:
+    return partial(nn.init.kaiming_normal_, **kwargs)
 
 
-def kaiming_uniform(nonlinearity: str = 'relu') -> InitFn:
-    return partial(nn.init.kaiming_uniform_, nonlinearity=nonlinearity)
+def kaiming_uniform(**kwargs) -> InitFn:
+    return partial(nn.init.kaiming_uniform_, **kwargs)
 
 
 def constant(val: float) -> InitFn:
