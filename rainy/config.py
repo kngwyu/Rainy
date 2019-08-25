@@ -2,7 +2,7 @@ from torch import nn
 from torch.optim import Optimizer, RMSprop
 from typing import Callable, Dict, List, Optional, Tuple
 from .envs import ClassicalControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEnv
-from .net import actor_critic, option_critic, value
+from .net import actor_critic, deterministic, option_critic, value
 from .net.prelude import NetFn
 from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
 from .lib import mpi
@@ -42,6 +42,9 @@ class Config:
             lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000))
         self.__eval_explore: Callable[[], Explorer] = lambda: EpsGreedy(0.01, DummyCooler(0.01))
 
+        # For DDPG-like algorithms
+        self.soft_update_coef = 5e-3
+
         # For multi worker algorithms
         self.nworkers = 1
 
@@ -76,13 +79,16 @@ class Config:
         self.save_eval_actions = False
 
         # Optimizer and preconditioner
-        self.__optim = lambda params: RMSprop(params, 0.001)
+        self.__optim: Dict[Optional[str], Callable[[], Optimizer]] = {
+            None: lambda params: RMSprop(params, 0.001)
+        }
         self.__precond = lambda net: KfacPreConditioner(net)
 
         # Network
         self.__net: Dict[str, NetFn] = {
             'value': value.fc(),
             'actor-critic': actor_critic.fc_shared(),
+            'ddpg': deterministic.fc_seprated(),
             'option-critic': option_critic.fc_shared(num_options=8),
         }
 
@@ -131,11 +137,15 @@ class Config:
     def set_eval_explorer(self, eval_exp: Callable[[], Explorer]) -> None:
         self.__eval_explore = eval_exp
 
-    def optimizer(self, params: Params) -> Optimizer:
-        return self.__optim(params)
+    def optimizer(self, params: Params, key: Optional[str] = None) -> Optimizer:
+        return self.__optim[key](params)
 
-    def set_optimizer(self, optim: Callable[[Params], Optimizer]) -> None:
-        self.__optim = optim
+    def set_optimizer(
+            self,
+            optim: Callable[[Params], Optimizer],
+            key: Optional[str] = None
+    ) -> None:
+        self.__optim[key] = optim
 
     def preconditioner(self, net: nn.Module) -> PreConditioner:
         return self.__precond(net)

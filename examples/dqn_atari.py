@@ -16,7 +16,7 @@ def config(game: str = 'Breakout') -> Config:
     c.set_explorer(lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, int(1e6))))
     c.set_net_fn('value', net.value.dqn_conv())
     c.replay_size = int(1e6)
-    c.batch_size = 32
+    c.replay_batch_size = 32
     c.train_start = 50000
     c.sync_freq = 10000
     c.max_steps = int(2e7)
