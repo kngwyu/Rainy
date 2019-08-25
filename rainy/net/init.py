@@ -18,11 +18,11 @@ def orthogonal(gain: float = 1.) -> InitFn:
     return partial(nn.init.orthogonal_, gain=gain)
 
 
-def kaiming_normal(nonlinearity='leakey_relu', **kwargs) -> InitFn:
+def kaiming_normal(nonlinearity='leaky_relu', **kwargs) -> InitFn:
     return partial(nn.init.kaiming_normal_, nonlinearity=nonlinearity, **kwargs)
 
 
-def kaiming_uniform(nonlinearity='leakey_relu', **kwargs) -> InitFn:
+def kaiming_uniform(nonlinearity='leaky_relu', **kwargs) -> InitFn:
     return partial(nn.init.kaiming_uniform_, nonlinearity=nonlinearity, **kwargs)
 
 

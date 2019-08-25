@@ -20,7 +20,6 @@ class DdpgAgent(OneStepAgent):
         self.eval_explorer = config.eval_explorer()
         self.replay = config.replay_buffer()
         self.batch_indices = config.device.indices(config.replay_batch_size)
-        self.episode_length = 0
 
     def set_mode(self, train: bool = True) -> None:
         self.net.train(mode=train)
@@ -41,14 +40,11 @@ class DdpgAgent(OneStepAgent):
             action = self.explorer.add_noise(action).cpu().numpy()
         else:
             action = self.env.spec.random_action()
-        self.episode_length += 1
         action = self.env.spec.clip_action(action)
         next_state, reward, done, info = self.env.step(action)
         self.replay.append(state, action, reward, next_state, done)
         if train_started:
             self._train()
-        if done:
-            self.episode_length = 0
         return next_state, reward, done, info
 
     @torch.no_grad()
