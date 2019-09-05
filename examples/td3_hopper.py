@@ -1,6 +1,6 @@
 import os
 from rainy import Config
-from rainy.agents import DdpgAgent
+from rainy.agents import Td3Agent
 from rainy.envs import PyBullet
 from rainy.lib import explore
 import rainy.utils.cli as cli
@@ -18,6 +18,7 @@ def config(envname: str = 'Hopper') -> Config:
     c.train_start = int(1e4)
     c.set_explorer(lambda: explore.GaussianNoise())
     c.set_explorer(lambda: explore.Greedy(), key='eval')
+    c.set_explorer(lambda: explore.GaussianNoise(explore.DummyCooler(0.2), 0.5), key='target')
     c.use_reward_monitor = True
     c.eval_deterministic = False
     c.grad_clip = None
@@ -26,4 +27,4 @@ def config(envname: str = 'Hopper') -> Config:
 
 
 if __name__ == '__main__':
-    cli.run_cli(config, DdpgAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, Td3Agent, script_path=os.path.realpath(__file__))

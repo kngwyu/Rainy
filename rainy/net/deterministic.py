@@ -72,6 +72,38 @@ class SeparatedDdpgNet(DdpgNet):
         return self.actor(s).mul(self.action_coef), self.critic(sa)
 
 
+class SeparatedTd3Net(SeparatedDdpgNet):
+    def __init__(
+            self,
+            actor_body: NetworkBlock,
+            critic_body: NetworkBlock,
+            critic_body2: NetworkBlock,
+            action_dim: int,
+            action_coef: float = 1.0,
+            device: Device = Device(),
+            init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
+    ) -> None:
+        super().__init__(
+            actor_body,
+            critic_body,
+            action_dim,
+            action_coef=action_coef,
+            device=device,
+            init=init,
+        )
+        self.critic2 = nn.Sequential(
+            critic_body2,
+            LinearHead(critic_body2.output_dim, 1, init=init)
+        )
+        self.to(device.unwrapped)
+
+    def q_values(self, states: Union[Array, Tensor], action: Union[Array, Tensor]) -> Tensor:
+        s = self.device.tensor(states)
+        a = self.device.tensor(action)
+        sa = torch.cat((s, a), dim=1)
+        return self.critic(sa), self.critic2(sa)
+
+
 def fc_seprated(
         action_coef: float = 1.0,
         actor_units: Sequence[int] = [400, 300],
@@ -86,6 +118,30 @@ def fc_seprated(
         return SeparatedDdpgNet(
             actor_body,
             critic_body,
+            action_dim,
+            action_coef=action_coef,
+            device=device,
+            init=init,
+        )
+    return _net
+
+
+def td3_fc_seprated(
+        action_coef: float = 1.0,
+        actor_units: Sequence[int] = [400, 300],
+        critic_units: Sequence[int] = [400, 300],
+        init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
+) -> NetFn:
+    """FC body head ActorCritic network
+    """
+    def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> SeparatedDdpgNet:
+        actor_body = FcBody(state_dim[0], units=actor_units, init=init)
+        critic1 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
+        critic2 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
+        return SeparatedTd3Net(
+            actor_body,
+            critic1,
+            critic2,
             action_dim,
             action_coef=action_coef,
             device=device,
