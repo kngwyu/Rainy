@@ -96,6 +96,7 @@ If this feature still doesn't satisfy your requirement, you can
 |**Algorithm** |**Multi Worker(Sync)**|**Recurrent**                   |**Discrete Action** |**Continuous Action**|**MPI**           |
 | ------------ | -------------------- | ------------------------------ | ------------------ | ------------------- | ---------------- |
 |DQN/Double DQN|:x:                   |:x:                             |:heavy_check_mark:  |:x:                  |:x:               |
+|DDPG          |:x:                   |:x:                             |:x:                 |:heavy_check_mark:   |:x:               |
 |PPO           |:heavy_check_mark:    |:heavy_check_mark:<sup>(1)</sup>|:heavy_check_mark:  |:heavy_check_mark:   |:heavy_check_mark:|
 |A2C           |:heavy_check_mark:    |:heavy_check_mark:              |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
 |ACKTR         |:heavy_check_mark:    |:x:<sup>(2)</sup>               |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
