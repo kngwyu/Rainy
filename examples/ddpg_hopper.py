@@ -19,9 +19,9 @@ def config(envname: str = 'Hopper') -> Config:
     c.set_explorer(lambda: explore.GaussianNoise())
     c.set_explorer(lambda: explore.Greedy(), key='eval')
     c.use_reward_monitor = True
-    c.eval_deterministic = False
+    c.eval_deterministic = True
     c.grad_clip = None
-    c.eval_freq = None
+    c.eval_freq = c.max_steps // 10
     return c
 
 
