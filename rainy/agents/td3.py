@@ -1,7 +1,10 @@
+"""TD3(Twin Delayed Deep Deterministic Policy Gradient)
+Paper: https://arxiv.org/abs/1802.09477
+"""
 from copy import deepcopy
 import numpy as np
 import torch
-from torch import nn, Tensor
+from torch import Tensor
 from torch.nn import functional as F
 from .base import OneStepAgent
 from .ddpg import DdpgAgent
@@ -29,13 +32,6 @@ class Td3Agent(DdpgAgent):
         q1, q2 = self.target_net.q_values(next_state, actions)
         return torch.min(q1, q2)
 
-    def _backward(self, loss: Tensor, net: nn.Module, opt: torch.optim.Optimizer) -> None:
-        opt.zero_grad()
-        loss.backward()
-        if self.config.grad_clip is not None:
-            nn.utils.clip_grad_norm_(net.parameters(), self.config.grad_clip)
-        opt.step()
-
     def _train(self) -> None:
         obs = self.replay.sample(self.config.replay_batch_size)
         obs = [ob.to_ndarray(self.env.extract) for ob in obs]
@@ -52,9 +48,8 @@ class Td3Agent(DdpgAgent):
         self._backward(critic_loss, self.net.critic, self.critic_opt)
 
         #  Delayed policy update
-        if self.update_steps == 0 or self.update_steps % self.config.policy_update_freq != 0:
+        if (self.update_steps + 1) % self.config.policy_update_freq != 0:
             return
-
         action = self.net.action(states)
         policy_loss = -self.net.q_value(states, action).mean()
         self._backward(policy_loss, self.net.actor, self.actor_opt)
