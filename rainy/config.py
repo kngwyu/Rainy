@@ -38,12 +38,16 @@ class Config:
 
         # For DQN-like algorithms
         self.sync_freq = 200
-        self.__explore: Callable[[], Explorer] = \
-            lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000))
-        self.__eval_explore: Callable[[], Explorer] = lambda: EpsGreedy(0.01, DummyCooler(0.01))
+        self.__explore: Dict[Optional[str], Callable[[], Explorer]] = {
+            None: lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000)),
+            'eval': lambda: EpsGreedy(0.01, DummyCooler(0.01))
+        }
 
-        # For DDPG-like algorithms
+        # For algorithms that use soft updates(e.g., DDPG)
         self.soft_update_coef = 5e-3
+
+        # For TD3
+        self.policy_update_freq = 2
 
         # For multi worker algorithms
         self.nworkers = 1
@@ -89,6 +93,7 @@ class Config:
             'value': value.fc(),
             'actor-critic': actor_critic.fc_shared(),
             'ddpg': deterministic.fc_seprated(),
+            'td3': deterministic.td3_fc_seprated(),
             'option-critic': option_critic.fc_shared(num_options=8),
         }
 
@@ -125,17 +130,11 @@ class Config:
             self.state_dim = env.state_dim
         self.__eval_env = env
 
-    def explorer(self) -> Explorer:
-        return self.__explore()
+    def explorer(self, key: Optional[str] = None) -> Explorer:
+        return self.__explore[key]()
 
-    def set_explorer(self, exp: Callable[[], Explorer]) -> None:
-        self.__explore = exp
-
-    def eval_explorer(self) -> Explorer:
-        return self.__eval_explore()
-
-    def set_eval_explorer(self, eval_exp: Callable[[], Explorer]) -> None:
-        self.__eval_explore = eval_exp
+    def set_explorer(self, exp: Callable[[], Explorer], key: Optional[str] = None) -> None:
+        self.__explore[key] = exp
 
     def optimizer(self, params: Params, key: Optional[str] = None) -> Optimizer:
         return self.__optim[key](params)

@@ -17,9 +17,10 @@ class DdpgAgent(OneStepAgent):
         self.actor_opt = config.optimizer(self.net.actor.parameters(), key='actor')
         self.critic_opt = config.optimizer(self.net.critic.parameters(), key='critic')
         self.explorer = config.explorer()
-        self.eval_explorer = config.eval_explorer()
+        self.eval_explorer = config.explorer(key='eval')
         self.replay = config.replay_buffer()
         self.batch_indices = config.device.indices(config.replay_batch_size)
+        self.update_steps = 0
 
     def set_mode(self, train: bool = True) -> None:
         self.net.train(mode=train)
@@ -68,13 +69,13 @@ class DdpgAgent(OneStepAgent):
         q_target = q_next.squeeze_() \
                          .mul_(mask * self.config.discount_factor) \
                          .add_(self.config.device.tensor(rewards))
-        q_current = self.net.q_value(states, actions).squeeze_()
+        action, q_current = self.net(states, actions)
 
         #  Backward critic loss
-        self._backward(F.mse_loss(q_current, q_target), self.net.critic, self.critic_opt)
+        critic_loss = F.mse_loss(q_current.squeeze_(), q_target)
+        self._backward(critic_loss, self.net.critic, self.critic_opt)
 
         #  Backward policy loss
-        action = self.net.action(states)
         policy_loss = -self.net.q_value(states, action).mean()
         self._backward(policy_loss, self.net.actor, self.actor_opt)
 

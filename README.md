@@ -97,6 +97,7 @@ If this feature still doesn't satisfy your requirement, you can
 | ------------ | -------------------- | ------------------------------ | ------------------ | ------------------- | ---------------- |
 |DQN/Double DQN|:x:                   |:x:                             |:heavy_check_mark:  |:x:                  |:x:               |
 |DDPG          |:x:                   |:x:                             |:x:                 |:heavy_check_mark:   |:x:               |
+|TD3           |:x:                   |:x:                             |:x:                 |:heavy_check_mark:   |:x:               |
 |PPO           |:heavy_check_mark:    |:heavy_check_mark:<sup>(1)</sup>|:heavy_check_mark:  |:heavy_check_mark:   |:heavy_check_mark:|
 |A2C           |:heavy_check_mark:    |:heavy_check_mark:              |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
 |ACKTR         |:heavy_check_mark:    |:x:<sup>(2)</sup>               |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
@@ -117,6 +118,12 @@ If this feature still doesn't satisfy your requirement, you can
 
 ### DDQN (Double DQN)
 - https://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/viewPaper/12389
+
+### DDPQ(Deep Deterministic Policy Gradient)
+- https://arxiv.org/abs/1509.02971
+
+### TD3(Twin Delayed Deep Deterministic Policy Gradient)
+- https://arxiv.org/abs/1802.09477
 
 ### A2C (Advantage Actor Critic)
 - http://proceedings.mlr.press/v48/mniha16.pdf , https://arxiv.org/abs/1602.01783 (A3C, original version)
@@ -148,6 +155,8 @@ https://github.com/chainer/chainerrl
 https://github.com/Thrandis/EKFAC-pytorch (for ACKTR)
 
 https://github.com/jeanharb/a2oc_delib (for AOC)
+
+https://github.com/sfujim/TD3 (for DDPG and TD3)
 
 ## License
 This project is licensed under Apache License, Version 2.0

@@ -6,4 +6,5 @@ from .ddpg import DdpgAgent
 from .ddqn import DoubleDqnAgent
 from .dqn import DqnAgent
 from .ppo import PpoAgent
+from .td3 import Td3Agent
 

@@ -18,7 +18,7 @@ class DqnAgent(OneStepAgent):
         self.optimizer = config.optimizer(self.net.parameters())
         self.criterion = nn.MSELoss()
         self.policy = config.explorer()
-        self.eval_policy = config.eval_explorer()
+        self.eval_policy = config.explorer(key='eval')
         self.replay = config.replay_buffer()
         assert self.replay.feed == DqnReplayFeed
         self.batch_indices = config.device.indices(config.replay_batch_size)

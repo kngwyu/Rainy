@@ -181,7 +181,7 @@ class OneStepAgent(Agent, Generic[State]):
 
     @property
     def update_steps(self) -> int:
-        return self.total_steps
+        return self.total_steps - self.config.train_start
 
     def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
         if self.config.seed is not None:
