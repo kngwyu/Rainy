@@ -12,7 +12,7 @@ from ..prelude import Self, State
 
 
 class AtariConfig:
-    STYLES = ['deepmind', 'baselines', 'dopamine']
+    STYLES = ['deepmind', 'baselines', 'dopamine', 'rnd']
 
     def __init__(self) -> None:
         self.timelimit = True
@@ -40,19 +40,12 @@ class AtariConfig:
             cfg.v4 = True
             cfg.noop_reset = False
             cfg.episodic_life = True
+        elif style == 'rnd':
+            cfg.override_timelimit = 4500 * 4
+            cfg.noop_reset = False
+            cfg.sticky_actions = True
+            cfg.v4 = True
         return cfg
-
-    @staticmethod
-    def rnd_config() -> Self:
-        """The same configuration as https://github.com/openai/random-network-distillation
-        """
-        c = AtariConfig()
-        c = rainy.envs.AtariConfig()
-        c.override_timelimit = 4500 * 4
-        c.noop_reset = False
-        c.sticky_actions = True
-        c.v4 = True
-        return c
 
 
 class Atari(EnvExt):
