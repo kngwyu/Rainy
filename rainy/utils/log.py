@@ -274,12 +274,12 @@ class DummyLogger(Logger):
     def set_dir_from_script_path(
             self,
             script_path_: str,
-            comment: Optional[str] = None,
             prefix: str = '',
+            fingerprint: Dict[str, str] = {},
     ) -> None:
         pass
 
-    def set_dir(self, log_dir: Path, comment: Optional[str] = None) -> None:
+    def set_dir(self, log_dir: Path, fingerprint: Dict[str, str] = {}) -> None:
         pass
 
     def retrive(self, log_dir: str) -> ExperimentLog:
