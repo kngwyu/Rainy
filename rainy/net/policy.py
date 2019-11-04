@@ -75,7 +75,7 @@ class CategoricalPolicy(Policy):
         return self.dist.entropy()
 
     def __getitem__(self, idx: Index) -> Self:
-        return CategoricalPolicy(self.dist.logits[idx])
+        return CategoricalPolicy(logits=self.dist.logits[idx])
 
 
 class GaussianPolicy(Policy):
