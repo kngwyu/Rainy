@@ -1,26 +1,21 @@
 from abc import ABC, abstractmethod
+from itertools import chain
 from rainy.utils import Device
 import torch
 from torch import nn, Tensor
-from typing import Sequence, Tuple, Union
+from typing import Iterable, Sequence, Tuple, Union
 from .block import FcBody, LinearHead, NetworkBlock
 from .init import Initializer, kaiming_uniform
+from .misc import SoftUpdate
 from .prelude import NetFn
 from .value import ContinuousQFunction
-from ..prelude import Array, Self
+from ..prelude import Array
 
 
 class DeterministicPolicyNet(ABC):
     @abstractmethod
     def action(self, state: Union[Array, Tensor]) -> Tensor:
         pass
-
-
-class SoftUpdate(nn.Module):
-    @torch.no_grad()
-    def soft_update(self, other: Self, coef: float) -> None:
-        for s_param, o_param in zip(self.parameters(), other.parameters()):
-            s_param.copy_(s_param * (1.0 - coef) + o_param * coef)
 
 
 class DdpgNet(SoftUpdate, ContinuousQFunction, DeterministicPolicyNet):
@@ -50,6 +45,12 @@ class SeparatedDdpgNet(DdpgNet):
         self.to(device.unwrapped)
         self.action_coef = action_coef
         self.device = device
+
+    def actor_params(self) -> Iterable[Tensor]:
+        return self.actor.parameters()
+
+    def critic_params(self) -> Iterable[Tensor]:
+        return self.critic.parameters()
 
     def action(self, states: Union[Array, Tensor]) -> Tensor:
         s = self.device.tensor(states)
@@ -97,7 +98,14 @@ class SeparatedTd3Net(SeparatedDdpgNet):
         )
         self.to(device.unwrapped)
 
-    def q_values(self, states: Union[Array, Tensor], action: Union[Array, Tensor]) -> Tensor:
+    def critic_params(self) -> Iterable[Tensor]:
+        return chain(self.critic.parameters(), self.critic2.parameters())
+
+    def q_values(
+            self,
+            states: Union[Array, Tensor],
+            action: Union[Array, Tensor],
+    ) -> Tuple[Tensor, Tensor]:
         s = self.device.tensor(states)
         a = self.device.tensor(action)
         sa = torch.cat((s, a), dim=1)
@@ -110,7 +118,7 @@ def fc_seprated(
         critic_units: Sequence[int] = [400, 300],
         init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
 ) -> NetFn:
-    """FC body head ActorCritic network
+    """DDPG network with separated bodys
     """
     def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> SeparatedDdpgNet:
         actor_body = FcBody(state_dim[0], units=actor_units, init=init)
@@ -132,9 +140,9 @@ def td3_fc_seprated(
         critic_units: Sequence[int] = [400, 300],
         init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
 ) -> NetFn:
-    """FC body head ActorCritic network
+    """TD3 network with separated bodys
     """
-    def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> SeparatedDdpgNet:
+    def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> SeparatedTd3Net:
         actor_body = FcBody(state_dim[0], units=actor_units, init=init)
         critic1 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
         critic2 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)

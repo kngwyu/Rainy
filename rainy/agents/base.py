@@ -3,7 +3,7 @@ import copy
 import numpy as np
 from pathlib import Path
 import torch
-from torch import nn
+from torch import nn, Tensor
 from typing import Callable, Generic, Iterable, List, NamedTuple, Optional, Tuple
 import warnings
 from ..config import Config
@@ -173,6 +173,18 @@ class Agent(ABC):
             else:
                 setattr(self, member_str, saved_item)
 
+    def _backward(
+            self,
+            loss: Tensor,
+            opt: torch.optim.Optimizer,
+            params: Optional[Iterable[Tensor]] = None,
+    ) -> None:
+        opt.zero_grad()
+        loss.backward()
+        if params is not None and self.config.grad_clip is not None:
+            nn.utils.clip_grad_norm_(params, self.config.grad_clip)
+        opt.step()
+
 
 class OneStepAgent(Agent, Generic[State]):
     @abstractmethod
@@ -181,7 +193,7 @@ class OneStepAgent(Agent, Generic[State]):
 
     @property
     def update_steps(self) -> int:
-        return self.total_steps - self.config.train_start
+        return max(0, self.total_steps - self.config.train_start)
 
     def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
         if self.config.seed is not None:

@@ -1,9 +1,9 @@
 from copy import deepcopy
 import numpy as np
 import torch
-from torch import nn, Tensor
+from torch import Tensor
 from torch.nn import functional as F
-from typing import Tuple
+from typing import Sequence, Tuple
 from .base import OneStepAgent
 from ..config import Config
 from ..prelude import Action, Array, State
@@ -14,19 +14,18 @@ class DdpgAgent(OneStepAgent):
         super().__init__(config)
         self.net = config.net('ddpg')
         self.target_net = deepcopy(self.net)
-        self.actor_opt = config.optimizer(self.net.actor.parameters(), key='actor')
-        self.critic_opt = config.optimizer(self.net.critic.parameters(), key='critic')
+        self.actor_opt = config.optimizer(self.net.actor_params(), key='actor')
+        self.critic_opt = config.optimizer(self.net.critic_params(), key='critic')
         self.explorer = config.explorer()
         self.eval_explorer = config.explorer(key='eval')
         self.replay = config.replay_buffer()
         self.batch_indices = config.device.indices(config.replay_batch_size)
-        self.update_steps = 0
 
     def set_mode(self, train: bool = True) -> None:
         self.net.train(mode=train)
 
-    def members_to_save(self) -> Tuple[str, ...]:
-        return 'net', 'target_net', 'total_steps', 'explorer', 'replay'
+    def members_to_save(self) -> Sequence[str]:
+        return 'net', 'target_net', 'actor_opt', 'critic_opt', 'total_steps', 'explorer', 'replay'
 
     @torch.no_grad()
     def eval_action(self, state: Array) -> Action:
@@ -53,13 +52,6 @@ class DdpgAgent(OneStepAgent):
         actions = self.target_net.action(next_states)
         return self.target_net.q_value(next_states, actions)
 
-    def _backward(self, loss: Tensor, net: nn.Module, opt: torch.optim.Optimizer) -> None:
-        opt.zero_grad()
-        loss.backward()
-        if self.config.grad_clip is not None:
-            nn.utils.clip_grad_norm_(net.parameters(), self.config.grad_clip)
-        opt.step()
-
     def _train(self) -> None:
         obs = self.replay.sample(self.config.replay_batch_size)
         obs = [ob.to_ndarray(self.env.extract) for ob in obs]
@@ -73,11 +65,11 @@ class DdpgAgent(OneStepAgent):
 
         #  Backward critic loss
         critic_loss = F.mse_loss(q_current.squeeze_(), q_target)
-        self._backward(critic_loss, self.net.critic, self.critic_opt)
+        self._backward(critic_loss, self.critic_opt, self.net.critic_params())
 
         #  Backward policy loss
         policy_loss = -self.net.q_value(states, action).mean()
-        self._backward(policy_loss, self.net.actor, self.actor_opt)
+        self._backward(policy_loss, self.actor_opt, self.net.actor_params())
 
         #  Update target network
         self.target_net.soft_update(self.net, self.config.soft_update_coef)

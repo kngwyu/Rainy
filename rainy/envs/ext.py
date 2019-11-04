@@ -20,14 +20,17 @@ class EnvSpec:
         self.use_reward_monitor = use_reward_monitor
         if isinstance(action_space, spaces.Discrete):
             self.action_dim = action_space.n
-            self.clip_action = lambda act: np.clip(act, 0, action_space.n)
+            self._act_range = 0, action_space.n
         elif isinstance(action_space, spaces.Box):
             if len(action_space.shape) != 1:
                 raise RuntimeError('Box space with shape >= 2 is not supportd')
             self.action_dim = action_space.shape[0]
-            self.clip_action = lambda act: np.clip(act, action_space.low, action_space.high)
+            self._act_range = action_space.low, action_space.high
         else:
             raise RuntimeError('{} is not supported'.format(type(action_space)))
+
+    def clip_action(self, act: Array) -> Array:
+        return np.clip(act, *self._act_range)
 
     def random_action(self) -> Action:
         return self.action_space.sample()
