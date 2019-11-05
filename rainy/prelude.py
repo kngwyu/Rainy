@@ -41,5 +41,7 @@ class Array(Sequence[T]):
         ...
 
 
+ArrayLike = Union[Array[Any], List[Any], Tensor]
+
 Action = TypeVar('Action', int, Array)
 State = TypeVar('State')

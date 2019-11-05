@@ -1,4 +1,5 @@
 from functools import partial
+import numpy as np
 from typing import Iterable, Optional
 import torch
 from torch import nn, Tensor
@@ -24,6 +25,17 @@ def kaiming_normal(nonlinearity='leaky_relu', **kwargs) -> InitFn:
 
 def kaiming_uniform(nonlinearity='leaky_relu', **kwargs) -> InitFn:
     return partial(nn.init.kaiming_uniform_, nonlinearity=nonlinearity, **kwargs)
+
+
+def fanin_uniform() -> InitFn:
+    def _fanin_uniform(w: Tensor) -> Tensor:
+        if w.dim() <= 2:
+            fan_in = w.size(0)
+        else:
+            fan_in = np.prod(w.shape[1:])
+        bound = 1.0 / np.sqrt(fan_in)
+        return nn.init.uniform_(w, -bound, bound)
+    return _fanin_uniform
 
 
 def constant(val: float) -> InitFn:

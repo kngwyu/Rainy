@@ -63,5 +63,5 @@ class DqnAgent(OneStepAgent):
         nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
         self.optimizer.step()
         self.report_loss(value_loss=loss.item())
-        if self.total_steps % self.config.sync_freq == 0:
+        if (self.update_steps + 1) % self.config.sync_freq == 0:
             self.target_net.load_state_dict(self.net.state_dict())

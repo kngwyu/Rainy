@@ -6,5 +6,6 @@ from .ddpg import DdpgAgent
 from .ddqn import DoubleDqnAgent
 from .dqn import DqnAgent
 from .ppo import PpoAgent
+from .sac import SacAgent
 from .td3 import Td3Agent
 

@@ -134,7 +134,6 @@ class TanhGaussianPolicy(GaussianPolicy):
 
     def rsample(self) -> Tensor:
         res = self.dist.rsample()
-        assert res.requires_grad
         self._pre_tanh = res
         return torch.tanh(res)
 
