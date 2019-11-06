@@ -35,7 +35,7 @@ REQUIRED = [
 EXTRA = {
     'ipython': ['ipython>=7.0', 'matplotlib>=3.0', 'ptpython>=2.0'],
     'bullet': ['pybullet>=2.4'],
-    'horovod': ['pybullet>=0.16']
+    'horovod': ['horovod>=0.16']
 }
 
 
