@@ -9,7 +9,7 @@ from ..utils import Device
 
 
 class Policy(ABC):
-    """An abstaract class that represents parameterized policy.
+    """Represents parameterized stochastic policies.
     """
     def __init__(self, dist: Distribution) -> None:
         self.dist = dist
@@ -30,9 +30,6 @@ class Policy(ABC):
             self._baction = self.rsample()
         return self._baction.squeeze()
 
-    def action_as_np(self) -> Array:
-        return self.action().cpu().numpy()
-
     def set_action(self, action: Tensor) -> None:
         self._action = action
 
@@ -44,6 +41,16 @@ class Policy(ABC):
         which means the returned tensor is backwardable
         """
         return self.dist.rsample()
+
+    def eval_action(self, deterministic: bool = False) -> Array:
+        """Sample actions for evaluation, which leave no action cache
+        and returns numpy array.
+        """
+        if deterministic:
+            act = self.best_action()
+        else:
+            act = self.sample()
+        return act.squeeze_().cpu().numpy()
 
     @abstractmethod
     def __getitem__(self, idx: Index) -> Self:

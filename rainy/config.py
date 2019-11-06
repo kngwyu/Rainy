@@ -56,6 +56,7 @@ class Config:
         # For SAC
         self.target_entropy = None
         self.automatic_entropy_tuning = True
+        self.fixed_alpha = 1.0
 
         # For multi worker algorithms
         self.nworkers = 1

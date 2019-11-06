@@ -102,8 +102,7 @@ class AocAgent(NStepParallelAgent[State]):
             # treat as batch_size == nworkers
             state = np.stack([state] * self.config.nworkers)
         policy = self._eval_policy(state, self.config.device.tensor([0], dtype=torch.long))[0]
-        act = policy.best_action() if self.config.eval_deterministic else policy.action()
-        return act.squeeze().cpu().numpy()
+        return policy.eval_action(self.config.eval_deterministic)
 
     def eval_action_parallel(
             self,
@@ -114,8 +113,7 @@ class AocAgent(NStepParallelAgent[State]):
         policy = self._eval_policy(states, self.worker_indices)
         if ent is not None:
             ent += policy.entropy().cpu().numpy()
-        act = policy.best_action() if self.config.eval_deterministic else policy.action()
-        return act.squeeze().cpu().numpy()
+        return policy.eval_action(self.config.eval_deterministic)
 
     @property
     def prev_options(self) -> LongTensor:

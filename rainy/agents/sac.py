@@ -50,14 +50,18 @@ class SacAgent(OneStepAgent):
         self.critic_opt = config.optimizer(self.net.critic_params(), key='critic')
         self.replay = config.replay_buffer()
         self.batch_indices = config.device.indices(config.replay_batch_size)
+
         if self.config.automatic_entropy_tuning:
-            if self.config.target_entropy is None:
-                target_entropy = 1.0
-            else:
-                target_entropy = -np.prod(self.env.state_dim).item() - 0.0
+            target_entropy = self._target_entropy()
             self.entropy_tuner = TrainableEntropyTuner(target_entropy, config)
         else:
-            self.entropy_tuner = DummyEntropyTuner(1.0)
+            self.entropy_tuner = DummyEntropyTuner(self.config.fixed_alpha)
+
+    def _target_entropy(self):
+        if self.config.target_entropy is None:
+            return -np.prod(self.env.state_dim).item() - 0.0
+        else:
+            return self.config.target_entropy
 
     def set_mode(self, train: bool = True) -> None:
         self.net.train(mode=train)
@@ -68,8 +72,7 @@ class SacAgent(OneStepAgent):
     @torch.no_grad()
     def eval_action(self, state: Array) -> Action:
         policy = self.net.policy(state)
-        action = policy.best_action() if self.config.eval_deterministic else policy.action()
-        return action.cpu().numpy()
+        return policy.eval_action(self.config.eval_deterministic)
 
     def step(self, state: State) -> Tuple[State, float, bool, dict]:
         train_started = self.total_steps > self.config.train_start
