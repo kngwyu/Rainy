@@ -93,11 +93,12 @@ If this feature still doesn't satisfy your requirement, you can
 
 ## Implementation Status
 
-|**Algorithm** |**Multi Worker(Sync)**|**Recurrent**                   |**Discrete Action** |**Continuous Action**|**MPI**           |
+|**Algorithm** |**Multi Worker(Sync)**|**Recurrent**                   |**Discrete Action** |**Continuous Action**|**MPI support**   |
 | ------------ | -------------------- | ------------------------------ | ------------------ | ------------------- | ---------------- |
 |DQN/Double DQN|:x:                   |:x:                             |:heavy_check_mark:  |:x:                  |:x:               |
 |DDPG          |:x:                   |:x:                             |:x:                 |:heavy_check_mark:   |:x:               |
 |TD3           |:x:                   |:x:                             |:x:                 |:heavy_check_mark:   |:x:               |
+|SAC           |:x:                   |:x:                             |:x:                 |:heavy_check_mark:   |:x:               |
 |PPO           |:heavy_check_mark:    |:heavy_check_mark:<sup>(1)</sup>|:heavy_check_mark:  |:heavy_check_mark:   |:heavy_check_mark:|
 |A2C           |:heavy_check_mark:    |:heavy_check_mark:              |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
 |ACKTR         |:heavy_check_mark:    |:x:<sup>(2)</sup>               |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
@@ -125,6 +126,9 @@ If this feature still doesn't satisfy your requirement, you can
 ### TD3(Twin Delayed Deep Deterministic Policy Gradient)
 - https://arxiv.org/abs/1802.09477
 
+### SAC(Soft Actor Critic)
+- https://arxiv.org/abs/1812.05905
+
 ### A2C (Advantage Actor Critic)
 - http://proceedings.mlr.press/v48/mniha16.pdf , https://arxiv.org/abs/1602.01783 (A3C, original version)
 - https://blog.openai.com/baselines-acktr-a2c/ (A2C, synchronized version)
@@ -140,9 +144,7 @@ If this feature still doesn't satisfy your requirement, you can
 - https://arxiv.org/abs/1709.04571 (A3C-like option critic called A2OC)
 
 ## Implementaions I referenced
-I referenced mainly openai baselines, but all these pacakages were useful.
-
-Thanks!
+Thank you!
 
 https://github.com/openai/baselines
 
@@ -157,6 +159,8 @@ https://github.com/Thrandis/EKFAC-pytorch (for ACKTR)
 https://github.com/jeanharb/a2oc_delib (for AOC)
 
 https://github.com/sfujim/TD3 (for DDPG and TD3)
+
+https://github.com/vitchyr/rlkit (for SAC)
 
 ## License
 This project is licensed under Apache License, Version 2.0
