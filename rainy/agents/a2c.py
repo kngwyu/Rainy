@@ -40,10 +40,7 @@ class A2cAgent(NStepParallelAgent[State]):
             state = np.stack([state])
         with torch.no_grad():
             policy, self.eval_rnns[0] = self.net.policy(state, self.eval_rnns[0].unsqueeze())
-        if self.config.eval_deterministic:
-            return policy.best_action().squeeze().cpu().numpy()
-        else:
-            return policy.action().squeeze().cpu().numpy()
+        return policy.eval_action(self.config.eval_deterministic)
 
     def eval_action_parallel(
             self,
@@ -55,10 +52,7 @@ class A2cAgent(NStepParallelAgent[State]):
             policy, self.eval_rnns = self.net.policy(states, self.eval_rnns)
         if ent is not None:
             ent += policy.entropy().cpu().numpy()
-        if self.config.eval_deterministic:
-            return policy.best_action().squeeze().cpu().numpy()
-        else:
-            return policy.action().squeeze().cpu().numpy()
+        return policy.eval_action(self.config.eval_deterministic)
 
     def _network_in(self, states: Array[State]) -> Tuple[Array, RnnState, torch.Tensor]:
         return self.penv.extract(states), self.storage.rnn_states[-1], self.storage.masks[-1]

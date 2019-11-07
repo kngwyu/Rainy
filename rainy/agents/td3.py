@@ -40,9 +40,8 @@ class Td3Agent(DdpgAgent):
         obs = [ob.to_ndarray(self.env.extract) for ob in obs]
         states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
         mask = self.config.device.tensor(1.0 - done)
-        q_next = self._q_next(next_states)
-        q_target = q_next.squeeze_() \
-                         .mul_(mask * self.config.discount_factor) \
+        q_next = self._q_next(next_states).squeeze_()
+        q_target = q_next.mul_(mask * self.config.discount_factor) \
                          .add_(self.config.device.tensor(rewards))
         q1, q2 = self.net.q_values(states, actions)
 

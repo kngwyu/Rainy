@@ -2,7 +2,7 @@ from torch import nn
 from torch.optim import Optimizer, RMSprop
 from typing import Callable, Dict, List, Optional, Tuple
 from .envs import ClassicalControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEnv
-from .net import actor_critic, deterministic, option_critic, value
+from .net import actor_critic, deterministic, option_critic, sac, value
 from .net.prelude import NetFn
 from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
 from .lib import mpi
@@ -43,11 +43,20 @@ class Config:
             'eval': lambda: EpsGreedy(0.01, DummyCooler(0.01))
         }
 
+        # Reward scaling
+        # Currently only used by SAC
+        self.reward_scale = 1.0
+
         # For algorithms that use soft updates(e.g., DDPG)
         self.soft_update_coef = 5e-3
 
         # For TD3
         self.policy_update_freq = 2
+
+        # For SAC
+        self.target_entropy = None
+        self.automatic_entropy_tuning = True
+        self.fixed_alpha = 1.0
 
         # For multi worker algorithms
         self.nworkers = 1
@@ -88,13 +97,14 @@ class Config:
         }
         self.__precond = lambda net: KfacPreConditioner(net)
 
-        # Network
+        # Default Networks
         self.__net: Dict[str, NetFn] = {
             'value': value.fc(),
             'actor-critic': actor_critic.fc_shared(),
             'ddpg': deterministic.fc_seprated(),
             'td3': deterministic.td3_fc_seprated(),
             'option-critic': option_critic.fc_shared(num_options=8),
+            'sac': sac.fc_separated(),
         }
 
         # Environments

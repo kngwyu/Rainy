@@ -10,7 +10,7 @@ from ..config import Config
 from ..lib import mpi
 from ..net import DummyRnn, RnnState
 from ..envs import EnvExt
-from ..prelude import Action, Array, State
+from ..prelude import Action, Array, ArrayLike, State
 from ..utils.log import ExpStats
 
 
@@ -172,6 +172,11 @@ class Agent(ABC):
                 mem.load_state_dict(saved_item)
             else:
                 setattr(self, member_str, saved_item)
+
+    def tensor(self, arr: ArrayLike, dtype: torch.dtype = torch.float32) -> Tensor:
+        """A shorthand method for calling `device.tensor`.
+        """
+        return self.config.device.tensor(arr, dtype)
 
     def _backward(
             self,

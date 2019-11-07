@@ -3,7 +3,7 @@ from torch import LongTensor, nn, Tensor
 from typing import List, Union
 from numpy import ndarray
 from ..lib import mpi
-from ..prelude import Self
+from ..prelude import ArrayLike, Self
 
 
 class Device:
@@ -36,7 +36,7 @@ class Device:
     def unwrapped(self) -> torch.device:
         return self.device
 
-    def tensor(self, arr: Union[ndarray, List[ndarray], Tensor], dtype=torch.float32) -> Tensor:
+    def tensor(self, arr: ArrayLike, dtype: torch.dtype = torch.float32) -> Tensor:
         """Convert numpy array or PyTorch Tensor into Tensor on main_device
         :param x: ndarray or Tensor you want to convert
         :return: Tensor
