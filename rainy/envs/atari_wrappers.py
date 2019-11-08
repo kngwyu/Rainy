@@ -1,8 +1,9 @@
 """
 This module provides wrappers of atari environments in openai gym.
 Originaly from openai baselines, but modified to:
-- Support PyTorch
-- Support [dopamine](https://github.com/google/dopamine) style setting
+- support [dopamine](https://github.com/google/dopamine) style setting
+- support StickyActions
+or so.
 """
 import cv2
 import numpy as np
