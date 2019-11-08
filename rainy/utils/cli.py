@@ -1,7 +1,7 @@
 import click
 from typing import Callable, Optional, Tuple
 
-from .log import ExperimentLog
+from .ipython import _open_ipython
 from ..agents import Agent
 from ..config import Config
 from ..lib import mpi
@@ -113,21 +113,10 @@ def eval(ctx: dict, logdir: str, model: str, render: bool, replay: bool, action_
 
 @rainy_cli.command(help='Open an ipython shell with rainy imported')
 @click.option('--logdir', type=str, help='Name of the directly where the log file')
-@click.option('--vi-mode', is_flag=True, help='Open ipython shell with vi-mode enabled')
 @click.pass_context
-def ipython(ctx: dict, logdir: Optional[str], vi_mode: bool) -> None:
+def ipython(ctx: dict, logdir: Optional[str]) -> None:
     config, make_agent = ctx.obj['config'], ctx.obj['make_agent']  # noqa
-    if logdir is not None:
-        log = ExperimentLog(logdir)  # noqa
-    else:
-        open_log = ExperimentLog  # noqa
-    try:
-        from ptpython.ipython import embed
-        del ctx, logdir
-        import rainy  # noqa
-        embed(vi_mode=vi_mode)
-    except ImportError:
-        print("To use ipython mode, install ipython and ptpython first.")
+    _open_ipython(logdir)
 
 
 def run_cli(
