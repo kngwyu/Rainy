@@ -33,7 +33,7 @@ REQUIRED = [
     'torch>=1.0',
 ]
 EXTRA = {
-    'ipython': ['ipython>=7.0', 'matplotlib>=3.0', 'ptpython>=2.0'],
+    'ipython': ['ipython>=7.0'],
     'bullet': ['pybullet>=2.4'],
     'horovod': ['horovod>=0.16']
 }
