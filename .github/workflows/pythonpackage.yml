@@ -1,6 +1,14 @@
 name: Python package
 
-on: [push]
+on:
+  push:
+    paths:
+      - '.github/**/*'
+      - 'rainy/*'
+      - 'rainy/**/*'
+      - 'tests/*'
+      - 'tests/**/*'
+      - 'Pipfile.lock'
 
 jobs:
   build:
