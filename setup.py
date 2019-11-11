@@ -29,6 +29,7 @@ REQUIRED = [
     'gym[atari]>=0.11.0',
     'numpy>=1.15.0',
     'opencv-python>=3.4',
+    'pandas>=0.25',
     'Pillow>=6.2',
     'torch>=1.0',
 ]
