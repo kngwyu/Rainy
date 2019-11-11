@@ -1,9 +1,9 @@
 import click
 from typing import Callable, Optional, Tuple
 
-from .ipython import _open_ipython
 from ..agents import Agent
 from ..config import Config
+from ..ipython import _open_ipython
 from ..lib import mpi
 from .. import run
 
@@ -52,7 +52,6 @@ def train(ctx: dict, comment: Optional[str], prefix: str) -> None:
             override=ctx.obj['override']
         )
         c.logger.set_dir_from_script_path(scr, prefix=prefix, fingerprint=fingerprint)
-    c.logger.set_stderr()
     ag = ctx.obj['make_agent'](c)
     run.train_agent(ag)
     if mpi.IS_MPI_ROOT:
@@ -83,7 +82,6 @@ def random(ctx: dict, save: bool, render: bool, replay: bool, action_file: str) 
 def retrain(ctx: dict, logdir: str, model: str, additional_steps: int) -> None:
     c = ctx.obj['config']
     log = c.logger.retrive(logdir)
-    c.logger.set_stderr()
     ag = ctx.obj['make_agent'](c)
     run.retrain_agent(ag, log, load_file_name=model, additional_steps=additional_steps)
     print("random play: {}, trained: {}".format(ag.random_episode(), ag.eval_episode()))

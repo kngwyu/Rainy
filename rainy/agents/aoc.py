@@ -182,7 +182,7 @@ class AocAgent(NStepParallelAgent[State]):
         nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
         self.optimizer.step()
 
-        self.report_loss(
+        self.network_log(
             policy_loss=policy_loss.item(),
             value_loss=value_loss.item(),
             beta_loss=beta_loss.item(),
