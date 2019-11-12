@@ -25,6 +25,7 @@ except FileNotFoundError:
 
 REQUIRED = [
     'click>=7.0',
+    'colorama>=0.4',
     'GitPython>=2.0',
     'gym[atari]>=0.11.0',
     'numpy>=1.15.0',
