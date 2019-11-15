@@ -21,14 +21,14 @@ def train_agent(
     ag.logger.summary_setting(
         'train',
         ['episodes', 'total_steps', 'update_steps'],
-        ag.config.episode_log_freq,
-        "red"
+        interval=ag.config.episode_log_freq,
+        color="red",
     )
     ag.logger.summary_setting(
         'eval',
         ['total_steps', 'update_steps'],
-        1,
-        "green"
+        color="green",
+        dtype_is_array=True,
     )
     action_file = Path(action_file_name)
 

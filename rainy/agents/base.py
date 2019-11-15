@@ -32,8 +32,8 @@ class Agent(ABC):
         self.logger.summary_setting(
             "network",
             ['total_steps', 'update_steps'],
-            config.network_log_freq,
-            "blue"
+            interval=config.network_log_freq,
+            color="blue"
         )
 
     @abstractmethod

@@ -54,6 +54,7 @@ class SummarySetting(NamedTuple):
     indices: List[str]
     interval: int
     color: str
+    dtype_is_array: bool
 
 
 class ExperimentLogger:
@@ -72,7 +73,6 @@ class ExperimentLogger:
             defaultdict(lambda: SummarySetting(["time"], 1, "black"))
         self.exp_start = datetime.now()
         self.exp_name = "No name"
-        self.time_offset = 0.0
         self._show_summary = show_summary
         self._closed = False
         atexit.register(self.close)
@@ -94,6 +94,9 @@ class ExperimentLogger:
         logdir.mkdir(parents=True)
         fingerprint.update(metadata)
         self.set_dir(logdir, fingerprint=fingerprint)
+
+    def retrive(self, logdir: str):
+        self.logdir = Path(logdir)
 
     @staticmethod
     def git_metadata(script_path: Path) -> dict:
@@ -123,8 +126,7 @@ class ExperimentLogger:
     def submit(self, name: str, **kwargs) -> None:
         """Stores log.
         """
-        delta = datetime.now() - self.exp_start
-        kwargs['time'] = delta.total_seconds()
+        kwargs['time'] = (datetime.now() - self.exp_start).total_seconds()
         current_length = self._store[name].submit(kwargs)
         if self._show_summary:
             interval = self._summary_setting[name].interval
@@ -139,20 +141,26 @@ class ExperimentLogger:
             indices: List[str],
             interval: int = 1,
             color: str = "black",
+            dtype_is_array: bool = False,
     ) -> None:
         if "time" not in indices:
             indices.append("time")
-        self._summary_setting[name] = SummarySetting(indices, interval, color)
+        if dtype_is_array and interval > 1:
+            raise ValueError("You have to set interval=1 when dtype_is_array==True")
+        self._summary_setting[name] = SummarySetting(indices, interval, color, dtype_is_array)
 
     def show_summary(self, name: str) -> None:
-        indices, interval, color = self._summary_setting[name]
+        indices, interval, color, dtype_is_array = self._summary_setting[name]
         df = self._store[name][-interval:].to_df()
         indices_df = df[indices]
-        df.drop(columns=indices, inplace=True)
         click.secho(f"=========={name.upper()} LOG===========", bg=color, fg="white", bold=True)
         min_, max_ = indices_df.iloc[0], indices_df.iloc[-1]
-        range_str = ".".join([f"{idx}: {min_[idx]}-{max_[idx]} " for idx in indices])
-        click.secho(range_str, underline=True, fg=color, bg="white")
+        range_str = "\n".join([f"{idx}: {min_[idx]}-{max_[idx]}" for idx in indices])
+        click.secho(range_str, underline=True, fg=color)
+
+        df.drop(columns=indices, inplace=True)
+        if dtype_is_array:
+            df = DataFrame(dict(df.iloc[0].items()))
         describe = df.describe()
         describe.drop(labels="count", inplace=True)
         click.echo(df.describe())
