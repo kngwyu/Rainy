@@ -1,10 +1,11 @@
 import atexit
 import click
 from collections import defaultdict
-from datetime import datetime
+import datetime as dt
+import pandas as pd
 from pandas import DataFrame
 from pathlib import Path
-from typing import Any, DefaultDict, Dict, List, NamedTuple, Optional, Union
+from typing import Any, DefaultDict, Dict, List, NamedTuple, Tuple, Union
 import warnings
 
 
@@ -67,14 +68,15 @@ class ExperimentLogger:
     LOG_CAPACITY = int(1e6)
 
     def __init__(self, show_summary: bool = True) -> None:
-        self._logdir: Optional[Path] = None
+        self._logdir = Path("Results/Temp")
         self._store: DefaultDict[str, LogStore] = defaultdict(LogStore)
         self._summary_setting: DefaultDict[str, SummarySetting] = \
             defaultdict(lambda: SummarySetting(["time"], 1, "black"))
-        self.exp_start = datetime.now()
+        self.exp_start = dt.datetime.now()
         self.exp_name = "No name"
         self._show_summary = show_summary
         self._closed = False
+        self._time_offset = dt.timedelta(0)
         atexit.register(self.close)
 
     def set_dir_from_script_path(
@@ -86,17 +88,26 @@ class ExperimentLogger:
         script_path = Path(script_path_)
         logdir_top = "Results"
         if prefix:
-            logdir_top = prefix + '/' + logdir
+            logdir_top = prefix + '/' + logdir_top
         self.exp_name = script_path.stem
         time = self.exp_start.strftime("%y%m%d-%H%M%S")
-        metadata = self.git_metadata(script_path)
-        logdir = Path(logdir_top).joinpath(self.exp_name).joinpath(time)
-        logdir.mkdir(parents=True)
-        fingerprint.update(metadata)
-        self.set_dir(logdir, fingerprint=fingerprint)
+        self.logdir = Path(logdir_top).joinpath(self.exp_name).joinpath(time)
+        fingerprint.update(self.git_metadata(script_path))
+        self.setup(fingerprint=fingerprint)
 
-    def retrive(self, logdir: str):
-        self.logdir = Path(logdir)
+    def retrive(self, logdir: Path) -> Tuple[int, int]:
+        self.logdir = logdir
+        sec, total_steps, episodes = 0, 0, 0
+        for csvlog in self.logdir.glob("*.csv"):
+            df = pd.read_csv(csvlog.as_posix())
+            last = df.iloc[-1]
+            sec = max(sec, last["sec"])
+            if "total_steps" in last:
+                total_steps = max(total_steps, last["total_steps"])
+            if "episodes" in last:
+                episodes = max(episodes, last["episodes"])
+        self._time_offset = dt.timedelta(seconds=sec)
+        return total_steps, episodes
 
     @staticmethod
     def git_metadata(script_path: Path) -> dict:
@@ -115,9 +126,9 @@ class ExperimentLogger:
             warnings.warn('{} is not in a git repository'.format(script_path))
         return res
 
-    def set_dir(self, logdir: Path, fingerprint: Dict[str, str] = {}) -> None:
-        self.logdir = logdir
-        finger = logdir.joinpath(self.FINGERPRINT)
+    def setup(self, fingerprint: Dict[str, str] = {}) -> None:
+        self.logdir.mkdir(parents=True)
+        finger = self.logdir.joinpath(self.FINGERPRINT)
         with finger.open(mode="w") as f:
             f.write('name: {}\nstarttime: {}\n'.format(self.exp_name, self.exp_start))
             for fkey in fingerprint.keys():
@@ -126,7 +137,7 @@ class ExperimentLogger:
     def submit(self, name: str, **kwargs) -> None:
         """Stores log.
         """
-        kwargs['time'] = (datetime.now() - self.exp_start).total_seconds()
+        kwargs['sec'] = (dt.datetime.now() - self.exp_start).total_seconds()
         current_length = self._store[name].submit(kwargs)
         if self._show_summary:
             interval = self._summary_setting[name].interval
@@ -143,8 +154,8 @@ class ExperimentLogger:
             color: str = "black",
             dtype_is_array: bool = False,
     ) -> None:
-        if "time" not in indices:
-            indices.append("time")
+        if "sec" not in indices:
+            indices.append("sec")
         if dtype_is_array and interval > 1:
             raise ValueError("You have to set interval=1 when dtype_is_array==True")
         self._summary_setting[name] = SummarySetting(indices, interval, color, dtype_is_array)
@@ -156,7 +167,7 @@ class ExperimentLogger:
         click.secho(f"=========={name.upper()} LOG===========", bg=color, fg="white", bold=True)
         min_, max_ = indices_df.iloc[0], indices_df.iloc[-1]
         range_str = "\n".join([f"{idx}: {min_[idx]}-{max_[idx]}" for idx in indices])
-        click.secho(range_str, underline=True, fg=color)
+        click.secho(range_str, bg="black", fg="white")
 
         df.drop(columns=indices, inplace=True)
         if dtype_is_array:

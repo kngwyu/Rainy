@@ -108,8 +108,8 @@ def _reward_and_length(results: List[EpisodeResult]) -> Tuple[Array[float], Arra
     return rewards, length
 
 
-def _load_agent(load_file_name: str, logdir_path: Path, ag: Agent) -> bool:
-    p = logdir_path.joinpath(fname)
+def _load_agent(file_name: str, logdir: Path, ag: Agent) -> bool:
+    p = logdir.joinpath(file_name)
     if p.exists():
         ag.load(p.as_posix())
         return True
@@ -118,27 +118,20 @@ def _load_agent(load_file_name: str, logdir_path: Path, ag: Agent) -> bool:
 
 def retrain_agent(
         ag: Agent,
-        log,
+        logdir_: str,
         load_file_name: str = SAVE_FILE_DEFAULT,
-        additional_stepss: int = 100
+        additional_steps: int = 100
 ) -> None:
-    path = log.log_path.parent
-    if not _load_agent(load_file_name, path, ag):
+    logdir = Path(logdir_)
+    if not _load_agent(load_file_name, logdir, ag):
         raise ValueError('Load file {} does not exists'.format(load_file_name))
-    episodes, total = 0, 0
-    for d in reversed(log.unwrapped):
-        if episodes == 0 and 'episodes' in d:
-            episodes = d['episodes']
-        if total == 0 and 'total-steps' in d:
-            total = d['total-steps']
-        if episodes > 0 and total > 0:
-            break
-    save_files = [f for f in path.glob(SAVE_FILE_DEFAULT + '.*')]
+    total_steps, episodes = ag.logger.retrive(logdir)
+    save_files = list(logdir.glob(SAVE_FILE_DEFAULT + '.*'))
     if len(save_files) > 0:
         save_id = len(save_files)
     else:
         save_id = 0
-    ag.total_steps = total
+    ag.total_steps = total_steps
     ag.config.max_steps += additional_steps
     train_agent(ag, episode_offset=episodes, saveid_start=save_id)
 

@@ -44,14 +44,14 @@ def rainy_cli(
 @click.option('--prefix', type=str, default='', help='Prefix of the log directory')
 def train(ctx: dict, comment: Optional[str], prefix: str) -> None:
     c = ctx.obj['config']
-    scr = ctx.obj['script_path']
-    if scr:
+    script_path = ctx.obj['script_path']
+    if script_path is not None:
         fingerprint = dict(
             comment='' if comment is None else comment,
             envname=ctx.obj['envname'],
             override=ctx.obj['override']
         )
-        c.logger.set_dir_from_script_path(scr, prefix=prefix, fingerprint=fingerprint)
+        c.logger.set_dir_from_script_path(script_path, prefix=prefix, fingerprint=fingerprint)
     ag = ctx.obj['make_agent'](c)
     run.train_agent(ag)
     if mpi.IS_MPI_ROOT:
@@ -75,20 +75,19 @@ def random(ctx: dict, save: bool, render: bool, replay: bool, action_file: str) 
 
 @rainy_cli.command(help='Given a save file and restart training')
 @click.pass_context
-@click.argument('logdir')
+@click.argument('logdir', type=str)
 @click.option('--model', type=str, default=run.SAVE_FILE_DEFAULT, help='Name of the save file')
 @click.option('--additional-steps', type=int,
               default=100, help='The number of  additional training steps')
 def retrain(ctx: dict, logdir: str, model: str, additional_steps: int) -> None:
     c = ctx.obj['config']
-    log = c.logger.retrive(logdir)
     ag = ctx.obj['make_agent'](c)
-    run.retrain_agent(ag, log, load_file_name=model, additional_steps=additional_steps)
+    run.retrain_agent(ag, logdir, load_file_name=model, additional_steps=additional_steps)
     print("random play: {}, trained: {}".format(ag.random_episode(), ag.eval_episode()))
 
 
 @rainy_cli.command(help='Load a specified save file and evaluate the agent')
-@click.argument('logdir')
+@click.argument('logdir', type=str)
 @click.option('--model', type=str, default=run.SAVE_FILE_DEFAULT, help='Name of the save file')
 @click.option('--render', is_flag=True, help='Render the agent')
 @click.option('--replay', is_flag=True,
