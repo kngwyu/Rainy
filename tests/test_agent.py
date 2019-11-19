@@ -34,6 +34,7 @@ def test_eval_parallel(n: int, make_ag: callable) -> None:
 @pytest.mark.parametrize('make_ag', [A2cAgent, PpoAgent, AocAgent])
 def test_nstep(make_ag: callable) -> None:
     c = rainy.Config()
+    c.logger.setup()
     c.nworkers = 6
     c.nsteps = 4
     c.ppo_minibatch_size = 12

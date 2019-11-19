@@ -16,7 +16,8 @@ def config() -> Config:
     c.ppo_clip = 0.5
     if not LOG_DIR.exists():
         LOG_DIR.mkdir()
-    c.logger.set_dir(LOG_DIR)
+    c.logger.logdir = Path(LOG_DIR)
+    c.logger.setup()
     return c
 
 
@@ -28,7 +29,7 @@ def test_ppo_save() -> None:
     ppo.save('ppo-agent.pth')
     ppo.close()
     ppo = PpoAgent(config())
-    path = ppo.config.logger.log_dir.joinpath('ppo-agent.pth')
+    path = ppo.config.logger.logdir.joinpath('ppo-agent.pth')
     ppo.load(path.as_posix())
     assert ppo.clip_eps == 0.2
     assert ppo.optimizer.param_groups[0]['lr'] == 1.0

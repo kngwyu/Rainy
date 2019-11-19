@@ -68,12 +68,13 @@ class ExperimentLogger:
     LOG_CAPACITY = int(1e6)
 
     def __init__(self, show_summary: bool = True) -> None:
-        self._logdir = Path("Results/Temp")
+        self.logdir = Path("Results/Temp")
+        self.exp_start = dt.datetime.now()
+        self.exp_name = "No name"
+
         self._store: DefaultDict[str, LogStore] = defaultdict(LogStore)
         self._summary_setting: DefaultDict[str, SummarySetting] = \
             defaultdict(lambda: SummarySetting(["time"], 1, "black"))
-        self.exp_start = dt.datetime.now()
-        self.exp_name = "No name"
         self._show_summary = show_summary
         self._closed = False
         self._time_offset = dt.timedelta(0)
@@ -127,7 +128,8 @@ class ExperimentLogger:
         return res
 
     def setup(self, fingerprint: Dict[str, str] = {}) -> None:
-        self.logdir.mkdir(parents=True)
+        if not self.logdir.exists():
+            self.logdir.mkdir(parents=True)
         finger = self.logdir.joinpath(self.FINGERPRINT)
         with finger.open(mode="w") as f:
             f.write('name: {}\nstarttime: {}\n'.format(self.exp_name, self.exp_start))
