@@ -4,12 +4,15 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [packages]
-torch = "==1.3.0"
+torch = "==1.3.1"
 
 [packages.rainy]
 editable = true
 extras=["ipython"]
 path = "."
+
+[packages.importlib_metadata]
+markers = "python_version < '3.8.0"
 
 [dev-packages]
 pybullet = ">=2.4"
