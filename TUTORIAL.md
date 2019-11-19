@@ -25,7 +25,7 @@ pipenv run python examples/acktr_cart_pole.py train
 After training, you can run learned agents.
 
 Please replace `(log-directory)` in the below command with your real log directory.
-It should be named like `Results/acktr_cart_pole`.
+It should be named like `Results/acktr_cart_pole/191119-143319`.
 ``` bash
 pipenv run python acktr_cart_pole.py eval (log-directory) --render
 ```
