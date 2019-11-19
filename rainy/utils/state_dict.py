@@ -8,8 +8,8 @@ class HasStateDict(ABC):
         pass
 
     def load_state_dict(self, d: dict) -> None:
-        for key in d.keys():
-            setattr(self, key, d[key])
+        for key, value in d.items():
+            setattr(self, key, value)
 
 
 class TensorStateDict(HasStateDict):
@@ -22,8 +22,7 @@ class TensorStateDict(HasStateDict):
         return all_members
 
     def load_state_dict(self, d: dict) -> None:
-        for key in d.keys():
-            value = d[key]
+        for key, value in d.items():
             if isinstance(value, torch.Tensor):
                 device = getattr(self, key).device
                 value = value.to(device)

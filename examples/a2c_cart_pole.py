@@ -16,7 +16,7 @@ def config() -> rainy.Config:
     c.value_loss_weight = 0.2
     c.use_gae = False
     c.eval_deterministic = True
-    c.eval_freq = None
+    c.eval_freq = c.max_steps // 10
     c.entropy_weight = 0.001
     # c.set_net_fn('actor-critic', rainy.net.actor_critic.fc_shared(rnn=rainy.net.GruBlock))
     return c

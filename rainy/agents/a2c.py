@@ -102,7 +102,7 @@ class A2cAgent(NStepParallelAgent[State]):
          + self.config.value_loss_weight * 0.5 * value_loss
          - self.config.entropy_weight * entropy_loss).backward()
         self._step_optimizer()
-        self.report_loss(
+        self.network_log(
             policy_loss=policy_loss.item(),
             value_loss=value_loss.item(),
             entropy_loss=entropy_loss.item(),

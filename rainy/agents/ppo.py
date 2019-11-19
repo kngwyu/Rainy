@@ -85,5 +85,5 @@ class PpoAgent(A2cAgent):
         self.storage.reset()
 
         p, v, e = (x / self.num_updates for x in (p, v, e))
-        self.report_loss(policy_loss=p, value_loss=v, entropy_loss=e)
+        self.network_log(policy_loss=p, value_loss=v, entropy_loss=e)
         return states

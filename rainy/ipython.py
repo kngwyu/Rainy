@@ -1,14 +1,10 @@
 import click
 from typing import Optional
-from .utils.log import ExperimentLog
 
 
-def _open_ipython(log_dir: Optional[str]) -> None:
-    if log_dir is not None:
-        log = ExperimentLog(log_dir)  # noqa
-    open_log = ExperimentLog  # noqa
+def _open_ipython(logdir: Optional[str]) -> None:
     import rainy # noqa
-    del log_dir
+    del logdir
     try:
         import IPython
         IPython.embed(colors="Linux")
@@ -18,8 +14,8 @@ def _open_ipython(log_dir: Optional[str]) -> None:
 
 @click.command()
 @click.option('--log-dir', type=str)
-def ipython(log_dir: Optional[str]) -> None:
-    _open_ipython(log_dir)
+def ipython(logdir: Optional[str]) -> None:
+    _open_ipython(logdir)
 
 
 if __name__ == '__main__':

@@ -11,7 +11,6 @@ from ..lib import mpi
 from ..net import DummyRnn, RnnState
 from ..envs import EnvExt
 from ..prelude import Action, Array, ArrayLike, State
-from ..utils.log import ExpStats
 
 
 class EpisodeResult(NamedTuple):
@@ -19,7 +18,7 @@ class EpisodeResult(NamedTuple):
     length: np.int32
 
     def __repr__(self) -> str:
-        return 'Result: reward: {}, length: {}'.format(self.reward, self.length)
+        return 'EpisodeResult(reward: {}, length: {})'.format(self.reward, self.length)
 
 
 class Agent(ABC):
@@ -30,7 +29,12 @@ class Agent(ABC):
         self.logger = config.logger
         self.env = config.env()
         self.total_steps = 0
-        self.loss_stat = ExpStats()
+        self.logger.summary_setting(
+            "network",
+            ['total_steps', 'update_steps'],
+            interval=config.network_log_freq,
+            color="blue"
+        )
 
     @abstractmethod
     def members_to_save(self) -> Tuple[str, ...]:
@@ -65,17 +69,14 @@ class Agent(ABC):
     def set_mode(self, train: bool = True) -> None:
         pass
 
-    def report_loss(self, **kwargs) -> None:
-        if not mpi.IS_MPI_ROOT:
-            return
-        self.loss_stat.update(kwargs)
-        if self.update_steps % self.config.loss_log_freq == 0:
-            d = self.loss_stat.report_and_reset()
-            d['update-steps'] = self.update_steps
-            self.logger.exp('loss', d)
+    def network_log(self, **kwargs) -> None:
+        kwargs["total_steps"] = self.total_steps
+        kwargs["update_steps"] = self.update_steps
+        self.logger.submit('network', **kwargs)
 
     def close(self) -> None:
         self.env.close()
+        self.logger.close()
 
     def __eval_episode(
             self,
@@ -147,10 +148,10 @@ class Agent(ABC):
                 save_dict[member_str] = value.state_dict()
             else:
                 save_dict[member_str] = value
-        log_dir = self.config.logger.log_dir
-        if log_dir is None:
-            log_dir = Path('.')
-        torch.save(save_dict, log_dir.joinpath(filename))
+        logdir = self.config.logger.logdir
+        if logdir is None:
+            logdir = Path('.')
+        torch.save(save_dict, logdir.joinpath(filename))
 
     def load(self, filename: str) -> None:
         if not mpi.IS_MPI_ROOT:
@@ -301,6 +302,7 @@ class NStepParallelAgent(Agent, Generic[State]):
     def close(self) -> None:
         self.env.close()
         self.penv.close()
+        self.logger.close()
 
     def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
         self.config.set_parallel_seeds(self.penv)

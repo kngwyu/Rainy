@@ -1,192 +1,83 @@
+import atexit
+import click
 from collections import defaultdict
-from datetime import datetime
-import json
-import logging
-import numpy as np
-import git
+import datetime as dt
+import pandas as pd
+from pandas import DataFrame
 from pathlib import Path
-import sys
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, DefaultDict, Dict, List, NamedTuple, Tuple, Union
+import warnings
 
 
-NORMAL_FORMATTER = logging.Formatter('%(levelname)s %(asctime)s: %(name)s: %(message)s')
-JSON_FORMATTER = logging.Formatter('%(levelname)s::%(message)s')
-FINGERPRINT = 'fingerprint.txt'
-LOGFILE = 'log.txt'
-EXP = 5
-logging.addLevelName(EXP, 'EXP')
-
-
-def _load_log_file(file_path: Path) -> List[Dict[str, Any]]:
-    with open(file_path.as_posix()) as f:
-        lines = f.readlines()
-    log = []
-    for line in filter(lambda s: s.startswith('EXP::'), lines):
-        log.append(json.loads(line[5:]))
-    return log
-
-
-class LogWrapper:
-    """Wrapper of filterd log.
-    """
-    def __init__(
-            self,
-            name: str,
-            inner: List[Dict[str, Any]],
-            path: Optional[Path] = None,
-    ) -> None:
-        self.name = name
-        self.inner = inner
-        self._available_keys: Set[str] = set()
-        self._path = path
-
-    @property
-    def unwrapped(self) -> List[Dict[str, Any]]:
-        return self.inner
-
-    def keys(self) -> Set[str]:
-        if not self._available_keys:
-            for log in self.inner:
-                for key in log:
-                    self._available_keys.add(key)
-        return self._available_keys
-
-    def get(self, key: str) -> List[Any]:
-        if key not in self.inner[0]:
-            raise KeyError(
-                'LogWrapper({}) doesn\'t have the logging key {}. Available keys: {}'
-                .format(self.name, key, self.keys())
-            )
-        return [d[key] for d in self.inner]
-
-    def is_empty(self) -> bool:
-        return len(self.inner) == 0
-
-    def __repr__(self) -> str:
-        return 'LogWrapper({}, {})'.format(self._path, self.name)
-
-    def __getitem__(self, key: str) -> List[Any]:
-        return self.get(key)
-
-
-class ExperimentLog:
-    """Structured log file.
-       Used to get graphs or else from rainy log files.
-    """
-    def __init__(self, file_or_dir_name: Union[str, Path], empty: bool = False) -> None:
-        path = Path(file_or_dir_name)
-        if path.is_dir() and not empty:
-            log_path = path.joinpath(LOGFILE)
-            self.fingerprint = path.joinpath(FINGERPRINT).read_text()
-        else:
-            log_path = path
-            self.fingerprint = ''
-        self.log = [] if empty else _load_log_file(log_path)
-        self._available_keys: Set[str] = set()
-        self.log_path = log_path
-
-    @property
-    def unwrapped(self) -> List[Dict[str, Any]]:
-        return self.log
-
-    def keys(self) -> Set[str]:
-        if not self._available_keys:
-            for log in self.log:
-                self._available_keys.add(log['name'])
-        return self._available_keys
-
-    def get(self, key: str) -> LogWrapper:
-        log = LogWrapper(
-            key,
-            list(filter(lambda log: log['name'] == key, self.log)),
-            self.log_path
-        )
-        if log.is_empty():
-            raise KeyError(
-                '{} doesn\'t have the key {}. Available keys: {}'
-                .format(self, key, self.keys())
-            )
-        return log
-
-    def find(self, keyname: str) -> Optional[LogWrapper]:
-        log_list = list(filter(lambda log: keyname in log, self.log))
-        if len(log_list) == 0:
-            return None
-        return LogWrapper(log_list[0]['name'], log_list, self.log_path)
-
-    def plot(self, keyname: str) -> None:
-        try:
-            import matplotlib.pyplot as plt
-        except ModuleNotFoundError as e:
-            print('plot_reward need matplotlib installed')
-            raise e
-        log = self.find(keyname)
-        if log is None:
-            print(f'Log with {keyname} is unavailable')
-            return
-        x, y = 'update-steps', keyname
-        plt.plot(np.array(log[x]), log[y])
-        plt.title(keyname)
-        plt.xlabel('update-steps')
-        plt.ylabel(y)
-        plt.show()
-
-    def plot_reward(self, batch_size: int, max_steps: int = int(2e7), title: str = '') -> None:
-        try:
-            import matplotlib.pyplot as plt
-        except ModuleNotFoundError as e:
-            print('plot_reward need matplotlib installed')
-            raise e
-        tlog = self.get('train')
-        x, y = 'update-steps', 'reward-mean'
-        plt.plot(np.array(tlog[x]) * batch_size, tlog[y])
-        tick_fractions = np.array([0.1, 0.2, 0.5, 1.0])
-        ticks = tick_fractions * max_steps
-        MILLION = int(1e6)
-        if max_steps >= MILLION:
-            tick_names = ["{}M".format(int(tick / 1e6)) for tick in ticks]
-        else:
-            tick_names = ["{}".format(int(tick)) for tick in ticks]
-        plt.xticks(ticks, tick_names)
-        plt.title(title)
-        plt.xlabel('Frames used for training')
-        plt.ylabel(y)
-        plt.show()
-
-    def __getitem__(self, key: str) -> LogWrapper:
-        return self.get(key)
-
-    def __repr__(self) -> str:
-        return 'ExperimentLog({})'.format(self.log_path.as_posix())
-
-
-class ExpStats:
-    """Statictics of loss
+class LogStore:
+    """A temporal object for storing logs.
+    Since Pandas DataFrame/Series's append is not efficient, we store logs
+    in this object before converting it into Pandas objects.
     """
     def __init__(self) -> None:
-        self.inner: Dict[str, List[float]] = defaultdict(list)
+        self.inner: DefaultDict[str, List[Any]] = defaultdict(list)
 
-    def update(self, d: Dict[str, float]) -> None:
-        for key in d.keys():
-            self.inner[key].append(d[key])
-
-    def report_and_reset(self) -> Dict[str, float]:
-        res = {}
-        for k, v in self.inner.items():
-            res[k] = np.array(v).mean()
-            v.clear()
+    def submit(self, d: Dict[str, Any]) -> int:
+        res = 0
+        for key, value in d.items():
+            self.inner[key].append(value)
+            if res == 0:
+                res = len(self.inner[key])
         return res
 
+    def into_df(self) -> DataFrame:
+        df = DataFrame(self.inner)
+        self.inner.clear()
+        return df
 
-class Logger(logging.Logger):
-    ELAPSED = 'elapsed-time'
+    def to_df(self) -> DataFrame:
+        return DataFrame(self.inner)
 
-    def __init__(self) -> None:
-        super().__init__('rainy', EXP)
+    def reset(self) -> None:
+        self.inner.clear()
 
-        self._log_dir: Optional[Path] = None
-        self.exp_start = datetime.now()
-        self.time_offset = 0.0
+    def __getitem__(self, index: Union[int, slice]) -> "LogStore":
+        res = {}
+        for key, value in self.inner.items():
+            res[key] = value[index]
+        log_store = LogStore()
+        log_store.inner = res
+        return log_store
+
+    def __len__(self) -> int:
+        return len(self.inner)
+
+    def __repr__(self) -> str:
+        return "LogStore({})".format(dict.__repr__(self.inner))
+
+
+class SummarySetting(NamedTuple):
+    indices: List[str]
+    interval: int
+    color: str
+    dtype_is_array: bool
+
+
+class ExperimentLogger:
+    """
+    - stores experiment log
+    - exposes logs as pandas.DataFrame
+    - prints summaries of logs to stdout
+    """
+    FINGERPRINT = 'fingerprint.txt'
+    LOG_CAPACITY = int(1e6)
+
+    def __init__(self, show_summary: bool = True) -> None:
+        self._logdir = Path("Results/Temp")
+        self._store: DefaultDict[str, LogStore] = defaultdict(LogStore)
+        self._summary_setting: DefaultDict[str, SummarySetting] = \
+            defaultdict(lambda: SummarySetting(["time"], 1, "black"))
+        self.exp_start = dt.datetime.now()
+        self.exp_name = "No name"
+        self._show_summary = show_summary
+        self._closed = False
+        self._time_offset = dt.timedelta(0)
+        atexit.register(self.close)
 
     def set_dir_from_script_path(
             self,
@@ -195,102 +86,106 @@ class Logger(logging.Logger):
             fingerprint: Dict[str, str] = {},
     ) -> None:
         script_path = Path(script_path_)
-        log_dir = script_path.stem + '-' + self.exp_start.strftime("%y%m%d-%H%M%S")
+        logdir_top = "Results"
         if prefix:
-            log_dir = prefix + '/' + log_dir
+            logdir_top = prefix + '/' + logdir_top
+        self.exp_name = script_path.stem
+        time = self.exp_start.strftime("%y%m%d-%H%M%S")
+        self.logdir = Path(logdir_top).joinpath(self.exp_name).joinpath(time)
+        fingerprint.update(self.git_metadata(script_path))
+        self.setup(fingerprint=fingerprint)
+
+    def retrive(self, logdir: Path) -> Tuple[int, int]:
+        self.logdir = logdir
+        sec, total_steps, episodes = 0, 0, 0
+        for csvlog in self.logdir.glob("*.csv"):
+            df = pd.read_csv(csvlog.as_posix())
+            last = df.iloc[-1]
+            sec = max(sec, last["sec"])
+            if "total_steps" in last:
+                total_steps = max(total_steps, last["total_steps"])
+            if "episodes" in last:
+                episodes = max(episodes, last["episodes"])
+        self._time_offset = dt.timedelta(seconds=sec)
+        return total_steps, episodes
+
+    @staticmethod
+    def git_metadata(script_path: Path) -> dict:
+        try:
+            import git
+        except ImportError:
+            warnings.warn('GitPython is not Installed')
+            return
+        res = {}
         try:
             repo = git.Repo(script_path, search_parent_directories=True)
             head = repo.head.commit
-            log_dir += '-' + head.hexsha[:8]
+            res["git-head"] = head.hexsha
+            res["git-diff"] = repo.git.diff()
         except git.exc.InvalidGitRepositoryError:
-            import warnings
             warnings.warn('{} is not in a git repository'.format(script_path))
-        log_dir_path = Path(log_dir)
-        if not log_dir_path.exists():
-            log_dir_path.mkdir()
-        self.set_dir(log_dir_path, fingerprint=fingerprint)
+        return res
 
-    @staticmethod
-    def filehandler(log_path: Path, level: int) -> logging.Handler:
-        if not log_path.exists():
-            log_path.touch()
-        handler = logging.FileHandler(log_path.as_posix())
-        handler.setFormatter(JSON_FORMATTER)
-        handler.setLevel(level)
-        return handler
-
-    def set_dir(self, log_dir: Path, fingerprint: Dict[str, str] = {}) -> None:
-        self._log_dir = log_dir
-        finger = log_dir.joinpath(FINGERPRINT)
-        with open(finger.as_posix(), 'w') as f:
-            f.write('{}\n'.format(self.exp_start))
+    def setup(self, fingerprint: Dict[str, str] = {}) -> None:
+        self.logdir.mkdir(parents=True)
+        finger = self.logdir.joinpath(self.FINGERPRINT)
+        with finger.open(mode="w") as f:
+            f.write('name: {}\nstarttime: {}\n'.format(self.exp_name, self.exp_start))
             for fkey in fingerprint.keys():
                 f.write('{}: {}\n'.format(fkey, fingerprint[fkey]))
-        handler = self.filehandler(Path(log_dir).joinpath(LOGFILE), EXP)
-        self.addHandler(handler)
 
-    def retrive(self, log_dir: str) -> ExperimentLog:
-        self._log_dir = Path(log_dir)
-        if not self._log_dir.exists():
-            raise ValueError('Specified log directory {} does not exist'.format(log_dir))
-        logfile = self._log_dir.joinpath(LOGFILE)
-        if not logfile.exists():
-            raise ValueError('Specified log directory {} does have {}'.format(log_dir, LOGFILE))
-        self.addHandler(self.filehandler(logfile, EXP))
-        log = ExperimentLog(logfile)
-        d = next(filter(lambda d: self.ELAPSED in d, reversed(log.unwrapped)))
-        for d in reversed(log.unwrapped):
-            if self.ELAPSED in d:
-                self.time_offset = d[self.ELAPSED]
-                break
-        return log
-
-    def set_stderr(self, level: int = EXP) -> None:
-        handler = logging.StreamHandler(stream=sys.stderr)
-        handler.setFormatter(NORMAL_FORMATTER)
-        handler.setLevel(level)
-        self.addHandler(handler)
-
-    @property
-    def log_dir(self) -> Optional[Path]:
-        return self._log_dir
-
-    def exp(self, name: str, msg: dict, *args, **kwargs) -> None:
+    def submit(self, name: str, **kwargs) -> None:
+        """Stores log.
         """
-        For experiment logging. Only dict is enabled as argument
-        """
-        if not self.isEnabledFor(EXP):
-            return
-        delta = datetime.now() - self.exp_start
-        msg[self.ELAPSED] = delta.total_seconds() + self.time_offset
-        msg['name'] = name
-        self._log(EXP, json.dumps(msg, sort_keys=True), args, **kwargs)  # type: ignore
+        kwargs['sec'] = (dt.datetime.now() - self.exp_start).total_seconds()
+        current_length = self._store[name].submit(kwargs)
+        if self._show_summary:
+            interval = self._summary_setting[name].interval
+            if current_length % interval == 0:
+                self.show_summary(name)
+        if current_length >= self.LOG_CAPACITY:
+            self._truncate_and_dump(name)
 
-
-class DummyLogger(Logger):
-    def __init__(self) -> None:
-        pass
-
-    def set_dir_from_script_path(
+    def summary_setting(
             self,
-            script_path_: str,
-            prefix: str = '',
-            fingerprint: Dict[str, str] = {},
+            name: str,
+            indices: List[str],
+            interval: int = 1,
+            color: str = "black",
+            dtype_is_array: bool = False,
     ) -> None:
-        pass
+        if "sec" not in indices:
+            indices.append("sec")
+        if dtype_is_array and interval > 1:
+            raise ValueError("You have to set interval=1 when dtype_is_array==True")
+        self._summary_setting[name] = SummarySetting(indices, interval, color, dtype_is_array)
 
-    def set_dir(self, log_dir: Path, fingerprint: Dict[str, str] = {}) -> None:
-        pass
+    def show_summary(self, name: str) -> None:
+        indices, interval, color, dtype_is_array = self._summary_setting[name]
+        df = self._store[name][-interval:].to_df()
+        indices_df = df[indices]
+        click.secho(f"=========={name.upper()} LOG===========", bg=color, fg="white", bold=True)
+        min_, max_ = indices_df.iloc[0], indices_df.iloc[-1]
+        range_str = "\n".join([f"{idx}: {min_[idx]}-{max_[idx]}" for idx in indices])
+        click.secho(range_str, bg="black", fg="white")
 
-    def retrive(self, log_dir: str) -> ExperimentLog:
-        return ExperimentLog(log_dir, empty=True)
+        df.drop(columns=indices, inplace=True)
+        if dtype_is_array:
+            df = DataFrame(dict(df.iloc[0].items()))
+        describe = df.describe()
+        describe.drop(labels="count", inplace=True)
+        click.echo(df.describe())
 
-    def set_stderr(self, level: int = EXP) -> None:
-        pass
+    def close(self) -> None:
+        if self._closed:
+            return
+        for key in self._store.keys():
+            self._truncate_and_dump(key)
+        self._closed = True
 
-    @property
-    def log_dir(self) -> Optional[Path]:
-        return None
-
-    def exp(self, name: str, msg: dict, *args, **kwargs) -> None:
-        pass
+    def _truncate_and_dump(self, name: str) -> None:
+        df = self._store[name].into_df()
+        path = self.logdir.joinpath(name + ".csv")
+        include_header = not path.exists()
+        mode = "w" if include_header else "a"
+        df.to_csv(path.as_posix(), mode=mode, header=include_header, index=False)

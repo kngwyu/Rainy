@@ -9,7 +9,7 @@ from .lib import mpi
 from .lib.kfac import KfacPreConditioner, PreConditioner
 from .prelude import Params
 from .replay import DqnReplayFeed, ReplayBuffer, UniformReplayBuffer
-from .utils import Device, DummyLogger, Logger
+from .utils import Device, ExperimentLogger
 
 
 class Config:
@@ -84,12 +84,12 @@ class Config:
         self.opt_delib_cost = 0.02
 
         # Logger and logging frequency
-        self.logger = Logger() if mpi.IS_MPI_ROOT else DummyLogger()
-        self.episode_log_freq = 100
-        self.loss_log_freq = 1000
+        self.logger = ExperimentLogger(mpi.IS_MPI_ROOT)
         self.eval_freq = 10000
         self.save_freq = int(1e6)
         self.save_eval_actions = False
+        self.episode_log_freq = 1000
+        self.network_log_freq = 10000
 
         # Optimizer and preconditioner
         self.__optim: Dict[Optional[str], Callable[[], Optimizer]] = {
@@ -201,6 +201,9 @@ class Config:
 
     def clip_cooler(self) -> Cooler:
         return self._get_cooler(self.ppo_clip, self.ppo_clip_min, self.nsteps * self.nworkers)
+
+    def ipython_mode(self) -> None:
+        self.logger._show_summary = False
 
     def __repr__(self) -> str:
         d = filter(lambda t: not t[0].startswith('_Config'), self.__dict__.items())
