@@ -59,7 +59,7 @@ def test_acnet(
             None,
             None,
             (64, 7, 7),
-            Initializer(weight_init=kaiming_normal(), nonlinearity="relu"),
+            Initializer(weight_init=kaiming_normal(nonlinearity="relu")),
         ),
         ((4, 84, 84), 64, None, None, (64, 7, 7), None),
         (
@@ -68,7 +68,7 @@ def test_acnet(
             [(8, 1), (4, 1), (3, 1)],
             None,
             (64, 36, 12),
-            Initializer(weight_init=kaiming_uniform(), nonlinearity="leaky_relu"),
+            Initializer(weight_init=kaiming_uniform(nonlinearity="leaky_relu")),
         ),
         ((17, 32, 16), 64, [(8, 1), (4, 1), (3, 1)], None, (64, 20, 4), None),
         (

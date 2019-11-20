@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from torch import nn, Tensor
 from typing import List, Sequence, Tuple
-from .init import Initializer
+from .init import Initializer, orthogonal
 
 
 class NetworkBlock(nn.Module, ABC):
@@ -59,7 +59,7 @@ class ConvBody(NetworkBlock):
         fc: nn.Linear,
         input_dim: Tuple[int, int, int],
         activator: nn.Module = nn.ReLU(inplace=True),
-        init: Initializer = Initializer(nonlinearity="relu"),
+        init: Initializer = Initializer(orthogonal(nonlinearity="relu")),
     ) -> None:
         super().__init__()
         self.cnns = init.make_list(cnns)
@@ -95,7 +95,7 @@ class DQNConv(ConvBody):
         hidden_channels: Sequence[int] = (32, 64, 64),
         output_dim: int = 512,
         activator: nn.Module = nn.ReLU(inplace=True),
-        init: Initializer = Initializer(nonlinearity="relu"),
+        init: Initializer = Initializer(orthogonal(nonlinearity="relu")),
     ) -> None:
         in_channel, width, height = input_dim
         cnns, hidden = make_cnns(input_dim, kernel_and_strides, hidden_channels)
@@ -152,7 +152,7 @@ class ResNetBody(NetworkBlock):
         maxpools: List[tuple] = [(3, 2, 1)] * 3,
         use_batch_norm: bool = True,
         fc_out: int = 256,
-        init: Initializer = Initializer(nonlinearity="relu"),
+        init: Initializer = Initializer(orthogonal(nonlinearity="relu")),
     ) -> None:
         def layer(in_channel: int, out_channel: int, maxpool: tuple) -> nn.Sequential:
             return nn.Sequential(
