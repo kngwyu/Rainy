@@ -12,13 +12,13 @@ from ..prelude import Action, Array, State
 class DqnAgent(OneStepAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        assert self.env.spec.is_discrete(), 'DQN only supports discrete action spaces'
-        self.net = config.net('value')
+        assert self.env.spec.is_discrete(), "DQN only supports discrete action spaces"
+        self.net = config.net("value")
         self.target_net = deepcopy(self.net)
         self.optimizer = config.optimizer(self.net.parameters())
         self.criterion = nn.MSELoss()
         self.policy = config.explorer()
-        self.eval_policy = config.explorer(key='eval')
+        self.eval_policy = config.explorer(key="eval")
         self.replay = config.replay_buffer()
         assert self.replay.feed == DqnReplayFeed
         self.batch_indices = config.device.indices(config.replay_batch_size)

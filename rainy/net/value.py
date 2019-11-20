@@ -10,7 +10,9 @@ from ..prelude import Array
 
 class ContinuousQFunction(ABC):
     @abstractmethod
-    def q_value(self, states: Union[Array, Tensor], action: Union[Array, Tensor]) -> Tensor:
+    def q_value(
+        self, states: Union[Array, Tensor], action: Union[Array, Tensor]
+    ) -> Tensor:
         pass
 
 
@@ -33,9 +35,13 @@ class DiscreteQFunction(ABC):
 class DiscreteQValueNet(DiscreteQFunction, nn.Module):
     """State -> [Value..]
     """
-    def __init__(self, body: NetworkBlock, head: NetworkBlock, device: Device = Device()) -> None:
-        assert body.output_dim == np.prod(head.input_dim), \
-            'body output and head input must have a same dimention'
+
+    def __init__(
+        self, body: NetworkBlock, head: NetworkBlock, device: Device = Device()
+    ) -> None:
+        assert body.output_dim == np.prod(
+            head.input_dim
+        ), "body output and head input must have a same dimention"
         super().__init__()
         self.head = head
         self.body = body
@@ -67,19 +73,21 @@ class DiscreteQValueNet(DiscreteQFunction, nn.Module):
 
 def dqn_conv(*args, **kwargs) -> NetFn:
     def _net(
-            state_dim: Tuple[int, int, int],
-            action_dim: int,
-            device: Device
+        state_dim: Tuple[int, int, int], action_dim: int, device: Device
     ) -> DiscreteQValueNet:
         body = DqnConv(state_dim, *args, **kwargs)
         head = LinearHead(body.output_dim, action_dim)
         return DiscreteQValueNet(body, head, device=device)
+
     return _net  # type: ignore
 
 
 def fc(*args, **kwargs) -> NetFn:
-    def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> DiscreteQValueNet:
+    def _net(
+        state_dim: Tuple[int, ...], action_dim: int, device: Device
+    ) -> DiscreteQValueNet:
         body = FcBody(state_dim[0], *args, **kwargs)
         head = LinearHead(body.output_dim, action_dim)
         return DiscreteQValueNet(body, head, device=device)
+
     return _net

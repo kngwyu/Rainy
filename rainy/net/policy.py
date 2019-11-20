@@ -11,6 +11,7 @@ from ..utils import Device
 class Policy(ABC):
     """Represents parameterized stochastic policies.
     """
+
     def __init__(self, dist: Distribution) -> None:
         self.dist = dist
         self._action: Optional[Tensor] = None
@@ -175,6 +176,7 @@ class PolicyDist(ABC, nn.Module):
 class BernoulliDist(PolicyDist):
     """Bernoulli policy with no learnable parameter
     """
+
     def forward(self, x: Tensor) -> Policy:
         return BernoulliPolicy(logits=x)
 
@@ -182,6 +184,7 @@ class BernoulliDist(PolicyDist):
 class CategoricalDist(PolicyDist):
     """Categorical policy with no learnable parameter
     """
+
     def forward(self, x: Tensor) -> Policy:
         return CategoricalPolicy(logits=x)
 
@@ -189,6 +192,7 @@ class CategoricalDist(PolicyDist):
 class GaussinanDist(PolicyDist):
     """Gaussian policy which takes both mean and stdev as inputs
     """
+
     @property
     def input_dim(self) -> int:
         return self.action_dim * 2
@@ -202,11 +206,12 @@ class GaussinanDist(PolicyDist):
 class TanhGaussianDist(GaussinanDist):
     """Tanh clipped Gaussian policy
     """
+
     def __init__(
-            self,
-            action_dim: int,
-            logstd_range: Tuple[float, float] = (-20.0, 2.0),
-            **kwargs,
+        self,
+        action_dim: int,
+        logstd_range: Tuple[float, float] = (-20.0, 2.0),
+        **kwargs,
     ) -> None:
         super().__init__(action_dim)
         self.logstd_range = logstd_range
@@ -222,6 +227,7 @@ class SeparateStdGaussianDist(PolicyDist):
     """Gaussian policy which takes only mean as an input, and has a standard deviation
        independent with states, as a lernable parameter.
     """
+
     def __init__(self, action_dim: int, device: Device) -> None:
         super().__init__(action_dim)
         self.stddev = nn.Parameter(device.zeros(action_dim))

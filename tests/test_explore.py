@@ -9,4 +9,4 @@ def test_eps_greedy():
     value_pred = value.fc()((100,), 10, Device(use_cpu=True))
     for _ in range(0, 100):
         eg.select_action(np.arange(100), value_pred)
-    assert(eg.epsilon == 0.1)
+    assert eg.epsilon == 0.1

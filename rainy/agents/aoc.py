@@ -13,7 +13,9 @@ from ..utils import Device
 
 
 class AocRolloutStorage(RolloutStorage[State]):
-    def __init__(self, nsteps: int, nworkers: int, device: Device, num_options: int) -> None:
+    def __init__(
+        self, nsteps: int, nworkers: int, device: Device, num_options: int
+    ) -> None:
         super().__init__(nsteps, nworkers, device)
         self.options = [self.device.zeros(self.nworkers, dtype=torch.long)]
         self.is_new_options = [self.device.ones(self.nworkers, dtype=torch.uint8)]
@@ -28,21 +30,25 @@ class AocRolloutStorage(RolloutStorage[State]):
         self.is_new_options = [self.is_new_options[-1]]
         self.epsilons.clear()
 
-    def push_options(self, option: LongTensor, is_new_option: Tensor, epsilon: float) -> None:
+    def push_options(
+        self, option: LongTensor, is_new_option: Tensor, epsilon: float
+    ) -> None:
         self.options.append(option)
         self.is_new_options.append(is_new_option)
         self.epsilons.append(epsilon)
 
     def batch_options(self) -> Tuple[Tensor, Tensor]:
         batched = torch.cat(self.options, dim=0)
-        return batched[:-self.nworkers], batched[self.nworkers:]
+        return batched[: -self.nworkers], batched[self.nworkers :]
 
     def calc_returns(self, next_value: Tensor, gamma: float, delib_cost: float) -> None:
         self.returns[-1] = next_value
         rewards = self.device.tensor(self.rewards)
         for i in reversed(range(self.nsteps)):
             ret = gamma * self.masks[i + 1] * self.returns[i + 1] + rewards[i]
-            self.returns[i] = ret - self.is_new_options[i].float() * self.masks[i] * delib_cost
+            self.returns[i] = (
+                ret - self.is_new_options[i].float() * self.masks[i] * delib_cost
+            )
             opt = self.options[i + 1]
             opt_q, eps = self.values[i], self.epsilons[i]
             self.advs[i] = self.returns[i] - opt_q[self.worker_indices, opt]
@@ -54,22 +60,26 @@ class AocAgent(NStepParallelAgent[State]):
     """AOC: Adavantage Option Critic
     It's a synchronous batched version of A2OC: Asynchronou Adavantage Option Critic
     """
+
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.net: OptionCriticNet = config.net('option-critic')  # type: ignore
+        self.net: OptionCriticNet = config.net("option-critic")  # type: ignore
         self.noptions = self.net.num_options
         self.optimizer = config.optimizer(self.net.parameters())
         self.worker_indices = config.device.indices(config.nworkers)
         self.batch_indices = config.device.indices(config.batch_size)
-        self.storage: AocRolloutStorage[State] = \
-            AocRolloutStorage(config.nsteps, config.nworkers, config.device, self.noptions)
+        self.storage: AocRolloutStorage[State] = AocRolloutStorage(
+            config.nsteps, config.nworkers, config.device, self.noptions
+        )
         self.opt_explorer: EpsGreedy = config.explorer()  # type: ignore
         if not isinstance(self.opt_explorer, EpsGreedy):
-            return ValueError('Currently only Epsilon Greedy is supported as Explorer')
-        self.eval_prev_options: LongTensor = config.device.zeros(config.nworkers, dtype=torch.long)
+            return ValueError("Currently only Epsilon Greedy is supported as Explorer")
+        self.eval_prev_options: LongTensor = config.device.zeros(
+            config.nworkers, dtype=torch.long
+        )
 
     def members_to_save(self) -> Tuple[str, ...]:
-        return 'net', 'opt_explorer'
+        return "net", "opt_explorer"
 
     def _reset(self, initial_states: Array[State]) -> None:
         self.storage.set_initial_state(initial_states)
@@ -78,10 +88,7 @@ class AocAgent(NStepParallelAgent[State]):
         self.eval_prev_options.fill_(0)
 
     def sample_options(
-            self,
-            opt_q: Tensor,
-            beta: BernoulliPolicy,
-            prev_options: LongTensor,
+        self, opt_q: Tensor, beta: BernoulliPolicy, prev_options: LongTensor,
     ) -> Tuple[LongTensor, ByteTensor]:
         current_beta = beta[self.worker_indices, prev_options]
         do_options_end = current_beta.action()
@@ -101,14 +108,13 @@ class AocAgent(NStepParallelAgent[State]):
         if len(state.shape) == len(self.net.state_dim):
             # treat as batch_size == nworkers
             state = np.stack([state] * self.config.nworkers)
-        policy = self._eval_policy(state, self.config.device.tensor([0], dtype=torch.long))[0]
+        policy = self._eval_policy(
+            state, self.config.device.tensor([0], dtype=torch.long)
+        )[0]
         return policy.eval_action(self.config.eval_deterministic)
 
     def eval_action_parallel(
-            self,
-            states: Array,
-            mask: torch.Tensor,
-            ent: Optional[Array[float]] = None
+        self, states: Array, mask: torch.Tensor, ent: Optional[Array[float]] = None
     ) -> Array[Action]:
         policy = self._eval_policy(states, self.worker_indices)
         if ent is not None:
@@ -151,9 +157,7 @@ class AocAgent(NStepParallelAgent[State]):
 
         next_value = self._next_value(states)
         self.storage.calc_returns(
-            next_value,
-            self.config.discount_factor,
-            self.config.opt_delib_cost,
+            next_value, self.config.discount_factor, self.config.opt_delib_cost,
         )
 
         prev_options, options = self.storage.batch_options()
@@ -175,10 +179,12 @@ class AocAgent(NStepParallelAgent[State]):
         entropy = policy.entropy().mean()
 
         self.optimizer.zero_grad()
-        (policy_loss
-         + beta_loss
-         + self.config.value_loss_weight * 0.5 * value_loss
-         - self.config.entropy_weight * entropy).backward()
+        (
+            policy_loss
+            + beta_loss
+            + self.config.value_loss_weight * 0.5 * value_loss
+            - self.config.entropy_weight * entropy
+        ).backward()
         nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
         self.optimizer.step()
 

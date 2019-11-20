@@ -7,10 +7,12 @@ from rainy.net.policy import SeparateStdGaussianDist
 from torch.optim import Adam
 
 
-def config(envname: str = 'HalfCheetah') -> Config:
+def config(envname: str = "HalfCheetah") -> Config:
     c = Config()
     c.set_env(lambda: PyBullet(envname))
-    c.set_net_fn('actor-critic', net.actor_critic.fc_shared(policy=SeparateStdGaussianDist))
+    c.set_net_fn(
+        "actor-critic", net.actor_critic.fc_shared(policy=SeparateStdGaussianDist)
+    )
     c.set_parallel_env(pybullet_parallel())
     c.set_optimizer(lambda params: Adam(params, lr=3.0e-4, eps=1.0e-4))
     c.max_steps = int(2e6)
@@ -29,5 +31,5 @@ def config(envname: str = 'HalfCheetah') -> Config:
     return c
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli.run_cli(config, PpoAgent, script_path=os.path.realpath(__file__))

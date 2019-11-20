@@ -34,8 +34,7 @@ class DqnReplayFeed(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
     done: bool
 
     def to_ndarray(
-            self,
-            wrap: Callable[[State], ndarray]
+        self, wrap: Callable[[State], ndarray]
     ) -> Tuple[ndarray, int, float, ndarray, bool]:
         return (
             wrap(self.state),
@@ -44,4 +43,3 @@ class DqnReplayFeed(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
             wrap(self.next_state),
             self.done,
         )
-

@@ -12,10 +12,13 @@ NSTEP = 4
 ACTION_DIM = 3
 
 
-@pytest.mark.parametrize('penv', [
-    DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 6),
-    MultiProcEnv(lambda: DummyEnv(array_dim=(16, 16)), 6)
-])
+@pytest.mark.parametrize(
+    "penv",
+    [
+        DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 6),
+        MultiProcEnv(lambda: DummyEnv(array_dim=(16, 16)), 6),
+    ],
+)
 def test_storage(penv: ParallelEnv) -> None:
     NWORKERS = penv.num_envs
     storage = RolloutStorage(NSTEP, penv.num_envs, Device())
@@ -51,7 +54,9 @@ def test_oc_storage() -> None:
         policy = policy_dist(torch.rand(NWORKERS, ACTION_DIM))
         storage.push(state, reward, done, value=value, policy=policy)
         options = torch.randint(NOPTIONS, (NWORKERS,), device=storage.device.unwrapped)
-        is_new_options = torch.randint(2, (NWORKERS,), device=storage.device.unwrapped).byte()
+        is_new_options = torch.randint(
+            2, (NWORKERS,), device=storage.device.unwrapped
+        ).byte()
         storage.push_options(options, is_new_options, 0.5)
     next_value = torch.randn(NWORKERS, NOPTIONS).max(dim=-1)[0]
     storage.calc_returns(next_value, 0.99, 0.01)
@@ -76,15 +81,22 @@ class TeState(recurrent.RnnState):
         return TeState(self.h.unsqueeze(0))
 
 
-@pytest.mark.parametrize('penv, is_recurrent', [
-    (DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 6), False),
-    (MultiProcEnv(lambda: DummyEnv(array_dim=(16, 16)), 6), False),
-    (DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 6), True),
-    (DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 8), True),
-])
+@pytest.mark.parametrize(
+    "penv, is_recurrent",
+    [
+        (DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 6), False),
+        (MultiProcEnv(lambda: DummyEnv(array_dim=(16, 16)), 6), False),
+        (DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 6), True),
+        (DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 8), True),
+    ],
+)
 def test_sampler(penv: ParallelEnv, is_recurrent: bool) -> None:
     NWORKERS = penv.num_envs
-    rnns = TeState(torch.arange(NWORKERS)) if is_recurrent else recurrent.DummyRnn.DUMMY_STATE
+    rnns = (
+        TeState(torch.arange(NWORKERS))
+        if is_recurrent
+        else recurrent.DummyRnn.DUMMY_STATE
+    )
     storage = RolloutStorage(NSTEP, penv.num_envs, Device())
     storage.set_initial_state(penv.reset(), rnn_state=rnns)
     policy_dist = CategoricalDist(ACTION_DIM)

@@ -30,7 +30,7 @@ class DummyEntropyTuner(EntropyTuner):
 class TrainableEntropyTuner(EntropyTuner):
     def __init__(self, target_entropy: float, config: Config) -> None:
         self.log_alpha = nn.Parameter(config.device.zeros(1))
-        self.optim = config.optimizer([self.log_alpha], key='entropy')
+        self.optim = config.optimizer([self.log_alpha], key="entropy")
         self.target_entropy = target_entropy
 
     def alpha(self, log_pi: Tensor, *args) -> float:
@@ -44,10 +44,10 @@ class TrainableEntropyTuner(EntropyTuner):
 class SacAgent(OneStepAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.net = config.net('sac')
+        self.net = config.net("sac")
         self.target_net = self.net.get_target()
-        self.actor_opt = config.optimizer(self.net.actor_params(), key='actor')
-        self.critic_opt = config.optimizer(self.net.critic_params(), key='critic')
+        self.actor_opt = config.optimizer(self.net.actor_params(), key="actor")
+        self.critic_opt = config.optimizer(self.net.critic_params(), key="critic")
         self.replay = config.replay_buffer()
         self.batch_indices = config.device.indices(config.replay_batch_size)
 
@@ -67,7 +67,7 @@ class SacAgent(OneStepAgent):
         self.net.train(mode=train)
 
     def members_to_save(self) -> Sequence[str]:
-        return 'net', 'target_net', 'actor_opt', 'critic_opt', 'total_steps', 'replay'
+        return "net", "target_net", "actor_opt", "critic_opt", "total_steps", "replay"
 
     @torch.no_grad()
     def eval_action(self, state: Array) -> Action:
@@ -84,7 +84,9 @@ class SacAgent(OneStepAgent):
             action = self.env.spec.random_action()
         action = self.env.spec.clip_action(action)
         next_state, reward, done, info = self.env.step(action)
-        self.replay.append(state, action, reward * self.config.reward_scale, next_state, done)
+        self.replay.append(
+            state, action, reward * self.config.reward_scale, next_state, done
+        )
         if train_started:
             self._train()
         return next_state, reward, done, info
@@ -115,9 +117,12 @@ class SacAgent(OneStepAgent):
         #  Backward critic loss
         mask = self.config.device.tensor(1.0 - done)
         q_next = self._q_next(next_states, alpha)
-        q_target = q_next.mul_(mask * self.config.discount_factor) \
-                         .add_(self.config.device.tensor(rewards))
-        critic_loss = F.mse_loss(q1.squeeze_(), q_target) + F.mse_loss(q2.squeeze_(), q_target)
+        q_target = q_next.mul_(mask * self.config.discount_factor).add_(
+            self.config.device.tensor(rewards)
+        )
+        critic_loss = F.mse_loss(q1.squeeze_(), q_target) + F.mse_loss(
+            q2.squeeze_(), q_target
+        )
         self._backward(critic_loss, self.critic_opt, self.net.critic_params())
 
         #  Update target network

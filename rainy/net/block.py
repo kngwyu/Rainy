@@ -10,6 +10,7 @@ from .init import Initializer
 class NetworkBlock(nn.Module, ABC):
     """Defines a NN block which returns 1-dimension Tensor
     """
+
     @property
     @abstractmethod
     def input_dim(self) -> Tuple[int, ...]:
@@ -29,13 +30,16 @@ class DummyBlock(nn.Module):
 class LinearHead(NetworkBlock):
     """One FC layer
     """
-    def __init__(self, input_dim: int, output_dim: int, init: Initializer = Initializer()) -> None:
+
+    def __init__(
+        self, input_dim: int, output_dim: int, init: Initializer = Initializer()
+    ) -> None:
         super().__init__()
         self.fc = init(nn.Linear(input_dim, output_dim))
 
     @property
     def input_dim(self) -> Tuple[int, ...]:
-        return (self.fc.in_features, )
+        return (self.fc.in_features,)
 
     @property
     def output_dim(self) -> int:
@@ -48,13 +52,14 @@ class LinearHead(NetworkBlock):
 class ConvBody(NetworkBlock):
     """Multiple CNN layers + FC
     """
+
     def __init__(
-            self,
-            cnns: Sequence[nn.Conv2d],
-            fc: nn.Linear,
-            input_dim: Tuple[int, int, int],
-            activator: nn.Module = nn.ReLU(inplace=True),
-            init: Initializer = Initializer(nonlinearity='relu'),
+        self,
+        cnns: Sequence[nn.Conv2d],
+        fc: nn.Linear,
+        input_dim: Tuple[int, int, int],
+        activator: nn.Module = nn.ReLU(inplace=True),
+        init: Initializer = Initializer(nonlinearity="relu"),
     ) -> None:
         super().__init__()
         self.cnns = init.make_list(cnns)
@@ -82,14 +87,15 @@ class DqnConv(ConvBody):
     """Convolutuion Network used in https://www.nature.com/articles/nature14236,
        but is parameterized for other usages.
     """
+
     def __init__(
-            self,
-            input_dim: Tuple[int, int, int],
-            kernel_and_strides: Sequence[Tuple[int, int]] = [(8, 4), (4, 2), (3, 1)],
-            hidden_channels: Sequence[int] = (32, 64, 64),
-            output_dim: int = 512,
-            activator: nn.Module = nn.ReLU(inplace=True),
-            init: Initializer = Initializer(nonlinearity='relu'),
+        self,
+        input_dim: Tuple[int, int, int],
+        kernel_and_strides: Sequence[Tuple[int, int]] = [(8, 4), (4, 2), (3, 1)],
+        hidden_channels: Sequence[int] = (32, 64, 64),
+        output_dim: int = 512,
+        activator: nn.Module = nn.ReLU(inplace=True),
+        init: Initializer = Initializer(nonlinearity="relu"),
     ) -> None:
         in_channel, width, height = input_dim
         cnns, hidden = make_cnns(input_dim, kernel_and_strides, hidden_channels)
@@ -100,10 +106,7 @@ class DqnConv(ConvBody):
 
 class ResBlock(nn.Sequential):
     def __init__(
-            self,
-            channel: int,
-            stride: int = 1,
-            use_batch_norm: bool = True,
+        self, channel: int, stride: int = 1, use_batch_norm: bool = True,
     ) -> None:
         super().__init__(
             nn.ReLU(inplace=True),
@@ -141,14 +144,15 @@ class ResBlock(nn.Sequential):
 class ResNetBody(NetworkBlock):
     """Convolutuion Network used in IMPALA
     """
+
     def __init__(
-            self,
-            input_dim: Tuple[int, int, int],
-            channels: List[int] = [16, 32, 32],
-            maxpools: List[tuple] = [(3, 2, 1)] * 3,
-            use_batch_norm: bool = True,
-            fc_out: int = 256,
-            init: Initializer = Initializer(nonlinearity='relu'),
+        self,
+        input_dim: Tuple[int, int, int],
+        channels: List[int] = [16, 32, 32],
+        maxpools: List[tuple] = [(3, 2, 1)] * 3,
+        use_batch_norm: bool = True,
+        fc_out: int = 256,
+        init: Initializer = Initializer(nonlinearity="relu"),
     ) -> None:
         def layer(in_channel: int, out_channel: int, maxpool: tuple) -> nn.Sequential:
             return nn.Sequential(
@@ -156,14 +160,14 @@ class ResNetBody(NetworkBlock):
                 ResBlock._batch_norm(use_batch_norm, out_channel),
                 nn.MaxPool2d(*maxpool),
                 ResBlock(out_channel, use_batch_norm=use_batch_norm),
-                ResBlock(out_channel, use_batch_norm=use_batch_norm)
+                ResBlock(out_channel, use_batch_norm=use_batch_norm),
             )
 
         super().__init__()
         self._input_dim = input_dim
-        self.res_blocks = init.make_list([
-            layer(*t) for t in zip([input_dim[0]] + channels, channels, maxpools)
-        ])
+        self.res_blocks = init.make_list(
+            [layer(*t) for t in zip([input_dim[0]] + channels, channels, maxpools)]
+        )
         self.relu = nn.ReLU(inplace=True)
         conved = calc_cnn_hidden(maxpools, *input_dim[1:])
         fc_in = np.prod((channels[-1], *conved))
@@ -187,16 +191,18 @@ class ResNetBody(NetworkBlock):
 
 class FcBody(NetworkBlock):
     def __init__(
-            self,
-            input_dim: int,
-            units: List[int] = [64, 64],
-            activator: nn.Module = nn.ReLU(inplace=True),
-            init: Initializer = Initializer()
+        self,
+        input_dim: int,
+        units: List[int] = [64, 64],
+        activator: nn.Module = nn.ReLU(inplace=True),
+        init: Initializer = Initializer(),
     ) -> None:
         super().__init__()
         self._input_dim = input_dim
         dims = [input_dim] + units
-        self.layers = init.make_list(map(lambda i, o: nn.Linear(i, o), *zip(dims[:-1], dims[1:])))
+        self.layers = init.make_list(
+            map(lambda i, o: nn.Linear(i, o), *zip(dims[:-1], dims[1:]))
+        )
         self.activator = activator
         self.dims = dims
 
@@ -215,9 +221,9 @@ class FcBody(NetworkBlock):
 
 
 def make_cnns(
-        input_dim: Tuple[int, int, int],
-        params: Sequence[tuple],
-        hidden_channels: Sequence[int]
+    input_dim: Tuple[int, int, int],
+    params: Sequence[tuple],
+    hidden_channels: Sequence[int],
 ) -> Tuple[List[nn.Conv2d], int]:
     """Make a list of CNNs from lists of parameters.
     """
@@ -230,7 +236,9 @@ def make_cnns(
     return res, np.prod(hidden)
 
 
-def calc_cnn_hidden(params: Sequence[tuple], height: int, width: int) -> Tuple[int, int]:
+def calc_cnn_hidden(
+    params: Sequence[tuple], height: int, width: int
+) -> Tuple[int, int]:
     """Calcurate hidden dim of a CNN.
        See https://pytorch.org/docs/stable/nn.html#torch.nn.Conv2d for detail.
     """
@@ -242,5 +250,5 @@ def calc_cnn_hidden(params: Sequence[tuple], height: int, width: int) -> Tuple[i
             h_pad, w_pad = pad
         height = (height - kernel + 2 * h_pad) // stride + 1
         width = (width - kernel + 2 * w_pad) // stride + 1
-    assert width > 0 and height > 0, 'Convolution makes dim < 0!!!'
+    assert width > 0 and height > 0, "Convolution makes dim < 0!!!"
     return height, width

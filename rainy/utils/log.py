@@ -14,6 +14,7 @@ class LogStore:
     Since Pandas DataFrame/Series's append is not efficient, we store logs
     in this object before converting it into Pandas objects.
     """
+
     def __init__(self) -> None:
         self.inner: DefaultDict[str, List[Any]] = defaultdict(list)
 
@@ -64,7 +65,8 @@ class ExperimentLogger:
     - exposes logs as pandas.DataFrame
     - prints summaries of logs to stdout
     """
-    FINGERPRINT = 'fingerprint.txt'
+
+    FINGERPRINT = "fingerprint.txt"
     LOG_CAPACITY = int(1e6)
 
     def __init__(self, show_summary: bool = True) -> None:
@@ -73,23 +75,21 @@ class ExperimentLogger:
         self.exp_name = "No name"
 
         self._store: DefaultDict[str, LogStore] = defaultdict(LogStore)
-        self._summary_setting: DefaultDict[str, SummarySetting] = \
-            defaultdict(lambda: SummarySetting(["time"], 1, "black"))
+        self._summary_setting: DefaultDict[str, SummarySetting] = defaultdict(
+            lambda: SummarySetting(["time"], 1, "black")
+        )
         self._show_summary = show_summary
         self._closed = False
         self._time_offset = dt.timedelta(0)
         atexit.register(self.close)
 
     def set_dir_from_script_path(
-            self,
-            script_path_: str,
-            prefix: str = '',
-            fingerprint: Dict[str, str] = {},
+        self, script_path_: str, prefix: str = "", fingerprint: Dict[str, str] = {},
     ) -> None:
         script_path = Path(script_path_)
         logdir_top = "Results"
         if prefix:
-            logdir_top = prefix + '/' + logdir_top
+            logdir_top = prefix + "/" + logdir_top
         self.exp_name = script_path.stem
         time = self.exp_start.strftime("%y%m%d-%H%M%S")
         self.logdir = Path(logdir_top).joinpath(self.exp_name).joinpath(time)
@@ -115,7 +115,7 @@ class ExperimentLogger:
         try:
             import git
         except ImportError:
-            warnings.warn('GitPython is not Installed')
+            warnings.warn("GitPython is not Installed")
             return
         res = {}
         try:
@@ -124,7 +124,7 @@ class ExperimentLogger:
             res["git-head"] = head.hexsha
             res["git-diff"] = repo.git.diff()
         except git.exc.InvalidGitRepositoryError:
-            warnings.warn('{} is not in a git repository'.format(script_path))
+            warnings.warn("{} is not in a git repository".format(script_path))
         return res
 
     def setup(self, fingerprint: Dict[str, str] = {}) -> None:
@@ -132,14 +132,14 @@ class ExperimentLogger:
             self.logdir.mkdir(parents=True)
         finger = self.logdir.joinpath(self.FINGERPRINT)
         with finger.open(mode="w") as f:
-            f.write('name: {}\nstarttime: {}\n'.format(self.exp_name, self.exp_start))
+            f.write("name: {}\nstarttime: {}\n".format(self.exp_name, self.exp_start))
             for fkey in fingerprint.keys():
-                f.write('{}: {}\n'.format(fkey, fingerprint[fkey]))
+                f.write("{}: {}\n".format(fkey, fingerprint[fkey]))
 
     def submit(self, name: str, **kwargs) -> None:
         """Stores log.
         """
-        kwargs['sec'] = (dt.datetime.now() - self.exp_start).total_seconds()
+        kwargs["sec"] = (dt.datetime.now() - self.exp_start).total_seconds()
         current_length = self._store[name].submit(kwargs)
         if self._show_summary:
             interval = self._summary_setting[name].interval
@@ -149,24 +149,28 @@ class ExperimentLogger:
             self._truncate_and_dump(name)
 
     def summary_setting(
-            self,
-            name: str,
-            indices: List[str],
-            interval: int = 1,
-            color: str = "black",
-            dtype_is_array: bool = False,
+        self,
+        name: str,
+        indices: List[str],
+        interval: int = 1,
+        color: str = "black",
+        dtype_is_array: bool = False,
     ) -> None:
         if "sec" not in indices:
             indices.append("sec")
         if dtype_is_array and interval > 1:
             raise ValueError("You have to set interval=1 when dtype_is_array==True")
-        self._summary_setting[name] = SummarySetting(indices, interval, color, dtype_is_array)
+        self._summary_setting[name] = SummarySetting(
+            indices, interval, color, dtype_is_array
+        )
 
     def show_summary(self, name: str) -> None:
         indices, interval, color, dtype_is_array = self._summary_setting[name]
         df = self._store[name][-interval:].to_df()
         indices_df = df[indices]
-        click.secho(f"=========={name.upper()} LOG===========", bg=color, fg="white", bold=True)
+        click.secho(
+            f"=========={name.upper()} LOG===========", bg=color, fg="white", bold=True
+        )
         min_, max_ = indices_df.iloc[0], indices_df.iloc[-1]
         range_str = "\n".join([f"{idx}: {min_[idx]}-{max_[idx]}" for idx in indices])
         click.secho(range_str, bg="black", fg="white")

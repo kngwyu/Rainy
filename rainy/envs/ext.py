@@ -8,10 +8,10 @@ from ..prelude import Action, Array, State
 
 class EnvSpec:
     def __init__(
-            self,
-            state_dim: Tuple[int, ...],
-            action_space: gym.Space,
-            use_reward_monitor: bool = False
+        self,
+        state_dim: Tuple[int, ...],
+        action_space: gym.Space,
+        use_reward_monitor: bool = False,
     ) -> None:
         """Properties which are common both in EnvExt and ParallelEnv
         """
@@ -23,11 +23,11 @@ class EnvSpec:
             self._act_range = 0, action_space.n
         elif isinstance(action_space, spaces.Box):
             if len(action_space.shape) != 1:
-                raise RuntimeError('Box space with shape >= 2 is not supportd')
+                raise RuntimeError("Box space with shape >= 2 is not supportd")
             self.action_dim = action_space.shape[0]
             self._act_range = action_space.low, action_space.high
         else:
-            raise RuntimeError('{} is not supported'.format(type(action_space)))
+            raise RuntimeError("{} is not supported".format(type(action_space)))
 
     def clip_action(self, act: Array) -> Array:
         return np.clip(act, *self._act_range)
@@ -56,7 +56,7 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
         """
         return self._env.reset()
 
-    def render(self, mode: str = 'human') -> None:
+    def render(self, mode: str = "human") -> None:
         """
         Inherited from gym.Env.
         """
@@ -135,4 +135,4 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
         pass
 
     def __repr__(self) -> str:
-        return 'EnvExt({})'.format(self._env)
+        return "EnvExt({})".format(self._env)

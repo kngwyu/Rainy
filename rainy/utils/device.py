@@ -9,6 +9,7 @@ from ..prelude import ArrayLike, Self
 class Device:
     """Utilities for handling devices
     """
+
     def __init__(self, use_cpu: bool = False, gpu_indices: List[int] = []) -> None:
         """
         :param gpu_limits: list of gpus you allow PyTorch to use
@@ -18,7 +19,7 @@ class Device:
             self.__use_cpu()
         else:
             self.gpu_indices = gpu_indices if gpu_indices else self.__all_gpu()
-            self.device = torch.device('cuda:{}'.format(self.gpu_indices[0]))
+            self.device = torch.device("cuda:{}".format(self.gpu_indices[0]))
 
     def split(self) -> Self:
         """If self has multiple GPUs, split them into two devices.
@@ -47,12 +48,16 @@ class Device:
         elif t is ndarray or t is list:
             return torch.tensor(arr, device=self.device, dtype=dtype)
         else:
-            raise ValueError('arr must be ndarray or list or tensor')
+            raise ValueError("arr must be ndarray or list or tensor")
 
-    def zeros(self, size: Union[int, tuple], dtype: torch.dtype = torch.float32) -> Tensor:
+    def zeros(
+        self, size: Union[int, tuple], dtype: torch.dtype = torch.float32
+    ) -> Tensor:
         return torch.zeros(size, device=self.device, dtype=dtype)
 
-    def ones(self, size: Union[int, tuple], dtype: torch.dtype = torch.float32) -> Tensor:
+    def ones(
+        self, size: Union[int, tuple], dtype: torch.dtype = torch.float32
+    ) -> Tensor:
         return torch.ones(size, device=self.device, dtype=dtype)
 
     def data_parallel(self, module: nn.Module) -> nn.DataParallel:
@@ -70,13 +75,13 @@ class Device:
         size, rank = mpi.local_size_and_rank()
         if size > 1:
             if ngpus < size:
-                raise ValueError(f'Too many local processes {size} for {ngpus} gpus')
+                raise ValueError(f"Too many local processes {size} for {ngpus} gpus")
             return [rank]
         return list(range(ngpus))
 
     def __use_cpu(self) -> None:
         self.gpu_indices = []
-        self.device = torch.device('cpu')
+        self.device = torch.device("cpu")
 
     def __repr__(self) -> str:
         return str(self.device)

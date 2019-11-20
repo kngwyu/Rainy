@@ -29,8 +29,9 @@ class Config:
         self.replay_batch_size = 10
         self.replay_size = 10000
         self.train_start = 1000
-        self.__replay: Callable[[int], ReplayBuffer] = \
-            lambda capacity: UniformReplayBuffer(DqnReplayFeed, capacity=capacity)
+        self.__replay: Callable[
+            [int], ReplayBuffer
+        ] = lambda capacity: UniformReplayBuffer(DqnReplayFeed, capacity=capacity)
 
         # For the cases you can't set seed in constructor, like gym.atari
         self.seed: Optional[int] = None
@@ -40,7 +41,7 @@ class Config:
         self.sync_freq = 200
         self.__explore: Dict[Optional[str], Callable[[], Explorer]] = {
             None: lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000)),
-            'eval': lambda: EpsGreedy(0.01, DummyCooler(0.01))
+            "eval": lambda: EpsGreedy(0.01, DummyCooler(0.01)),
         }
 
         # Reward scaling
@@ -99,12 +100,12 @@ class Config:
 
         # Default Networks
         self.__net: Dict[str, NetFn] = {
-            'value': value.fc(),
-            'actor-critic': actor_critic.fc_shared(),
-            'ddpg': deterministic.fc_seprated(),
-            'td3': deterministic.td3_fc_seprated(),
-            'option-critic': option_critic.fc_shared(num_options=8),
-            'sac': sac.fc_separated(),
+            "value": value.fc(),
+            "actor-critic": actor_critic.fc_shared(),
+            "ddpg": deterministic.fc_seprated(),
+            "td3": deterministic.td3_fc_seprated(),
+            "option-critic": option_critic.fc_shared(num_options=8),
+            "sac": sac.fc_separated(),
         }
 
         # Environments
@@ -143,23 +144,25 @@ class Config:
     def explorer(self, key: Optional[str] = None) -> Explorer:
         return self.__explore[key]()
 
-    def set_explorer(self, exp: Callable[[], Explorer], key: Optional[str] = None) -> None:
+    def set_explorer(
+        self, exp: Callable[[], Explorer], key: Optional[str] = None
+    ) -> None:
         self.__explore[key] = exp
 
     def optimizer(self, params: Params, key: Optional[str] = None) -> Optimizer:
         return self.__optim[key](params)
 
     def set_optimizer(
-            self,
-            optim: Callable[[Params], Optimizer],
-            key: Optional[str] = None
+        self, optim: Callable[[Params], Optimizer], key: Optional[str] = None
     ) -> None:
         self.__optim[key] = optim
 
     def preconditioner(self, net: nn.Module) -> PreConditioner:
         return self.__precond(net)
 
-    def set_preconditioner(self, precond: Callable[[nn.Module], PreConditioner]) -> None:
+    def set_preconditioner(
+        self, precond: Callable[[nn.Module], PreConditioner]
+    ) -> None:
         self.__precond = precond
 
     def replay_buffer(self) -> ReplayBuffer:
@@ -191,7 +194,9 @@ class Config:
     def set_net_fn(self, name: str, net: NetFn) -> None:
         self.__net[name] = net
 
-    def _get_cooler(self, initial: float, minimal: Optional[float], update_span: int) -> Cooler:
+    def _get_cooler(
+        self, initial: float, minimal: Optional[float], update_span: int
+    ) -> Cooler:
         if minimal is None:
             return DummyCooler(initial)
         return LinearCooler(initial, minimal, self.max_steps // update_span)
@@ -200,11 +205,13 @@ class Config:
         return self._get_cooler(initial, self.lr_min, self.nsteps * self.nworkers)
 
     def clip_cooler(self) -> Cooler:
-        return self._get_cooler(self.ppo_clip, self.ppo_clip_min, self.nsteps * self.nworkers)
+        return self._get_cooler(
+            self.ppo_clip, self.ppo_clip_min, self.nsteps * self.nworkers
+        )
 
     def ipython_mode(self) -> None:
         self.logger._show_summary = False
 
     def __repr__(self) -> str:
-        d = filter(lambda t: not t[0].startswith('_Config'), self.__dict__.items())
-        return 'Config: ' + str(dict(d))
+        d = filter(lambda t: not t[0].startswith("_Config"), self.__dict__.items())
+        return "Config: " + str(dict(d))

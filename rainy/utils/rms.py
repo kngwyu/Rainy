@@ -12,9 +12,10 @@ from ..utils.state_dict import TensorStateDict
 class RunningMeanStd:
     """Calcurate running mean and variance
     """
+
     def __init__(self, shape: Tuple[int, ...], epsilon: float = 1.0e-4) -> None:
-        self.mean = np.zeros(shape, 'float64')
-        self.var = np.ones(shape, 'float64')
+        self.mean = np.zeros(shape, "float64")
+        self.var = np.ones(shape, "float64")
         self.count = epsilon
 
     def update(self, x: Array[float]) -> None:
@@ -25,7 +26,7 @@ class RunningMeanStd:
             self.count,
             x_mean,
             x_var,
-            x.shape[0] * mpi.global_size()
+            x.shape[0] * mpi.global_size(),
         )
 
     def std(self, eps: float = 1.0e-8) -> Array[float]:
@@ -49,7 +50,10 @@ def _update_rms(mean, var, count, batch_mean, batch_var, batch_count):
 class RunningMeanStdTorch(TensorStateDict):
     """Same as RunningMeanStd, but uses PyTorch Tensor
     """
-    def __init__(self, shape: torch.Size, device: Device, epsilon: float = 1.0e-4) -> None:
+
+    def __init__(
+        self, shape: torch.Size, device: Device, epsilon: float = 1.0e-4
+    ) -> None:
         self.mean = device.zeros(shape, dtype=torch.float64)
         self.var = device.ones(shape, dtype=torch.float64)
         self.count = torch.tensor(epsilon, dtype=torch.float64, device=device.unwrapped)
@@ -64,7 +68,7 @@ class RunningMeanStdTorch(TensorStateDict):
             self.count,
             x_mean,
             x_var,
-            torch.tensor(x.size(0) * mpi.global_size(), device=self.device.unwrapped)
+            torch.tensor(x.size(0) * mpi.global_size(), device=self.device.unwrapped),
         )
 
     def std(self, eps: float = 1.0e-8) -> torch.Tensor:

@@ -12,21 +12,24 @@ from ..prelude import Action, Array, State
 class A2cAgent(NStepParallelAgent[State]):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.storage: RolloutStorage[State] = \
-            RolloutStorage(config.nsteps, config.nworkers, config.device)
-        self.net: ActorCriticNet = config.net('actor-critic')  # type: ignore
+        self.storage: RolloutStorage[State] = RolloutStorage(
+            config.nsteps, config.nworkers, config.device
+        )
+        self.net: ActorCriticNet = config.net("actor-critic")  # type: ignore
         self.optimizer = config.optimizer(self.net.parameters())
-        self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]['lr'])
+        self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]["lr"])
         self.eval_rnns = self.rnn_init()
 
     def members_to_save(self) -> Tuple[str, ...]:
-        return 'net', 'lr_cooler'
+        return "net", "lr_cooler"
 
     def set_mode(self, train: bool = True) -> None:
         self.net.train(mode=train)
 
     def rnn_init(self) -> RnnState:
-        return self.net.recurrent_body.initial_state(self.config.nworkers, self.config.device)
+        return self.net.recurrent_body.initial_state(
+            self.config.nworkers, self.config.device
+        )
 
     def _reset(self, initial_states: Array[State]) -> None:
         self.storage.set_initial_state(initial_states, self.rnn_init())
@@ -39,14 +42,13 @@ class A2cAgent(NStepParallelAgent[State]):
             # treat as batch_size == 1
             state = np.stack([state])
         with torch.no_grad():
-            policy, self.eval_rnns[0] = self.net.policy(state, self.eval_rnns[0].unsqueeze())
+            policy, self.eval_rnns[0] = self.net.policy(
+                state, self.eval_rnns[0].unsqueeze()
+            )
         return policy.eval_action(self.config.eval_deterministic)
 
     def eval_action_parallel(
-            self,
-            states: Array,
-            mask: torch.Tensor,
-            ent: Optional[Array[float]] = None
+        self, states: Array, mask: torch.Tensor, ent: Optional[Array[float]] = None
     ) -> Array[Action]:
         with torch.no_grad():
             policy, self.eval_rnns = self.net.policy(states, self.eval_rnns)
@@ -55,16 +57,24 @@ class A2cAgent(NStepParallelAgent[State]):
         return policy.eval_action(self.config.eval_deterministic)
 
     def _network_in(self, states: Array[State]) -> Tuple[Array, RnnState, torch.Tensor]:
-        return self.penv.extract(states), self.storage.rnn_states[-1], self.storage.masks[-1]
+        return (
+            self.penv.extract(states),
+            self.storage.rnn_states[-1],
+            self.storage.masks[-1],
+        )
 
     def _one_step(self, states: Array[State]) -> Array[State]:
         with torch.no_grad():
             policy, value, rnns = self.net(*self._network_in(states))
-        next_states, rewards, done, info = self.penv.step(policy.action().squeeze().cpu().numpy())
+        next_states, rewards, done, info = self.penv.step(
+            policy.action().squeeze().cpu().numpy()
+        )
         self.episode_length += 1
         self.rewards += rewards
         self.report_reward(done, info)
-        self.storage.push(next_states, rewards, done, rnn_state=rnns, policy=policy, value=value)
+        self.storage.push(
+            next_states, rewards, done, rnn_state=rnns, policy=policy, value=value
+        )
         return next_states
 
     def _pre_backward(self, _policy: Policy, _value: torch.Tensor) -> None:
@@ -98,9 +108,11 @@ class A2cAgent(NStepParallelAgent[State]):
         entropy_loss = policy.entropy().mean()
         self._pre_backward(policy, value)
         self.optimizer.zero_grad()
-        (policy_loss
-         + self.config.value_loss_weight * 0.5 * value_loss
-         - self.config.entropy_weight * entropy_loss).backward()
+        (
+            policy_loss
+            + self.config.value_loss_weight * 0.5 * value_loss
+            - self.config.entropy_weight * entropy_loss
+        ).backward()
         self._step_optimizer()
         self.network_log(
             policy_loss=policy_loss.item(),

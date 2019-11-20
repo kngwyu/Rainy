@@ -24,13 +24,13 @@ class DdpgNet(SoftUpdate, ContinuousQFunction, DeterministicPolicyNet):
 
 class SeparatedDdpgNet(DdpgNet):
     def __init__(
-            self,
-            actor_body: NetworkBlock,
-            critic_body: NetworkBlock,
-            action_dim: int,
-            action_coef: float = 1.0,
-            device: Device = Device(),
-            init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
+        self,
+        actor_body: NetworkBlock,
+        critic_body: NetworkBlock,
+        action_dim: int,
+        action_coef: float = 1.0,
+        device: Device = Device(),
+        init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
     ) -> None:
         super().__init__()
         self.actor = nn.Sequential(
@@ -39,8 +39,7 @@ class SeparatedDdpgNet(DdpgNet):
             nn.Tanh(),
         )
         self.critic = nn.Sequential(
-            critic_body,
-            LinearHead(critic_body.output_dim, 1, init=init)
+            critic_body, LinearHead(critic_body.output_dim, 1, init=init)
         )
         self.to(device.unwrapped)
         self.action_coef = action_coef
@@ -56,16 +55,16 @@ class SeparatedDdpgNet(DdpgNet):
         s = self.device.tensor(states)
         return self.actor(s).mul(self.action_coef)
 
-    def q_value(self, states: Union[Array, Tensor], action: Union[Array, Tensor]) -> Tensor:
+    def q_value(
+        self, states: Union[Array, Tensor], action: Union[Array, Tensor]
+    ) -> Tensor:
         s = self.device.tensor(states)
         a = self.device.tensor(action)
         sa = torch.cat((s, a), dim=1)
         return self.critic(sa)
 
     def forward(
-            self,
-            states: Union[Array, Tensor],
-            action: Union[Array, Tensor]
+        self, states: Union[Array, Tensor], action: Union[Array, Tensor]
     ) -> Tuple[Tensor, Tensor]:
         s = self.device.tensor(states)
         a = self.device.tensor(action)
@@ -75,14 +74,14 @@ class SeparatedDdpgNet(DdpgNet):
 
 class SeparatedTd3Net(SeparatedDdpgNet):
     def __init__(
-            self,
-            actor_body: NetworkBlock,
-            critic_body: NetworkBlock,
-            critic_body2: NetworkBlock,
-            action_dim: int,
-            action_coef: float = 1.0,
-            device: Device = Device(),
-            init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
+        self,
+        actor_body: NetworkBlock,
+        critic_body: NetworkBlock,
+        critic_body2: NetworkBlock,
+        action_dim: int,
+        action_coef: float = 1.0,
+        device: Device = Device(),
+        init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
     ) -> None:
         super().__init__(
             actor_body,
@@ -93,8 +92,7 @@ class SeparatedTd3Net(SeparatedDdpgNet):
             init=init,
         )
         self.critic2 = nn.Sequential(
-            critic_body2,
-            LinearHead(critic_body2.output_dim, 1, init=init)
+            critic_body2, LinearHead(critic_body2.output_dim, 1, init=init)
         )
         self.to(device.unwrapped)
 
@@ -102,9 +100,7 @@ class SeparatedTd3Net(SeparatedDdpgNet):
         return chain(self.critic.parameters(), self.critic2.parameters())
 
     def q_values(
-            self,
-            states: Union[Array, Tensor],
-            action: Union[Array, Tensor],
+        self, states: Union[Array, Tensor], action: Union[Array, Tensor],
     ) -> Tuple[Tensor, Tensor]:
         s = self.device.tensor(states)
         a = self.device.tensor(action)
@@ -113,14 +109,17 @@ class SeparatedTd3Net(SeparatedDdpgNet):
 
 
 def fc_seprated(
-        action_coef: float = 1.0,
-        actor_units: Sequence[int] = [400, 300],
-        critic_units: Sequence[int] = [400, 300],
-        init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
+    action_coef: float = 1.0,
+    actor_units: Sequence[int] = [400, 300],
+    critic_units: Sequence[int] = [400, 300],
+    init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
 ) -> NetFn:
     """DDPG network with separated bodys
     """
-    def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> SeparatedDdpgNet:
+
+    def _net(
+        state_dim: Tuple[int, ...], action_dim: int, device: Device
+    ) -> SeparatedDdpgNet:
         actor_body = FcBody(state_dim[0], units=actor_units, init=init)
         critic_body = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
         return SeparatedDdpgNet(
@@ -131,18 +130,22 @@ def fc_seprated(
             device=device,
             init=init,
         )
+
     return _net
 
 
 def td3_fc_seprated(
-        action_coef: float = 1.0,
-        actor_units: Sequence[int] = [400, 300],
-        critic_units: Sequence[int] = [400, 300],
-        init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
+    action_coef: float = 1.0,
+    actor_units: Sequence[int] = [400, 300],
+    critic_units: Sequence[int] = [400, 300],
+    init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
 ) -> NetFn:
     """TD3 network with separated bodys
     """
-    def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> SeparatedTd3Net:
+
+    def _net(
+        state_dim: Tuple[int, ...], action_dim: int, device: Device
+    ) -> SeparatedTd3Net:
         actor_body = FcBody(state_dim[0], units=actor_units, init=init)
         critic1 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
         critic2 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
@@ -155,4 +158,5 @@ def td3_fc_seprated(
             device=device,
             init=init,
         )
+
     return _net

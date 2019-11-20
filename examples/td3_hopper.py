@@ -7,18 +7,20 @@ import rainy.utils.cli as cli
 from torch.optim import Adam
 
 
-def config(envname: str = 'Hopper') -> Config:
+def config(envname: str = "Hopper") -> Config:
     c = Config()
     c.set_env(lambda: PyBullet(envname))
     c.max_steps = int(1e6)
-    c.set_optimizer(lambda params: Adam(params, lr=1e-3), key='actor')
-    c.set_optimizer(lambda params: Adam(params, lr=1e-3), key='critic')
+    c.set_optimizer(lambda params: Adam(params, lr=1e-3), key="actor")
+    c.set_optimizer(lambda params: Adam(params, lr=1e-3), key="critic")
     c.replay_size = int(1e6)
     c.replay_batch_size = 100
     c.train_start = int(1e4)
     c.set_explorer(lambda: explore.GaussianNoise())
-    c.set_explorer(lambda: explore.Greedy(), key='eval')
-    c.set_explorer(lambda: explore.GaussianNoise(explore.DummyCooler(0.2), 0.5), key='target')
+    c.set_explorer(lambda: explore.Greedy(), key="eval")
+    c.set_explorer(
+        lambda: explore.GaussianNoise(explore.DummyCooler(0.2), 0.5), key="target"
+    )
     c.use_reward_monitor = True
     c.eval_deterministic = True
     c.eval_freq = c.max_steps // 10
@@ -26,5 +28,5 @@ def config(envname: str = 'Hopper') -> Config:
     return c
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli.run_cli(config, Td3Agent, script_path=os.path.realpath(__file__))

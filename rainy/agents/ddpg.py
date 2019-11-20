@@ -12,12 +12,12 @@ from ..prelude import Action, Array, State
 class DdpgAgent(OneStepAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.net = config.net('ddpg')
+        self.net = config.net("ddpg")
         self.target_net = deepcopy(self.net)
-        self.actor_opt = config.optimizer(self.net.actor_params(), key='actor')
-        self.critic_opt = config.optimizer(self.net.critic_params(), key='critic')
+        self.actor_opt = config.optimizer(self.net.actor_params(), key="actor")
+        self.critic_opt = config.optimizer(self.net.critic_params(), key="critic")
         self.explorer = config.explorer()
-        self.eval_explorer = config.explorer(key='eval')
+        self.eval_explorer = config.explorer(key="eval")
         self.replay = config.replay_buffer()
         self.batch_indices = config.device.indices(config.replay_batch_size)
 
@@ -25,7 +25,15 @@ class DdpgAgent(OneStepAgent):
         self.net.train(mode=train)
 
     def members_to_save(self) -> Sequence[str]:
-        return 'net', 'target_net', 'actor_opt', 'critic_opt', 'total_steps', 'explorer', 'replay'
+        return (
+            "net",
+            "target_net",
+            "actor_opt",
+            "critic_opt",
+            "total_steps",
+            "explorer",
+            "replay",
+        )
 
     @torch.no_grad()
     def eval_action(self, state: Array) -> Action:
@@ -58,9 +66,11 @@ class DdpgAgent(OneStepAgent):
         states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
         mask = self.config.device.tensor(1.0 - done)
         q_next = self._q_next(next_states)
-        q_target = q_next.squeeze_() \
-                         .mul_(mask * self.config.discount_factor) \
-                         .add_(self.config.device.tensor(rewards))
+        q_target = (
+            q_next.squeeze_()
+            .mul_(mask * self.config.discount_factor)
+            .add_(self.config.device.tensor(rewards))
+        )
         action, q_current = self.net(states, actions)
 
         #  Backward critic loss

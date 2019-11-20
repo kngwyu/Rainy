@@ -7,11 +7,14 @@ try:
 
     class GenericNamedMeta(NamedTupleMeta, GenericMeta):
         pass
+
+
 except ImportError:
     from typing import NamedTupleMeta  # type: ignore
+
     GenericNamedMeta = NamedTupleMeta  # type: ignore
 
-T = TypeVar('T')
+T = TypeVar("T")
 Self = Any
 Index = Union[None, int, slice, Tensor, List[Any], Tuple[Any, ...]]
 Params = Union[Iterable[Tensor], dict]
@@ -43,5 +46,5 @@ class Array(Sequence[T]):
 
 ArrayLike = Union[Array[Any], List[Any], Tensor]
 
-Action = TypeVar('Action', int, Array)
-State = TypeVar('State')
+Action = TypeVar("Action", int, Array)
+State = TypeVar("State")

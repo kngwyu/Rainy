@@ -10,5 +10,5 @@ def config() -> Config:
     return c
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli.run_cli(config, DqnAgent, script_path=os.path.realpath(__file__))

@@ -8,7 +8,7 @@ class AcktrAgent(A2cAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         if self.net.is_recurrent:
-            raise NotImplementedError('K-FAC for RNN is not implemented!')
+            raise NotImplementedError("K-FAC for RNN is not implemented!")
         self.precond = config.preconditioner(self.net)
 
     def _pre_backward(self, policy: Policy, value: torch.Tensor) -> None:

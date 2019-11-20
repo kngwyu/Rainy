@@ -24,7 +24,9 @@ class State(Enum):
 
 
 class DummyEnv(EnvExt):
-    def __init__(self, array_dim: Tuple[int, ...] = (16, 16), flatten: bool = False) -> None:
+    def __init__(
+        self, array_dim: Tuple[int, ...] = (16, 16), flatten: bool = False
+    ) -> None:
         self.state = State.START
         self.transition = [
             [0.0, 0.7, 0.3, 0.0, 0.0],
@@ -33,7 +35,7 @@ class DummyEnv(EnvExt):
             [0.0, 0.0, 0.0, 1.0, 0.0],
             [0.0, 0.0, 0.0, 0.0, 1.0],
         ]
-        self.rewards = [0., 0., 0., -10., 20.]
+        self.rewards = [0.0, 0.0, 0.0, -10.0, 20.0]
         self.array_dim = array_dim
         self.flatten = flatten
 

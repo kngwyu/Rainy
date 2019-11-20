@@ -28,23 +28,21 @@ class RolloutStorage(Generic[State]):
         return len(self.states) != 0
 
     def set_initial_state(
-            self,
-            state: Array[State],
-            rnn_state: RnnState = DummyRnn.DUMMY_STATE
+        self, state: Array[State], rnn_state: RnnState = DummyRnn.DUMMY_STATE
     ) -> None:
         self.states.append(state)
         self.rnn_states.append(rnn_state)
 
     def push(
-            self,
-            state: Array[State],
-            reward: Array[float],
-            mask: Array[bool],
-            rnn_state: RnnState = DummyRnn.DUMMY_STATE,
-            policy: Optional[Policy] = None,
-            value: Optional[Tensor] = None,
+        self,
+        state: Array[State],
+        reward: Array[float],
+        mask: Array[bool],
+        rnn_state: RnnState = DummyRnn.DUMMY_STATE,
+        policy: Optional[Policy] = None,
+        value: Optional[Tensor] = None,
     ) -> None:
-        assert self.states, '[RolloutStorage.push] Call set_initial_state first'
+        assert self.states, "[RolloutStorage.push] Call set_initial_state first"
         self.states.append(state)
         self.rewards.append(reward)
         self.masks.append(self.device.tensor(1.0 - mask))
@@ -78,21 +76,28 @@ class RolloutStorage(Generic[State]):
     def _calc_ret_common(self, next_value: Tensor) -> Tensor:
         self.returns[-1] = next_value
         self.values.append(next_value)
-        torch.stack(self.values[:self.nsteps], dim=0, out=self.batch_values)
+        torch.stack(self.values[: self.nsteps], dim=0, out=self.batch_values)
         return self.device.tensor(self.rewards)
 
     def calc_ac_returns(self, next_value: Tensor, gamma: float) -> None:
         rewards = self._calc_ret_common(next_value)
         for i in reversed(range(self.nsteps)):
-            self.returns[i] = self.returns[i + 1] * gamma * self.masks[i + 1] + rewards[i]
+            self.returns[i] = (
+                self.returns[i + 1] * gamma * self.masks[i + 1] + rewards[i]
+            )
         self.advs[:-1] = self.returns[:-1] - self.batch_values
 
-    def calc_gae_returns(self, next_value: Tensor, gamma: float, lambda_: float) -> None:
+    def calc_gae_returns(
+        self, next_value: Tensor, gamma: float, lambda_: float
+    ) -> None:
         rewards = self._calc_ret_common(next_value)
         self.advs.fill_(0.0)
         for i in reversed(range(self.nsteps)):
-            td_error = \
-                rewards[i] + gamma * self.values[i + 1] * self.masks[i + 1] - self.values[i]
+            td_error = (
+                rewards[i]
+                + gamma * self.values[i + 1] * self.masks[i + 1]
+                - self.values[i]
+            )
             self.advs[i] = td_error + gamma * lambda_ * self.masks[i] * self.advs[i + 1]
             self.returns[i] = self.advs[i] + self.values[i]
 
@@ -110,12 +115,12 @@ class RolloutBatch(NamedTuple):
 
 class RolloutSampler:
     def __init__(
-            self,
-            storage: RolloutStorage,
-            penv: ParallelEnv,
-            minibatch_size: int,
-            rnn: RnnBlock = DummyRnn(),
-            adv_normalize_eps: Optional[float] = None,
+        self,
+        storage: RolloutStorage,
+        penv: ParallelEnv,
+        minibatch_size: int,
+        rnn: RnnBlock = DummyRnn(),
+        adv_normalize_eps: Optional[float] = None,
     ) -> None:
         """Create a batch sampler from storage for feed forward network.
         adv_normalize_eps is adpoted from the PPO implementation in OpenAI baselines.
@@ -125,9 +130,10 @@ class RolloutSampler:
         self.nsteps = storage.nsteps
         if minibatch_size >= self.nworkers * self.nsteps:
             raise ValueError(
-                'PPO requires minibatch_size <= nsteps * nworkers, but '
-                'minibatch_size: {}, nsteps: {}, nworkers: {} was passed.'
-                .format(minibatch_size, storage.nsteps, storage.nworkers)
+                "PPO requires minibatch_size <= nsteps * nworkers, but "
+                "minibatch_size: {}, nsteps: {}, nworkers: {} was passed.".format(
+                    minibatch_size, storage.nsteps, storage.nworkers
+                )
             )
         self.minibatch_size = minibatch_size
         self.states = storage.batch_states(penv)
@@ -150,12 +156,14 @@ class RolloutSampler:
             self.values[i],
             self.old_log_probs[i],
             self.advantages[i],
-            self.rnn_init[i[:len(i) // self.nsteps]]
+            self.rnn_init[i[: len(i) // self.nsteps]],
         )
 
     def __iter__(self) -> Iterator[RolloutBatch]:
-        sampler_cls = FeedForwardBatchSampler \
-            if self.rnn_init is DummyRnn.DUMMY_STATE else RecurrentBatchSampler
+        sampler_cls = (
+            FeedForwardBatchSampler
+            if self.rnn_init is DummyRnn.DUMMY_STATE
+            else RecurrentBatchSampler
+        )
         for i in sampler_cls(self.nsteps, self.nworkers, self.minibatch_size):  # type: ignore
             yield self._make_batch(i)
-

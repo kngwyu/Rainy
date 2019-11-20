@@ -18,12 +18,13 @@ class EpisodeResult(NamedTuple):
     length: np.int32
 
     def __repr__(self) -> str:
-        return 'EpisodeResult(reward: {}, length: {})'.format(self.reward, self.length)
+        return "EpisodeResult(reward: {}, length: {})".format(self.reward, self.length)
 
 
 class Agent(ABC):
     """Children must call super().__init__(config) first
     """
+
     def __init__(self, config: Config) -> None:
         self.config = config
         self.logger = config.logger
@@ -31,9 +32,9 @@ class Agent(ABC):
         self.total_steps = 0
         self.logger.summary_setting(
             "network",
-            ['total_steps', 'update_steps'],
+            ["total_steps", "update_steps"],
             interval=config.network_log_freq,
-            color="blue"
+            color="blue",
         )
 
     @abstractmethod
@@ -72,16 +73,14 @@ class Agent(ABC):
     def network_log(self, **kwargs) -> None:
         kwargs["total_steps"] = self.total_steps
         kwargs["update_steps"] = self.update_steps
-        self.logger.submit('network', **kwargs)
+        self.logger.submit("network", **kwargs)
 
     def close(self) -> None:
         self.env.close()
         self.logger.close()
 
     def __eval_episode(
-            self,
-            select_action: Callable[[Array], Action],
-            render: bool
+        self, select_action: Callable[[Array], Action], render: bool
     ) -> Tuple[EpisodeResult, EnvExt]:
         total_reward = 0.0
         steps = 0
@@ -103,15 +102,11 @@ class Agent(ABC):
                 return (res, env)
 
     def _result(
-            self,
-            done: bool,
-            info: dict,
-            total_reward: float,
-            episode_length: int,
+        self, done: bool, info: dict, total_reward: float, episode_length: int,
     ) -> Optional[EpisodeResult]:
         if self.env.use_reward_monitor:
-            if 'episode' in info:
-                return EpisodeResult(info['episode']['r'], info['episode']['l'])
+            if "episode" in info:
+                return EpisodeResult(info["episode"]["r"], info["episode"]["l"])
         elif done:
             return EpisodeResult(total_reward, episode_length)
         return None
@@ -119,11 +114,13 @@ class Agent(ABC):
     def random_episode(self, render: bool = False) -> EpisodeResult:
         def act(_state) -> Action:
             return self.config.eval_env.spec.random_action()
+
         return self.__eval_episode(act, render)[0]
 
     def random_and_save(self, fname: str, render: bool = False) -> EpisodeResult:
         def act(_state) -> Action:
             return self.config.eval_env.spec.random_action()
+
         res, env = self.__eval_episode(act, render)
         env.save_history(fname)
         return res
@@ -144,13 +141,13 @@ class Agent(ABC):
             value = getattr(self, member_str)
             if isinstance(value, nn.DataParallel):
                 save_dict[member_str] = value.module.state_dict()
-            elif hasattr(value, 'state_dict'):
+            elif hasattr(value, "state_dict"):
                 save_dict[member_str] = value.state_dict()
             else:
                 save_dict[member_str] = value
         logdir = self.config.logger.logdir
         if logdir is None:
-            logdir = Path('.')
+            logdir = Path(".")
         torch.save(save_dict, logdir.joinpath(filename))
 
     def load(self, filename: str) -> None:
@@ -164,12 +161,12 @@ class Agent(ABC):
             elif member_str in saved_dict:
                 saved_item = saved_dict[member_str]
             else:
-                warnings.warn('Member {} wasn\'t loaded'.format(member_str))
+                warnings.warn("Member {} wasn't loaded".format(member_str))
                 continue
             mem = getattr(self, member_str)
             if isinstance(mem, nn.DataParallel):
                 mem.module.load_state_dict(saved_item)
-            elif hasattr(mem, 'state_dict'):
+            elif hasattr(mem, "state_dict"):
                 mem.load_state_dict(saved_item)
             else:
                 setattr(self, member_str, saved_item)
@@ -180,10 +177,10 @@ class Agent(ABC):
         return self.config.device.tensor(arr, dtype)
 
     def _backward(
-            self,
-            loss: Tensor,
-            opt: torch.optim.Optimizer,
-            params: Optional[Iterable[Tensor]] = None,
+        self,
+        loss: Tensor,
+        opt: torch.optim.Optimizer,
+        params: Optional[Iterable[Tensor]] = None,
     ) -> None:
         opt.zero_grad()
         loss.backward()
@@ -233,9 +230,7 @@ class NStepParallelAgent(Agent, Generic[State]):
         self.step_width = self.config.nsteps * self.config.nworkers * mpi.global_size()
 
     def eval_parallel(
-            self,
-            n: Optional[int] = None,
-            entropy: Optional[Array[float]] = None,
+        self, n: Optional[int] = None, entropy: Optional[Array[float]] = None,
     ) -> List[EpisodeResult]:
         reserved = (
             copy.deepcopy(self.rewards),
@@ -252,7 +247,9 @@ class NStepParallelAgent(Agent, Generic[State]):
         states = self.penv.reset()
         mask = self.config.device.ones(self.config.nworkers)
         while True:
-            actions = self.eval_action_parallel(self.penv.extract(states), mask, entropy)
+            actions = self.eval_action_parallel(
+                self.penv.extract(states), mask, entropy
+            )
             states, rewards, done, info = self.penv.step(actions)
             self.episode_length += 1
             self.rewards += rewards
@@ -267,10 +264,7 @@ class NStepParallelAgent(Agent, Generic[State]):
 
     @abstractmethod
     def eval_action_parallel(
-            self,
-            states: Array,
-            mask: torch.Tensor,
-            ent: Optional[Array[float]] = None,
+        self, states: Array, mask: torch.Tensor, ent: Optional[Array[float]] = None,
     ) -> Array[Action]:
         pass
 
@@ -291,11 +285,15 @@ class NStepParallelAgent(Agent, Generic[State]):
 
     def report_reward(self, done: Array[bool], info: Array[dict]) -> None:
         if self.penv.use_reward_monitor:
-            for i in filter(lambda i: 'episode' in i, info):
-                self.episode_results.append(EpisodeResult(i['episode']['r'], i['episode']['l']))
+            for i in filter(lambda i: "episode" in i, info):
+                self.episode_results.append(
+                    EpisodeResult(i["episode"]["r"], i["episode"]["l"])
+                )
         else:
             for i in filter(lambda i: done[i], range(self.config.nworkers)):  # type: ignore
-                self.episode_results.append(EpisodeResult(self.rewards[i], self.episode_length[i]))
+                self.episode_results.append(
+                    EpisodeResult(self.rewards[i], self.episode_length[i])
+                )
                 self.rewards[i] = 0.0
                 self.episode_length[i] = 0
 

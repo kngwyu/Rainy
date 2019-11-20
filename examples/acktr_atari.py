@@ -6,18 +6,18 @@ import rainy.utils.cli as cli
 from rainy.lib import kfac
 
 KFAC_KWARGS = {
-    'tau': 32 * 20 // 2,
-    'update_freq': 10,
-    'norm_scaler': kfac.SquaredFisherScaler(eta_max=0.2, delta=0.001),
+    "tau": 32 * 20 // 2,
+    "update_freq": 10,
+    "norm_scaler": kfac.SquaredFisherScaler(eta_max=0.2, delta=0.001),
 }
 
 
-def config(game: str = 'Breakout') -> Config:
+def config(game: str = "Breakout") -> Config:
     c = Config()
     c.set_env(lambda: Atari(game, frame_stack=False))
     c.set_optimizer(kfac.default_sgd(eta_max=0.2))
     c.set_preconditioner(lambda net: kfac.KfacPreConditioner(net, **KFAC_KWARGS))
-    c.set_net_fn('actor-critic', net.actor_critic.ac_conv())
+    c.set_net_fn("actor-critic", net.actor_critic.ac_conv())
     c.nworkers = 32
     c.nsteps = 20
     c.set_parallel_env(atari_parallel())
@@ -33,5 +33,5 @@ def config(game: str = 'Breakout') -> Config:
     return c
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli.run_cli(config, AcktrAgent, script_path=os.path.realpath(__file__))

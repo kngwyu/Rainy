@@ -16,13 +16,13 @@ from ..utils.misc import clamp_actions_
 class Td3Agent(DdpgAgent):
     def __init__(self, config: Config) -> None:
         OneStepAgent.__init__(self, config)
-        self.net = config.net('td3')
+        self.net = config.net("td3")
         self.target_net = deepcopy(self.net)
-        self.actor_opt = config.optimizer(self.net.actor_params(), key='actor')
-        self.critic_opt = config.optimizer(self.net.critic_params(), key='critic')
+        self.actor_opt = config.optimizer(self.net.actor_params(), key="actor")
+        self.critic_opt = config.optimizer(self.net.critic_params(), key="critic")
         self.explorer = config.explorer()
-        self.target_explorer = config.explorer(key='target')
-        self.eval_explorer = config.explorer(key='eval')
+        self.target_explorer = config.explorer(key="target")
+        self.eval_explorer = config.explorer(key="eval")
         self.replay = config.replay_buffer()
         self.batch_indices = config.device.indices(config.replay_batch_size)
         self.action_range = tuple(torch.from_numpy(t) for t in self.env.spec._act_range)
@@ -41,12 +41,15 @@ class Td3Agent(DdpgAgent):
         states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
         mask = self.config.device.tensor(1.0 - done)
         q_next = self._q_next(next_states).squeeze_()
-        q_target = q_next.mul_(mask * self.config.discount_factor) \
-                         .add_(self.config.device.tensor(rewards))
+        q_target = q_next.mul_(mask * self.config.discount_factor).add_(
+            self.config.device.tensor(rewards)
+        )
         q1, q2 = self.net.q_values(states, actions)
 
         #  Backward critic loss
-        critic_loss = F.mse_loss(q1.squeeze_(), q_target) + F.mse_loss(q2.squeeze_(), q_target)
+        critic_loss = F.mse_loss(q1.squeeze_(), q_target) + F.mse_loss(
+            q2.squeeze_(), q_target
+        )
         self._backward(critic_loss, self.critic_opt, self.net.critic_params())
 
         #  Delayed policy update

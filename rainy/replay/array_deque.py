@@ -6,7 +6,9 @@ from ..utils.sample import sample_indices
 
 
 class ArrayDeque(Sequence):
-    def __init__(self, capacity: Optional[int] = None, init_list: List[Any] = []) -> None:
+    def __init__(
+        self, capacity: Optional[int] = None, init_list: List[Any] = []
+    ) -> None:
         self.capacity = capacity
         self.front: List[Any] = []
         if capacity:
@@ -48,13 +50,13 @@ class ArrayDeque(Sequence):
             elif n >= 1:
                 return self.front.pop()
             else:
-                raise IndexError('[ArrayDeque::pop_back] Empty')
+                raise IndexError("[ArrayDeque::pop_back] Empty")
         return self.back.pop()
 
     def pop_front(self) -> Any:
         self._balance()
         if not self.front:
-            raise IndexError('[ArrayDeque::pop_front] Empty')
+            raise IndexError("[ArrayDeque::pop_front] Empty")
         return self.front.pop()
 
     def clear(self) -> None:
@@ -79,9 +81,11 @@ class ArrayDeque(Sequence):
         front_len = len(self.front)
         n = front_len + len(self.back)
         if n < k:
-            raise ValueError('[ArrayDeque::sample] n < k')
-        return [self.front[i] if i < front_len else self.back[i - front_len]
-                for i in sample_indices(n, k)]
+            raise ValueError("[ArrayDeque::sample] n < k")
+        return [
+            self.front[i] if i < front_len else self.back[i - front_len]
+            for i in sample_indices(n, k)
+        ]
 
     def __repr__(self):
         return "ArrayDeque({})".format(str(list(self)))
