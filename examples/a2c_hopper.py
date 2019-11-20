@@ -1,6 +1,6 @@
 import os
 from rainy import Config, net
-from rainy.agents import A2cAgent
+from rainy.agents import A2CAgent
 import rainy.utils.cli as cli
 from rainy.envs import PyBullet, pybullet_parallel
 from rainy.net.policy import SeparateStdGaussianDist
@@ -29,4 +29,4 @@ def config(envname: str = "Hopper") -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, A2cAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, A2CAgent, script_path=os.path.realpath(__file__))

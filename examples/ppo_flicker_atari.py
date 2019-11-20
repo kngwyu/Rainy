@@ -15,4 +15,4 @@ def config(game: str = "Breakout") -> rainy.Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, rainy.agents.PpoAgent, script_path=realpath(__file__))
+    cli.run_cli(config, rainy.agents.PPOAgent, script_path=realpath(__file__))

@@ -1,6 +1,6 @@
 import os
 from rainy import Config, net
-from rainy.agents import AcktrAgent
+from rainy.agents import ACKTRAgent
 from rainy.envs import Atari, atari_parallel
 import rainy.utils.cli as cli
 from rainy.lib import kfac
@@ -34,4 +34,4 @@ def config(game: str = "Breakout") -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, AcktrAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, ACKTRAgent, script_path=os.path.realpath(__file__))

@@ -2,7 +2,7 @@
 """
 import os
 from rainy import Config, net
-from rainy.agents import AocAgent
+from rainy.agents import AOCAgent
 from rainy.envs import Atari, atari_parallel
 from rainy.lib.explore import DummyCooler, EpsGreedy
 import rainy.utils.cli as cli
@@ -34,4 +34,4 @@ def config(game: str = "Breakout") -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, AocAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, AOCAgent, script_path=os.path.realpath(__file__))

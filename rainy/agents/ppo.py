@@ -1,7 +1,7 @@
 import torch
 from torch import Tensor
 from typing import Tuple
-from .a2c import A2cAgent
+from .a2c import A2CAgent
 from ..lib.rollout import RolloutSampler
 from ..lib import mpi
 from ..config import Config
@@ -10,7 +10,7 @@ from ..net import ActorCriticNet, Policy
 from ..prelude import Array
 
 
-class PpoAgent(A2cAgent):
+class PPOAgent(A2CAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self.net: ActorCriticNet = config.net("actor-critic")  # type: ignore

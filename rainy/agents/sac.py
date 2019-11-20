@@ -41,7 +41,7 @@ class TrainableEntropyTuner(EntropyTuner):
         return self.log_alpha.detach().exp().item()
 
 
-class SacAgent(OneStepAgent):
+class SACAgent(OneStepAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self.net = config.net("sac")

@@ -7,13 +7,13 @@ import torch
 from torch import Tensor
 from torch.nn import functional as F
 from .base import OneStepAgent
-from .ddpg import DdpgAgent
+from .ddpg import DDPGAgent
 from ..config import Config
 from ..prelude import Array
 from ..utils.misc import clamp_actions_
 
 
-class Td3Agent(DdpgAgent):
+class TD3Agent(DDPGAgent):
     def __init__(self, config: Config) -> None:
         OneStepAgent.__init__(self, config)
         self.net = config.net("td3")

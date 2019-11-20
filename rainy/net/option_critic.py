@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from torch import nn, Tensor
 from typing import Callable, Tuple, Union
 from .actor_critic import policy_init
-from .block import DqnConv, FcBody, LinearHead, NetworkBlock
+from .block import DQNConv, FcBody, LinearHead, NetworkBlock
 from .policy import BernoulliDist, BernoulliPolicy, CategoricalDist, Policy, PolicyDist
 from .prelude import NetFn
 from ..prelude import Array
@@ -77,7 +77,7 @@ def conv_shared(
     def _net(
         state_dim: Tuple[int, int, int], action_dim: int, device: Device
     ) -> SharedBodyOCNet:
-        body = DqnConv(
+        body = DQNConv(
             state_dim, hidden_channels=hidden_channels, output_dim=output_dim, **kwargs
         )
         ac_head = LinearHead(body.output_dim, action_dim * num_options, policy_init())

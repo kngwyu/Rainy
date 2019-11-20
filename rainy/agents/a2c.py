@@ -9,7 +9,7 @@ from ..net import ActorCriticNet, Policy, RnnState
 from ..prelude import Action, Array, State
 
 
-class A2cAgent(NStepParallelAgent[State]):
+class A2CAgent(NStepParallelAgent[State]):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self.storage: RolloutStorage[State] = RolloutStorage(

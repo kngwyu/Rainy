@@ -8,7 +8,7 @@ from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
 from .lib import mpi
 from .lib.kfac import KfacPreConditioner, PreConditioner
 from .prelude import Params
-from .replay import DqnReplayFeed, ReplayBuffer, UniformReplayBuffer
+from .replay import DQNReplayFeed, ReplayBuffer, UniformReplayBuffer
 from .utils import Device, ExperimentLogger
 
 
@@ -31,7 +31,7 @@ class Config:
         self.train_start = 1000
         self.__replay: Callable[
             [int], ReplayBuffer
-        ] = lambda capacity: UniformReplayBuffer(DqnReplayFeed, capacity=capacity)
+        ] = lambda capacity: UniformReplayBuffer(DQNReplayFeed, capacity=capacity)
 
         # For the cases you can't set seed in constructor, like gym.atari
         self.seed: Optional[int] = None

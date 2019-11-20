@@ -13,7 +13,7 @@ from ..prelude import Array, Self
 from ..utils import Device
 
 
-class SacTarget(SoftUpdate):
+class SACTarget(SoftUpdate):
     def __init__(
         self, critic1: NetworkBlock, critic2: NetworkBlock, device: Device
     ) -> None:
@@ -33,7 +33,7 @@ class SacTarget(SoftUpdate):
         return self.critic1(sa), self.critic2(sa)
 
 
-class SeparatedSacNet(nn.Module, ContinuousQFunction):
+class SeparatedSACNet(nn.Module, ContinuousQFunction):
     def __init__(
         self,
         actor_body: NetworkBlock,
@@ -72,8 +72,8 @@ class SeparatedSacNet(nn.Module, ContinuousQFunction):
         sa = torch.cat((self.device.tensor(states), self.device.tensor(action)), dim=1)
         return self.critic1(sa), self.critic2(sa)
 
-    def get_target(self) -> SacTarget:
-        return SacTarget(
+    def get_target(self) -> SACTarget:
+        return SACTarget(
             copy.deepcopy(self.critic1), copy.deepcopy(self.critic2), self.device
         )
 
@@ -113,12 +113,12 @@ def fc_separated(
 
     def _net(
         state_dim: Tuple[int, ...], action_dim: int, device: Device
-    ) -> SeparatedSacNet:
+    ) -> SeparatedSACNet:
         actor_body = FcBody(state_dim[0], units=actor_units, init=init)
         critic1 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
         critic2 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
         policy = policy_type(action_dim)
-        return SeparatedSacNet(
+        return SeparatedSACNet(
             actor_body, critic1, critic2, policy, device=device, init=init,
         )
 

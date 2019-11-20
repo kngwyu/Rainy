@@ -2,13 +2,13 @@ from functools import partial
 import numpy as np
 import pytest
 import rainy
-from rainy.agents import A2cAgent, AocAgent, PpoAgent
+from rainy.agents import A2CAgent, AOCAgent, PPOAgent
 from rainy import net
 from test_env import DummyEnvDeterministic
 
 
 @pytest.mark.parametrize(
-    "n, make_ag", [(6, A2cAgent), (12, A2cAgent), (6, PpoAgent), (6, AocAgent)]
+    "n, make_ag", [(6, A2CAgent), (12, A2CAgent), (6, PPOAgent), (6, AOCAgent)]
 )
 def test_eval_parallel(n: int, make_ag: callable) -> None:
     c = rainy.Config()
@@ -28,7 +28,7 @@ def test_eval_parallel(n: int, make_ag: callable) -> None:
     ag.close()
 
 
-@pytest.mark.parametrize("make_ag", [A2cAgent, PpoAgent, AocAgent])
+@pytest.mark.parametrize("make_ag", [A2CAgent, PPOAgent, AOCAgent])
 def test_nstep(make_ag: callable) -> None:
     c = rainy.Config()
     c.logger.setup()

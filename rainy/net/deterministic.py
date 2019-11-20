@@ -18,11 +18,11 @@ class DeterministicPolicyNet(ABC):
         pass
 
 
-class DdpgNet(SoftUpdate, ContinuousQFunction, DeterministicPolicyNet):
+class DDPGNet(SoftUpdate, ContinuousQFunction, DeterministicPolicyNet):
     pass
 
 
-class SeparatedDdpgNet(DdpgNet):
+class SeparatedDDPGNet(DDPGNet):
     def __init__(
         self,
         actor_body: NetworkBlock,
@@ -72,7 +72,7 @@ class SeparatedDdpgNet(DdpgNet):
         return self.actor(s).mul(self.action_coef), self.critic(sa)
 
 
-class SeparatedTd3Net(SeparatedDdpgNet):
+class SeparatedTD3Net(SeparatedDDPGNet):
     def __init__(
         self,
         actor_body: NetworkBlock,
@@ -119,10 +119,10 @@ def fc_seprated(
 
     def _net(
         state_dim: Tuple[int, ...], action_dim: int, device: Device
-    ) -> SeparatedDdpgNet:
+    ) -> SeparatedDDPGNet:
         actor_body = FcBody(state_dim[0], units=actor_units, init=init)
         critic_body = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
-        return SeparatedDdpgNet(
+        return SeparatedDDPGNet(
             actor_body,
             critic_body,
             action_dim,
@@ -145,11 +145,11 @@ def td3_fc_seprated(
 
     def _net(
         state_dim: Tuple[int, ...], action_dim: int, device: Device
-    ) -> SeparatedTd3Net:
+    ) -> SeparatedTD3Net:
         actor_body = FcBody(state_dim[0], units=actor_units, init=init)
         critic1 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
         critic2 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
-        return SeparatedTd3Net(
+        return SeparatedTD3Net(
             actor_body,
             critic1,
             critic2,

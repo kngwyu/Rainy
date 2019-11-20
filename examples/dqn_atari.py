@@ -1,6 +1,6 @@
 import os
 from rainy import Config, net
-from rainy.agents import DqnAgent
+from rainy.agents import DQNAgent
 from rainy.envs import Atari
 from rainy.lib.explore import EpsGreedy, LinearCooler
 import rainy.utils.cli as cli
@@ -27,4 +27,4 @@ def config(game: str = "Breakout") -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, DqnAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, DQNAgent, script_path=os.path.realpath(__file__))

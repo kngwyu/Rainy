@@ -1,6 +1,6 @@
 import os
 from rainy import Config, net
-from rainy.agents import AcktrAgent
+from rainy.agents import ACKTRAgent
 import rainy.utils.cli as cli
 from rainy.envs import PyBullet, pybullet_parallel
 from rainy.net.policy import SeparateStdGaussianDist
@@ -36,4 +36,4 @@ def config(envname: str = "Hopper") -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, AcktrAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, ACKTRAgent, script_path=os.path.realpath(__file__))

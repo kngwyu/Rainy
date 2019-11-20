@@ -1,6 +1,6 @@
 import os
 from rainy import Config
-from rainy.agents import DqnAgent
+from rainy.agents import DQNAgent
 import rainy.utils.cli as cli
 
 
@@ -11,4 +11,4 @@ def config() -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, DqnAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, DQNAgent, script_path=os.path.realpath(__file__))

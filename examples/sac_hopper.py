@@ -1,6 +1,6 @@
 import os
 from rainy import Config
-from rainy.agents import SacAgent
+from rainy.agents import SACAgent
 from rainy.envs import PyBullet
 import rainy.utils.cli as cli
 from torch.optim import Adam
@@ -25,4 +25,4 @@ def config(envname: str = "Hopper") -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, SacAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, SACAgent, script_path=os.path.realpath(__file__))

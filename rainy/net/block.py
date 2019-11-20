@@ -83,7 +83,7 @@ class ConvBody(NetworkBlock):
         return x
 
 
-class DqnConv(ConvBody):
+class DQNConv(ConvBody):
     """Convolutuion Network used in https://www.nature.com/articles/nature14236,
        but is parameterized for other usages.
     """

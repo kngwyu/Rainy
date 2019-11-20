@@ -1,6 +1,6 @@
 import os
 from rainy import Config, net
-from rainy.agents import PpoAgent
+from rainy.agents import PPOAgent
 import rainy.utils.cli as cli
 from rainy.envs import PyBullet, pybullet_parallel
 from rainy.net.policy import SeparateStdGaussianDist
@@ -32,4 +32,4 @@ def config(envname: str = "Hopper") -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, PpoAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, PPOAgent, script_path=os.path.realpath(__file__))

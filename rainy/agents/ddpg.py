@@ -9,7 +9,7 @@ from ..config import Config
 from ..prelude import Action, Array, State
 
 
-class DdpgAgent(OneStepAgent):
+class DDPGAgent(OneStepAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self.net = config.net("ddpg")

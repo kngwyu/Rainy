@@ -1,6 +1,6 @@
 import os
 from rainy import Config
-from rainy.agents import DdpgAgent
+from rainy.agents import DDPGAgent
 from rainy.envs import PyBullet
 from rainy.lib import explore
 import rainy.utils.cli as cli
@@ -26,4 +26,4 @@ def config(envname: str = "Hopper") -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, DdpgAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, DDPGAgent, script_path=os.path.realpath(__file__))

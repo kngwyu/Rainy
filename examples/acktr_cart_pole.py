@@ -1,6 +1,6 @@
 import os
 from rainy import Config
-from rainy.agents import AcktrAgent
+from rainy.agents import ACKTRAgent
 import rainy.utils.cli as cli
 from rainy.envs import MultiProcEnv
 from rainy.lib import kfac
@@ -31,4 +31,4 @@ def config() -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, AcktrAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, ACKTRAgent, script_path=os.path.realpath(__file__))

@@ -1,6 +1,6 @@
 import os
 from rainy import Config
-from rainy.agents import Td3Agent
+from rainy.agents import TD3Agent
 from rainy.envs import PyBullet
 from rainy.lib import explore
 import rainy.utils.cli as cli
@@ -29,4 +29,4 @@ def config(envname: str = "Hopper") -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, Td3Agent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, TD3Agent, script_path=os.path.realpath(__file__))

@@ -3,7 +3,7 @@ Some hyper parametes are from https://github.com/openai/baselines/blob/master/ba
 """
 import os
 from rainy import Config, net
-from rainy.agents import A2cAgent
+from rainy.agents import A2CAgent
 from rainy.envs import Atari, atari_parallel
 import rainy.utils.cli as cli
 from torch.optim import RMSprop
@@ -32,4 +32,4 @@ def config(game: str = "Breakout") -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, A2cAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, A2CAgent, script_path=os.path.realpath(__file__))

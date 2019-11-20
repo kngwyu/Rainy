@@ -12,7 +12,7 @@ from ..prelude import Action, Array, State
 from ..utils import Device
 
 
-class AocRolloutStorage(RolloutStorage[State]):
+class AOCRolloutStorage(RolloutStorage[State]):
     def __init__(
         self, nsteps: int, nworkers: int, device: Device, num_options: int
     ) -> None:
@@ -56,7 +56,7 @@ class AocRolloutStorage(RolloutStorage[State]):
             self.beta_adv[i] = opt_q[self.worker_indices, opt].mul(v)
 
 
-class AocAgent(NStepParallelAgent[State]):
+class AOCAgent(NStepParallelAgent[State]):
     """AOC: Adavantage Option Critic
     It's a synchronous batched version of A2OC: Asynchronou Adavantage Option Critic
     """
@@ -68,7 +68,7 @@ class AocAgent(NStepParallelAgent[State]):
         self.optimizer = config.optimizer(self.net.parameters())
         self.worker_indices = config.device.indices(config.nworkers)
         self.batch_indices = config.device.indices(config.batch_size)
-        self.storage: AocRolloutStorage[State] = AocRolloutStorage(
+        self.storage: AOCRolloutStorage[State] = AOCRolloutStorage(
             config.nsteps, config.nworkers, config.device, self.noptions
         )
         self.opt_explorer: EpsGreedy = config.explorer()  # type: ignore
