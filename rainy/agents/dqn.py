@@ -53,15 +53,14 @@ class DqnAgent(OneStepAgent):
         obs = self.replay.sample(self.config.replay_batch_size)
         obs = [ob.to_ndarray(self.env.extract) for ob in obs]
         states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
-        q_next = self._q_next(next_states)
-        q_next *= self.config.device.tensor(1.0 - done) * self.config.discount_factor
-        q_next += self.config.device.tensor(rewards)
+        q_next = self._q_next(next_states).mul_(self.tensor(1.0 - done))
+        q_target = self.tensor(rewards).add_(q_next.mul_(self.config.discount_factor))
         q_current = self.net(states)[self.batch_indices, actions]
-        loss = self.criterion(q_current, q_next)
+        loss = self.criterion(q_current, q_target)
         self.optimizer.zero_grad()
         loss.backward()
         nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
         self.optimizer.step()
-        self.network_log(value_loss=loss.item())
+        self.network_log(q_value=q_current.mean().item(), value_loss=loss.item())
         if (self.update_steps + 1) % self.config.sync_freq == 0:
             self.target_net.load_state_dict(self.net.state_dict())
