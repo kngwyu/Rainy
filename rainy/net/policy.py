@@ -73,6 +73,7 @@ class Policy(ABC):
 class BernoulliPolicy(Policy):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(Bernoulli(*args, **kwargs))
+        self.dist: Bernoulli
 
     def best_action(self) -> Tensor:
         return self.dist.probs > 0.5
@@ -93,6 +94,7 @@ class BernoulliPolicy(Policy):
 class CategoricalPolicy(Policy):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(Categorical(*args, **kwargs))
+        self.dist: Categorical
 
     def best_action(self) -> Tensor:
         return self.dist.probs.argmax(dim=-1)
@@ -113,6 +115,7 @@ class CategoricalPolicy(Policy):
 class GaussianPolicy(Policy):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(Normal(*args, **kwargs))
+        self.dist: Normal
 
     def best_action(self) -> Tensor:
         return self.dist.mean
@@ -133,12 +136,13 @@ class GaussianPolicy(Policy):
 class TanhGaussianPolicy(GaussianPolicy):
     def __init__(self, *args, epsilon: float = 1e-6, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self._pre_tanh = None
+        self._pre_tanh: Optional[Tensor] = None
         self.epsilon = epsilon
 
     def sample(self) -> Tensor:
-        self._pre_tanh = self.dist.sample().detach()
-        return torch.tanh(self._pre_tanh)
+        pre_tanh = self.dist.sample().detach()
+        self._pre_tanh = pre_tanh
+        return torch.tanh(pre_tanh)
 
     def rsample(self) -> Tensor:
         res = self.dist.rsample()

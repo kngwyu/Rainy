@@ -18,7 +18,7 @@ def config(envname: str = "Hopper") -> Config:
     c.train_start = int(1e4)
     c.use_reward_monitor = True
     c.eval_deterministic = True
-    c.eval_freq = c.max_steps // 10
+    c.eval_freq = c.max_steps // 100
     c.sync_freq = 1
     c.grad_clip = None
     return c

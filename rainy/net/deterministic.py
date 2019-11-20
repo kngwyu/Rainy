@@ -3,7 +3,7 @@ from itertools import chain
 from rainy.utils import Device
 import torch
 from torch import nn, Tensor
-from typing import Iterable, Sequence, Tuple, Union
+from typing import Iterable, List, Sequence, Tuple, Union
 from .block import FcBody, LinearHead, NetworkBlock
 from .init import Initializer, kaiming_uniform
 from .misc import SoftUpdate
@@ -110,8 +110,8 @@ class SeparatedTD3Net(SeparatedDDPGNet):
 
 def fc_seprated(
     action_coef: float = 1.0,
-    actor_units: Sequence[int] = [400, 300],
-    critic_units: Sequence[int] = [400, 300],
+    actor_units: List[int] = [400, 300],
+    critic_units: List[int] = [400, 300],
     init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
 ) -> NetFn:
     """DDPG network with separated bodys
@@ -136,8 +136,8 @@ def fc_seprated(
 
 def td3_fc_seprated(
     action_coef: float = 1.0,
-    actor_units: Sequence[int] = [400, 300],
-    critic_units: Sequence[int] = [400, 300],
+    actor_units: List[int] = [400, 300],
+    critic_units: List[int] = [400, 300],
     init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
 ) -> NetFn:
     """TD3 network with separated bodys

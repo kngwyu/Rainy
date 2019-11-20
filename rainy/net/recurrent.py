@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import torch
 from torch import nn, Tensor
-from typing import Generic, Iterable, Optional, Sequence, Tuple, TypeVar
+from typing import Generic, Iterable, Optional, Tuple, TypeVar
 from .init import lstm_bias, Initializer
 from ..prelude import Index, Self
 from ..utils import Device
@@ -45,12 +45,21 @@ class RnnBlock(Generic[RS], nn.Module):
         pass
 
 
-def _apply_mask(mask: Optional[Tensor], *args) -> Sequence[Tensor]:
+def _apply_mask1(mask: Optional[Tensor], x: Tensor) -> Tensor:
     if mask is None:
-        return tuple(x.unsqueeze(0) for x in args)
+        return x.unsqueeze(0)
+    else:
+        return mask.view(1, -1, 1).mul(x)
+
+
+def _apply_mask2(
+    mask: Optional[Tensor], x1: Tensor, x2: Tensor
+) -> Tuple[Tensor, Tensor]:
+    if mask is None:
+        return x1.unsqueeze(0), x2.unsqueeze(0)
     else:
         m = mask.view(1, -1, 1)
-        return tuple(x * m for x in args)
+        return m.mul(x1), m.mul(x2)
 
 
 @torch.jit.script
@@ -118,7 +127,7 @@ class LstmBlock(RnnBlock[LstmState]):
         in_shape = x.shape
         if in_shape == hidden.h.shape:
             out, (h, c) = self.lstm(
-                x.unsqueeze(0), _apply_mask(mask_, hidden.h, hidden.c)
+                x.unsqueeze(0), _apply_mask2(mask_, hidden.h, hidden.c)
             )
             return out.squeeze(0), LstmState(h, c)
         # forward Nsteps altogether
@@ -173,7 +182,7 @@ class GruBlock(RnnBlock[GruState]):
     ) -> Tuple[Tensor, GruState]:
         in_shape = x.shape
         if in_shape == hidden.h.shape:
-            out, h = self.gru(x.unsqueeze(0), *_apply_mask(mask_, hidden.h))
+            out, h = self.gru(x.unsqueeze(0), _apply_mask1(mask_, hidden.h))
             return out.squeeze(0), GruState(h.squeeze_(0))
         # forward Nsteps altogether
         nsteps = in_shape[0] // hidden.h.size(0)

@@ -1,2 +1,0 @@
-#!/bin/bash
-mypy -c "from rainy import *" --ignore-missing-imports

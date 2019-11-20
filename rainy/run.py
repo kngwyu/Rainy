@@ -136,12 +136,15 @@ def eval_agent(
     load_file_name: str = SAVE_FILE_DEFAULT,
     render: bool = False,
     replay: bool = False,
-    action_file: Optional[str] = None,
+    action_file: str = "best_actions.json",
 ) -> None:
     path = Path(logdir)
     if not _load_agent(load_file_name, path, ag):
         raise ValueError("Load file {} does not exists".format())
-    save_file = path.joinpath if ag.config.save_eval_actions and action_file else None
+    if ag.config.save_eval_actions:
+        save_file: Optional[Path] = path.joinpath(action_file)
+    else:
+        save_file = None
     res = _eval_impl(ag, save_file, render, replay)
     print("{}".format(res))
     if render:

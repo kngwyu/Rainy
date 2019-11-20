@@ -7,6 +7,7 @@ import rainy.utils.cli as cli
 def config() -> Config:
     c = Config()
     c.max_steps = 100000
+    c.eval_freq = 100
     return c
 
 

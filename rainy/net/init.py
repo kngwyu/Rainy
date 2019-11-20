@@ -54,12 +54,12 @@ def lstm_bias(forget: float = 1.0, other: float = 0.0) -> InitFn:
     """
 
     @torch.no_grad()
-    def __set_bias(t: Tensor) -> None:
+    def __set_bias(t: Tensor) -> Tensor:
         i = t.size(0) // 4
         t.fill_(other)
-        t[i : 2 * i].fill_(forget)
+        return t[i : 2 * i].fill_(forget)
 
-    return partial(__set_bias)
+    return __set_bias
 
 
 class Initializer:

@@ -2,7 +2,7 @@ import copy
 import itertools
 import torch
 from torch import nn, Tensor
-from typing import Iterable, Sequence, Tuple, Union
+from typing import Iterable, List, Tuple, Union
 from .block import FcBody, LinearHead, NetworkBlock
 from .init import Initializer, fanin_uniform, constant
 from .misc import SoftUpdate
@@ -14,21 +14,19 @@ from ..utils import Device
 
 
 class SACTarget(SoftUpdate):
-    def __init__(
-        self, critic1: NetworkBlock, critic2: NetworkBlock, device: Device
-    ) -> None:
+    def __init__(self, critic1: nn.Module, critic2: nn.Module, device: Device) -> None:
         super().__init__()
         self.critic1 = critic1
         self.critic2 = critic2
         self.device = device
 
     def soft_update(self, other: Self, coef: float) -> None:
-        SoftUpdate.soft_update(self.critic1, other.critic1, coef)
-        SoftUpdate.soft_update(self.critic2, other.critic2, coef)
+        SoftUpdate.soft_update(self.critic1, other.critic1, coef)  # type: ignore
+        SoftUpdate.soft_update(self.critic2, other.critic2, coef)  # type: ignore
 
     def q_values(
         self, states: Union[Array, Tensor], action: Union[Array, Tensor]
-    ) -> Tensor:
+    ) -> Tuple[Tensor, Tensor]:
         sa = torch.cat((self.device.tensor(states), self.device.tensor(action)), dim=1)
         return self.critic1(sa), self.critic2(sa)
 
@@ -101,8 +99,8 @@ class SeparatedSACNet(nn.Module, ContinuousQFunction):
 
 
 def fc_separated(
-    actor_units: Sequence[int] = [256, 256],
-    critic_units: Sequence[int] = [256, 256],
+    actor_units: List[int] = [256, 256],
+    critic_units: List[int] = [256, 256],
     policy_type: type = TanhGaussianDist,
     init: Initializer = Initializer(
         weight_init=fanin_uniform(), bias_init=constant(0.1)

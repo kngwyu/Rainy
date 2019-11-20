@@ -13,7 +13,7 @@ class NetworkBlock(nn.Module, ABC):
 
     @property
     @abstractmethod
-    def input_dim(self) -> Tuple[int, ...]:
+    def input_dim(self) -> Sequence[int]:
         pass
 
     @property
@@ -35,10 +35,10 @@ class LinearHead(NetworkBlock):
         self, input_dim: int, output_dim: int, init: Initializer = Initializer()
     ) -> None:
         super().__init__()
-        self.fc = init(nn.Linear(input_dim, output_dim))
+        self.fc: nn.Linear = init(nn.Linear(input_dim, output_dim))  # type: ignore
 
     @property
-    def input_dim(self) -> Tuple[int, ...]:
+    def input_dim(self) -> Sequence[int]:
         return (self.fc.in_features,)
 
     @property
@@ -63,12 +63,12 @@ class ConvBody(NetworkBlock):
     ) -> None:
         super().__init__()
         self.cnns = init.make_list(cnns)
-        self.fc = init(fc)
+        self.fc: nn.Linear = init(fc)  # type: ignore
         self._input_dim = input_dim
         self.activator = activator
 
     @property
-    def input_dim(self) -> Tuple[int, ...]:
+    def input_dim(self) -> Sequence[int]:
         return self._input_dim
 
     @property
@@ -181,7 +181,7 @@ class ResNetBody(NetworkBlock):
         return self.relu(x)
 
     @property
-    def input_dim(self) -> Tuple[int, ...]:
+    def input_dim(self) -> Sequence[int]:
         return self._input_dim
 
     @property
@@ -212,7 +212,7 @@ class FcBody(NetworkBlock):
         return x
 
     @property
-    def input_dim(self) -> Tuple[int, ...]:
+    def input_dim(self) -> Sequence[int]:
         return (self.dims[0],)
 
     @property

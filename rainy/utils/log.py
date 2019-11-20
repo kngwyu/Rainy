@@ -38,7 +38,7 @@ class LogStore:
         self.inner.clear()
 
     def __getitem__(self, index: Union[int, slice]) -> "LogStore":
-        res = {}
+        res: DefaultDict[str, List[Any]] = defaultdict(list)
         for key, value in self.inner.items():
             res[key] = value[index]
         log_store = LogStore()
@@ -76,7 +76,7 @@ class ExperimentLogger:
 
         self._store: DefaultDict[str, LogStore] = defaultdict(LogStore)
         self._summary_setting: DefaultDict[str, SummarySetting] = defaultdict(
-            lambda: SummarySetting(["time"], 1, "black")
+            lambda: SummarySetting(["time"], 1, "black", False)
         )
         self._show_summary = show_summary
         self._closed = False
@@ -112,12 +112,12 @@ class ExperimentLogger:
 
     @staticmethod
     def git_metadata(script_path: Path) -> dict:
+        res: Dict["str", "str"] = {}
         try:
             import git
         except ImportError:
             warnings.warn("GitPython is not Installed")
-            return
-        res = {}
+            return res
         try:
             repo = git.Repo(script_path, search_parent_directories=True)
             head = repo.head.commit

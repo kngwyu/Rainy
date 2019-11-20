@@ -9,13 +9,13 @@ from torch.nn import functional as F
 from typing import Sequence, Tuple
 from .base import OneStepAgent
 from ..config import Config
-from ..net import Policy
+from ..net import Policy, SeparatedSACNet
 from ..prelude import Action, Array, State
 
 
 class EntropyTuner(ABC):
     @abstractmethod
-    def alpha(self, *args) -> float:
+    def alpha(self, _: Tensor) -> float:
         pass
 
 
@@ -23,7 +23,7 @@ class DummyEntropyTuner(EntropyTuner):
     def __init__(self, alpha: float) -> None:
         self._alpha = alpha
 
-    def alpha(self, *args) -> float:
+    def alpha(self, _: Tensor) -> float:
         return self._alpha
 
 
@@ -33,7 +33,7 @@ class TrainableEntropyTuner(EntropyTuner):
         self.optim = config.optimizer([self.log_alpha], key="entropy")
         self.target_entropy = target_entropy
 
-    def alpha(self, log_pi: Tensor, *args) -> float:
+    def alpha(self, log_pi: Tensor) -> float:
         alpha_loss = -(self.log_alpha * (log_pi.detach() + self.target_entropy)).mean()
         self.optim.zero_grad()
         alpha_loss.backward()
@@ -44,7 +44,7 @@ class TrainableEntropyTuner(EntropyTuner):
 class SACAgent(OneStepAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.net = config.net("sac")
+        self.net: SeparatedSACNet = config.net("sac")  # type: ignore
         self.target_net = self.net.get_target()
         self.actor_opt = config.optimizer(self.net.actor_params(), key="actor")
         self.critic_opt = config.optimizer(self.net.critic_params(), key="critic")
@@ -52,8 +52,8 @@ class SACAgent(OneStepAgent):
         self.batch_indices = config.device.indices(config.replay_batch_size)
 
         if self.config.automatic_entropy_tuning:
-            target_entropy = self._target_entropy()
-            self.entropy_tuner = TrainableEntropyTuner(target_entropy, config)
+            target = self._target_entropy()
+            self.entropy_tuner: EntropyTuner = TrainableEntropyTuner(target, config)
         else:
             self.entropy_tuner = DummyEntropyTuner(self.config.fixed_alpha)
 
@@ -91,13 +91,13 @@ class SACAgent(OneStepAgent):
             self._train()
         return next_state, reward, done, info
 
-    def _logpi_and_q(self, states: Tensor, policy: Policy) -> Tensor:
+    def _logpi_and_q(self, states: Tensor, policy: Policy) -> Tuple[Tensor, Tensor]:
         actions = policy.baction()
         q1, q2 = self.net.q_values(states, actions)
         return policy.log_prob(use_baction=True), torch.min(q1, q2)
 
     @torch.no_grad()
-    def _q_next(self, next_states: Tensor, alpha: Tensor) -> Tensor:
+    def _q_next(self, next_states: Tensor, alpha: float) -> Tensor:
         policy = self.net.policy(next_states)
         q1, q2 = self.target_net.q_values(next_states, policy.action())
         return torch.min(q1, q2).squeeze_() - alpha * policy.log_prob()

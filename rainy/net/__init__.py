@@ -6,4 +6,5 @@ from .init import InitFn, Initializer
 from .option_critic import OptionCriticNet, SharedBodyOCNet
 from .policy import Policy, PolicyDist
 from .recurrent import DummyRnn, GruBlock, LstmBlock, RnnBlock, RnnState
+from .sac import SACTarget, SeparatedSACNet
 from .value import DiscreteQFunction, DiscreteQValueNet

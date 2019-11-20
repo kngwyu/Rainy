@@ -1,10 +1,8 @@
-from numpy import ndarray
 from typing import Callable, Generic, List, NamedTuple, Tuple
 from .array_deque import ArrayDeque
 from .base import ReplayFeed, ReplayBuffer
-from ..envs.ext import State
 from ..utils import sample_indices
-from ..prelude import GenericNamedMeta
+from ..prelude import Array, GenericNamedMeta, State
 
 
 class UniformReplayBuffer(ReplayBuffer, Generic[ReplayFeed]):
@@ -34,8 +32,8 @@ class DQNReplayFeed(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
     done: bool
 
     def to_ndarray(
-        self, wrap: Callable[[State], ndarray]
-    ) -> Tuple[ndarray, int, float, ndarray, bool]:
+        self, wrap: Callable[[State], Array]
+    ) -> Tuple[Array, int, float, Array, bool]:
         return (
             wrap(self.state),
             self.action,

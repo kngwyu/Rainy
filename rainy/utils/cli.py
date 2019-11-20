@@ -26,7 +26,7 @@ from .. import run
 )
 @click.pass_context
 def rainy_cli(
-    ctx: dict,
+    ctx: click.Context,
     gpu: Tuple[int],
     envname: Optional[str],
     seed: Optional[int],
@@ -59,7 +59,7 @@ def rainy_cli(
     help="Comment that would be wrote to fingerprint.txt",
 )
 @click.option("--prefix", type=str, default="", help="Prefix of the log directory")
-def train(ctx: dict, comment: Optional[str], prefix: str) -> None:
+def train(ctx: click.Context, comment: Optional[str], prefix: str) -> None:
     c = ctx.obj["config"]
     script_path = ctx.obj["script_path"]
     if script_path is not None:
@@ -96,11 +96,15 @@ def train(ctx: dict, comment: Optional[str], prefix: str) -> None:
     help="Name of the action file",
 )
 @click.pass_context
-def random(ctx: dict, save: bool, render: bool, replay: bool, action_file: str) -> None:
+def random(
+    ctx: click.Context, save: bool, render: bool, replay: bool, action_file: str
+) -> None:
     c = ctx.obj["config"]
     ag = ctx.obj["make_agent"](c)
-    action_file = fname if save else None
-    run.random_agent(ag, render=render, replay=replay, action_file=action_file)
+    if save:
+        run.random_agent(ag, render=render, replay=replay, action_file=action_file)
+    else:
+        run.random_agent(ag, render=render, replay=replay)
 
 
 @rainy_cli.command(help="Given a save file and restart training")
@@ -115,7 +119,7 @@ def random(ctx: dict, save: bool, render: bool, replay: bool, action_file: str) 
     default=100,
     help="The number of  additional training steps",
 )
-def retrain(ctx: dict, logdir: str, model: str, additional_steps: int) -> None:
+def retrain(ctx: click.Context, logdir: str, model: str, additional_steps: int) -> None:
     c = ctx.obj["config"]
     ag = ctx.obj["make_agent"](c)
     run.retrain_agent(
@@ -143,7 +147,12 @@ def retrain(ctx: dict, logdir: str, model: str, additional_steps: int) -> None:
 )
 @click.pass_context
 def eval(
-    ctx: dict, logdir: str, model: str, render: bool, replay: bool, action_file: str
+    ctx: click.Context,
+    logdir: str,
+    model: str,
+    render: bool,
+    replay: bool,
+    action_file: str,
 ) -> None:
     c = ctx.obj["config"]
     ag = ctx.obj["make_agent"](c)
@@ -160,7 +169,7 @@ def eval(
 @rainy_cli.command(help="Open an ipython shell with rainy imported")
 @click.option("--logdir", type=str, help="Name of the directly where the log file")
 @click.pass_context
-def ipython(ctx: dict, logdir: Optional[str]) -> None:
+def ipython(ctx: click.Context, logdir: Optional[str]) -> None:
     config, make_agent = ctx.obj["config"], ctx.obj["make_agent"]  # noqa
     _open_ipython(logdir)
 
@@ -169,7 +178,7 @@ def run_cli(
     config_gen: Callable[..., Config],
     agent_gen: Callable[[Config], Agent],
     script_path: Optional[str] = None,
-) -> rainy_cli:
+) -> None:
     obj = {
         "config_gen": config_gen,
         "make_agent": agent_gen,

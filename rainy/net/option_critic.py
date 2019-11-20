@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from torch import nn, Tensor
-from typing import Callable, Tuple, Union
+from typing import Callable, Sequence, Tuple, Union
 from .actor_critic import policy_init
 from .block import DQNConv, FcBody, LinearHead, NetworkBlock
 from .policy import BernoulliDist, BernoulliPolicy, CategoricalDist, Policy, PolicyDist
@@ -12,6 +12,8 @@ from ..utils import Device
 class OptionCriticNet(nn.Module, ABC):
     """Network for option critic
     """
+    num_options: int
+    state_dim: Sequence[int]
 
     @abstractmethod
     def opt_q(self, states: Union[Array, Tensor]) -> Tensor:
@@ -47,11 +49,8 @@ class SharedBodyOCNet(OptionCriticNet):
         self.num_options = optq_head.output_dim
         self.action_dim = actor_head.output_dim // self.num_options
         self.device = device
+        self.state_dim = self.body.input_dim
         self.to(device.unwrapped)
-
-    @property
-    def state_dim(self) -> Tuple[int, ...]:
-        return self.body.input_dim
 
     def opt_q(self, states: Union[Array, Tensor]) -> Tensor:
         feature = self.body(self.device.tensor(states))

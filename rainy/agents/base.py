@@ -4,7 +4,16 @@ import numpy as np
 from pathlib import Path
 import torch
 from torch import nn, Tensor
-from typing import Callable, Generic, Iterable, List, NamedTuple, Optional, Tuple
+from typing import (
+    Callable,
+    Generic,
+    Iterable,
+    List,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Tuple,
+)
 import warnings
 from ..config import Config
 from ..lib import mpi
@@ -38,7 +47,7 @@ class Agent(ABC):
         )
 
     @abstractmethod
-    def members_to_save(self) -> Tuple[str, ...]:
+    def members_to_save(self) -> Sequence[str]:
         """Here you can specify members you want to save.
 
     Examples::

@@ -125,7 +125,7 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
         It's useful for the cases where numpy.ndarray representation is too large to
         throw it to replay buffer directly.
         """
-        return state
+        return state  # type: ignore
 
     def save_history(self, file_name: str) -> None:
         """
