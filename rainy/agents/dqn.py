@@ -64,3 +64,13 @@ class DQNAgent(OneStepAgent):
         self.network_log(q_value=q_current.mean().item(), value_loss=loss.item())
         if (self.update_steps + 1) % self.config.sync_freq == 0:
             self.target_net.load_state_dict(self.net.state_dict())
+
+
+class DoubleDQNAgent(DQNAgent):
+    @torch.no_grad()
+    def _q_next(self, next_states: Array) -> Tensor:
+        """Returns Q values of next_states, supposing torch.no_grad() is called
+        """
+        q_next = self.target_net(next_states)
+        q_values = self.net.q_values(next_states, nostack=True)
+        return q_next[self.batch_indices, q_values.argmax(dim=-1)]
