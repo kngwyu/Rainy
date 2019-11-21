@@ -3,13 +3,15 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch.nn import functional as F
-from typing import Sequence, Tuple
+from typing import Tuple
 from .base import OneStepAgent
 from ..config import Config
 from ..prelude import Action, Array, State
 
 
 class DDPGAgent(OneStepAgent):
+    SAVED_MEMBERS = "net", "target_net", "actor_opt", "critic_opt", "explorer", "replay"
+
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self.net = config.net("ddpg")
@@ -23,17 +25,6 @@ class DDPGAgent(OneStepAgent):
 
     def set_mode(self, train: bool = True) -> None:
         self.net.train(mode=train)
-
-    def members_to_save(self) -> Sequence[str]:
-        return (
-            "net",
-            "target_net",
-            "actor_opt",
-            "critic_opt",
-            "total_steps",
-            "explorer",
-            "replay",
-        )
 
     @torch.no_grad()
     def eval_action(self, state: Array) -> Action:

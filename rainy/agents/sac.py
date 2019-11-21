@@ -42,6 +42,8 @@ class TrainableEntropyTuner(EntropyTuner):
 
 
 class SACAgent(OneStepAgent):
+    SAVED_MEMBERS = "net", "target_net", "actor_opt", "critic_opt", "replay"
+
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self.net: SeparatedSACNet = config.net("sac")  # type: ignore
@@ -65,9 +67,6 @@ class SACAgent(OneStepAgent):
 
     def set_mode(self, train: bool = True) -> None:
         self.net.train(mode=train)
-
-    def members_to_save(self) -> Sequence[str]:
-        return "net", "target_net", "actor_opt", "critic_opt", "total_steps", "replay"
 
     @torch.no_grad()
     def eval_action(self, state: Array) -> Action:

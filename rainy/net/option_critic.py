@@ -12,6 +12,7 @@ from ..utils import Device
 class OptionCriticNet(nn.Module, ABC):
     """Network for option critic
     """
+
     num_options: int
     state_dim: Sequence[int]
 

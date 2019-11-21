@@ -10,6 +10,8 @@ from ..prelude import Action, Array, State
 
 
 class A2CAgent(NStepParallelAgent[State]):
+    SAVED_MEMBERS = "net", "lr_cooler"
+
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self.storage: RolloutStorage[State] = RolloutStorage(
@@ -19,9 +21,6 @@ class A2CAgent(NStepParallelAgent[State]):
         self.optimizer = config.optimizer(self.net.parameters())
         self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]["lr"])
         self.eval_rnns = self.rnn_init()
-
-    def members_to_save(self) -> Tuple[str, ...]:
-        return "net", "lr_cooler"
 
     def set_mode(self, train: bool = True) -> None:
         self.net.train(mode=train)

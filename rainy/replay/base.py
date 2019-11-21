@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Generic, List, TypeVar
+from typing import Generic, List, Type, TypeVar
 
 ReplayFeed = TypeVar("ReplayFeed")
 
 
 class ReplayBuffer(ABC, Generic[ReplayFeed]):
-    def __init__(self, feed: ReplayFeed) -> None:
+    def __init__(self, feed: Type[ReplayFeed]) -> None:
         self.feed = feed
 
     @abstractmethod

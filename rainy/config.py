@@ -1,6 +1,6 @@
 from torch import nn
 from torch.optim import Optimizer, RMSprop
-from typing import Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Callable, Dict, List, Optional, Sequence
 from .envs import ClassicalControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEnv
 from .net import actor_critic, deterministic, option_critic, sac, value
 from .net.prelude import NetFn

@@ -1,4 +1,4 @@
-from typing import Callable, Generic, List, NamedTuple, Tuple
+from typing import Callable, Generic, List, NamedTuple, Tuple, Type
 from .array_deque import ArrayDeque
 from .base import ReplayFeed, ReplayBuffer
 from ..utils import sample_indices
@@ -6,7 +6,7 @@ from ..prelude import Array, GenericNamedMeta, State
 
 
 class UniformReplayBuffer(ReplayBuffer, Generic[ReplayFeed]):
-    def __init__(self, feed: ReplayFeed, capacity: int = 1000) -> None:
+    def __init__(self, feed: Type[ReplayFeed], capacity: int = 1000) -> None:
         super().__init__(feed)
         self.buf = ArrayDeque(capacity=capacity)
         self.cap = capacity
