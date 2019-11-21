@@ -11,6 +11,7 @@ from ..utils import Device
 class Policy(ABC):
     """Represents parameterized stochastic policies.
     """
+
     def __init__(self, dist: Distribution) -> None:
         self.dist = dist
         self._action: Optional[Tensor] = None
@@ -72,6 +73,7 @@ class Policy(ABC):
 class BernoulliPolicy(Policy):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(Bernoulli(*args, **kwargs))
+        self.dist: Bernoulli
 
     def best_action(self) -> Tensor:
         return self.dist.probs > 0.5
@@ -92,6 +94,7 @@ class BernoulliPolicy(Policy):
 class CategoricalPolicy(Policy):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(Categorical(*args, **kwargs))
+        self.dist: Categorical
 
     def best_action(self) -> Tensor:
         return self.dist.probs.argmax(dim=-1)
@@ -112,6 +115,7 @@ class CategoricalPolicy(Policy):
 class GaussianPolicy(Policy):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(Normal(*args, **kwargs))
+        self.dist: Normal
 
     def best_action(self) -> Tensor:
         return self.dist.mean
@@ -132,12 +136,13 @@ class GaussianPolicy(Policy):
 class TanhGaussianPolicy(GaussianPolicy):
     def __init__(self, *args, epsilon: float = 1e-6, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self._pre_tanh = None
+        self._pre_tanh: Optional[Tensor] = None
         self.epsilon = epsilon
 
     def sample(self) -> Tensor:
-        self._pre_tanh = self.dist.sample().detach()
-        return torch.tanh(self._pre_tanh)
+        pre_tanh = self.dist.sample().detach()
+        self._pre_tanh = pre_tanh
+        return torch.tanh(pre_tanh)
 
     def rsample(self) -> Tensor:
         res = self.dist.rsample()
@@ -175,6 +180,7 @@ class PolicyDist(ABC, nn.Module):
 class BernoulliDist(PolicyDist):
     """Bernoulli policy with no learnable parameter
     """
+
     def forward(self, x: Tensor) -> Policy:
         return BernoulliPolicy(logits=x)
 
@@ -182,6 +188,7 @@ class BernoulliDist(PolicyDist):
 class CategoricalDist(PolicyDist):
     """Categorical policy with no learnable parameter
     """
+
     def forward(self, x: Tensor) -> Policy:
         return CategoricalPolicy(logits=x)
 
@@ -189,6 +196,7 @@ class CategoricalDist(PolicyDist):
 class GaussinanDist(PolicyDist):
     """Gaussian policy which takes both mean and stdev as inputs
     """
+
     @property
     def input_dim(self) -> int:
         return self.action_dim * 2
@@ -202,11 +210,12 @@ class GaussinanDist(PolicyDist):
 class TanhGaussianDist(GaussinanDist):
     """Tanh clipped Gaussian policy
     """
+
     def __init__(
-            self,
-            action_dim: int,
-            logstd_range: Tuple[float, float] = (-20.0, 2.0),
-            **kwargs,
+        self,
+        action_dim: int,
+        logstd_range: Tuple[float, float] = (-20.0, 2.0),
+        **kwargs,
     ) -> None:
         super().__init__(action_dim)
         self.logstd_range = logstd_range
@@ -222,6 +231,7 @@ class SeparateStdGaussianDist(PolicyDist):
     """Gaussian policy which takes only mean as an input, and has a standard deviation
        independent with states, as a lernable parameter.
     """
+
     def __init__(self, action_dim: int, device: Device) -> None:
         super().__init__(action_dim)
         self.stddev = nn.Parameter(device.zeros(action_dim))

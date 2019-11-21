@@ -6,10 +6,10 @@ from rainy.envs.testing import DummyEnv, DummyEnvDeterministic, State
 import pytest
 
 
-@pytest.mark.parametrize('penv', [
-    DummyParallelEnv(lambda: DummyEnv(), 4),
-    MultiProcEnv(lambda: DummyEnv(), 4)
-])
+@pytest.mark.parametrize(
+    "penv",
+    [DummyParallelEnv(lambda: DummyEnv(), 4), MultiProcEnv(lambda: DummyEnv(), 4)],
+)
 def test_penv(penv: ParallelEnv) -> None:
     states = penv.reset()
     for s in states:
@@ -25,11 +25,14 @@ def test_penv(penv: ParallelEnv) -> None:
     penv.close()
 
 
-@pytest.mark.parametrize('penv, nstack', [
-    (DummyParallelEnv(lambda: DummyEnvDeterministic(), 6), 4),
-    (MultiProcEnv(lambda: DummyEnvDeterministic(), 6), 4),
-    (DummyParallelEnv(lambda: DummyEnvDeterministic(), 6), 8)
-])
+@pytest.mark.parametrize(
+    "penv, nstack",
+    [
+        (DummyParallelEnv(lambda: DummyEnvDeterministic(), 6), 4),
+        (MultiProcEnv(lambda: DummyEnvDeterministic(), 6), 4),
+        (DummyParallelEnv(lambda: DummyEnvDeterministic(), 6), 8),
+    ],
+)
 def test_frame_stack(penv: ParallelEnv, nstack: int) -> None:
     penv = FrameStackParallel(penv, nstack=nstack)
     penv.seed(np.arange(penv.num_envs))
@@ -46,9 +49,9 @@ def test_frame_stack(penv: ParallelEnv, nstack: int) -> None:
     penv.close()
 
 
-@pytest.mark.parametrize('style', ['dopamine', 'deepmind', 'baselines'])
+@pytest.mark.parametrize("style", ["dopamine", "deepmind", "baselines"])
 def test_atari(style: str):
-    atari = envs.Atari('Pong', style=style)
+    atari = envs.Atari("Pong", style=style)
     STATE_DIM = (4, 84, 84)
     assert atari.state_dim == STATE_DIM
     assert atari.action_dim == 6

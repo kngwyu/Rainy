@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/**/*'
+      - 'setup.py'
       - 'rainy/*'
       - 'rainy/**/*'
       - 'tests/*'

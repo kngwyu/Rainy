@@ -6,13 +6,17 @@ from .ext import EnvExt, EnvSpec
 from .monitor import RewardMonitor
 from .obs_wrappers import AddTimeStep, TransposeObs
 from .parallel import DummyParallelEnv, EnvGen, MultiProcEnv, ParallelEnv
-from .parallel_wrappers import FrameStackParallel, NormalizeObs, \
-    NormalizeReward, ParallelEnvWrapper
+from .parallel_wrappers import (
+    FrameStackParallel,
+    NormalizeObs,
+    NormalizeReward,
+    ParallelEnvWrapper,
+)
 from ..prelude import Self, State
 
 
 class AtariConfig:
-    STYLES = ['deepmind', 'baselines', 'dopamine', 'rnd']
+    STYLES = ["deepmind", "baselines", "dopamine", "rnd"]
 
     def __init__(self) -> None:
         self.timelimit = True
@@ -29,18 +33,20 @@ class AtariConfig:
     @staticmethod
     def from_style(style: str) -> Self:
         if style not in AtariConfig.STYLES:
-            raise ValueError('You have to choose a style from {}'.format(AtariConfig.STYLES))
+            raise ValueError(
+                "You have to choose a style from {}".format(AtariConfig.STYLES)
+            )
         cfg = AtariConfig()
-        if style == 'deepmind':
+        if style == "deepmind":
             pass
-        elif style == 'baselines':
+        elif style == "baselines":
             cfg.fire_reset = True
-        elif style == 'dopamine':
+        elif style == "dopamine":
             cfg.timelimit = False
             cfg.v4 = True
             cfg.noop_reset = False
             cfg.episodic_life = True
-        elif style == 'rnd':
+        elif style == "rnd":
             cfg.override_timelimit = 4500 * 4
             cfg.noop_reset = False
             cfg.sticky_actions = True
@@ -66,7 +72,7 @@ class Atari(EnvExt):
             fire_reset=cfg.fire_reset,
             clip_reward=cfg.clip_reward,
             flicker_frame=cfg.flicker_frame,
-            frame_stack=cfg.frame_stack
+            frame_stack=cfg.frame_stack,
         )
         env = TransposeObs(env)
         super().__init__(env)
@@ -86,11 +92,12 @@ def atari_parallel(frame_stack: bool = True) -> Callable[[EnvGen, int], Parallel
         if frame_stack:
             penv = FrameStackParallel(penv)
         return penv
+
     return __wrap
 
 
 class ClassicalControl(EnvExt):
-    def __init__(self, name: str = 'CartPole-v0', max_steps: int = 200) -> None:
+    def __init__(self, name: str = "CartPole-v0", max_steps: int = 200) -> None:
         self.name = name
         super().__init__(gym.make(name))
         self._env._max_episode_steps = max_steps
@@ -98,18 +105,15 @@ class ClassicalControl(EnvExt):
 
 class PyBullet(EnvExt):
     def __init__(
-            self,
-            name: str = 'Hopper',
-            add_timestep: bool = False,
-            nosuffix: bool = False
+        self, name: str = "Hopper", add_timestep: bool = False, nosuffix: bool = False
     ) -> None:
         self.name = name
         try:
             import pybullet_envs  # noqa
         except ImportError:
-            raise ImportError('pybullet is not installed')
+            raise ImportError("pybullet is not installed")
         if not nosuffix:
-            name += 'BulletEnv-v0'
+            name += "BulletEnv-v0"
         env = gym.make(name)
         if add_timestep:
             env = AddTimeStep(env)
@@ -117,11 +121,12 @@ class PyBullet(EnvExt):
         self.viewer = None
         self.spec.use_reward_monitor = True
 
-    def render(self, mode: str = 'human') -> Optional[ndarray]:
-        if mode == 'human':
-            arr = self._env.render('rgb_array')
+    def render(self, mode: str = "human") -> Optional[ndarray]:
+        if mode == "human":
+            arr = self._env.render("rgb_array")
             if self.viewer is None:
                 from gym.envs.classic_control.rendering import SimpleImageViewer
+
                 self.viewer = SimpleImageViewer()
             self.viewer.imshow(arr)  # type: ignore
             return None
@@ -130,11 +135,11 @@ class PyBullet(EnvExt):
 
 
 def pybullet_parallel(
-        normalize_obs: bool = True,
-        normalize_reward: bool = True,
-        obs_clip: float = 10.0,
-        reward_clip: float = 10.0,
-        gamma: float = 0.99
+    normalize_obs: bool = True,
+    normalize_reward: bool = True,
+    obs_clip: float = 10.0,
+    reward_clip: float = 10.0,
+    gamma: float = 0.99,
 ) -> Callable[[EnvGen, int], ParallelEnv]:
     def __wrap(env_gen: EnvGen, num_workers: int) -> ParallelEnv:
         penv: ParallelEnv = MultiProcEnv(env_gen, num_workers)
@@ -143,5 +148,5 @@ def pybullet_parallel(
         if normalize_reward:
             penv = NormalizeReward(penv, reward_clip=reward_clip, gamma=gamma)
         return penv
-    return __wrap
 
+    return __wrap

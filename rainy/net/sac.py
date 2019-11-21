@@ -2,7 +2,7 @@ import copy
 import itertools
 import torch
 from torch import nn, Tensor
-from typing import Iterable, Sequence, Tuple, Union
+from typing import Iterable, List, Sequence, Tuple, Union
 from .block import FcBody, LinearHead, NetworkBlock
 from .init import Initializer, fanin_uniform, constant
 from .misc import SoftUpdate
@@ -13,34 +13,35 @@ from ..prelude import Array, Self
 from ..utils import Device
 
 
-class SacTarget(SoftUpdate):
-    def __init__(self, critic1: NetworkBlock, critic2: NetworkBlock, device: Device) -> None:
+class SACTarget(SoftUpdate):
+    def __init__(self, critic1: nn.Module, critic2: nn.Module, device: Device) -> None:
         super().__init__()
         self.critic1 = critic1
         self.critic2 = critic2
         self.device = device
 
     def soft_update(self, other: Self, coef: float) -> None:
-        SoftUpdate.soft_update(self.critic1, other.critic1, coef)
-        SoftUpdate.soft_update(self.critic2, other.critic2, coef)
+        SoftUpdate.soft_update(self.critic1, other.critic1, coef)  # type: ignore
+        SoftUpdate.soft_update(self.critic2, other.critic2, coef)  # type: ignore
 
-    def q_values(self, states: Union[Array, Tensor], action: Union[Array, Tensor]) -> Tensor:
+    def q_values(
+        self, states: Union[Array, Tensor], action: Union[Array, Tensor]
+    ) -> Tuple[Tensor, Tensor]:
         sa = torch.cat((self.device.tensor(states), self.device.tensor(action)), dim=1)
         return self.critic1(sa), self.critic2(sa)
 
 
-class SeparatedSacNet(nn.Module, ContinuousQFunction):
+class SeparatedSACNet(nn.Module, ContinuousQFunction):
     def __init__(
-            self,
-            actor_body: NetworkBlock,
-            critic_body1: NetworkBlock,
-            critic_body2: NetworkBlock,
-            policy_dist: PolicyDist,
-            device: Device = Device(),
-            init: Initializer = Initializer(
-                weight_init=fanin_uniform(),
-                bias_init=constant(0.1)
-            ),
+        self,
+        actor_body: NetworkBlock,
+        critic_body1: NetworkBlock,
+        critic_body2: NetworkBlock,
+        policy_dist: PolicyDist,
+        device: Device = Device(),
+        init: Initializer = Initializer(
+            weight_init=fanin_uniform(), bias_init=constant(0.1)
+        ),
     ) -> None:
         super().__init__()
         self.actor = nn.Sequential(
@@ -48,31 +49,31 @@ class SeparatedSacNet(nn.Module, ContinuousQFunction):
             LinearHead(actor_body.output_dim, policy_dist.input_dim, init=init),
         )
         self.critic1 = nn.Sequential(
-            critic_body1,
-            LinearHead(critic_body1.output_dim, 1, init=init)
+            critic_body1, LinearHead(critic_body1.output_dim, 1, init=init)
         )
         self.critic2 = nn.Sequential(
-            critic_body2,
-            LinearHead(critic_body2.output_dim, 1, init=init)
+            critic_body2, LinearHead(critic_body2.output_dim, 1, init=init)
         )
         self.policy_dist = policy_dist
         self.device = device
         self.to(device.unwrapped)
 
-    def q_value(self, states: Union[Array, Tensor], action: Union[Array, Tensor]) -> Tensor:
+    def q_value(
+        self, states: Union[Array, Tensor], action: Union[Array, Tensor]
+    ) -> Tensor:
         sa = torch.cat((self.device.tensor(states), self.device.tensor(action)), dim=1)
         return self.critic1(sa)
 
     def q_values(
-            self,
-            states: Union[Array, Tensor],
-            action: Union[Array, Tensor]
+        self, states: Union[Array, Tensor], action: Union[Array, Tensor]
     ) -> Tuple[Tensor, Tensor]:
         sa = torch.cat((self.device.tensor(states), self.device.tensor(action)), dim=1)
         return self.critic1(sa), self.critic2(sa)
 
-    def get_target(self) -> SacTarget:
-        return SacTarget(copy.deepcopy(self.critic1), copy.deepcopy(self.critic2), self.device)
+    def get_target(self) -> SACTarget:
+        return SACTarget(
+            copy.deepcopy(self.critic1), copy.deepcopy(self.critic2), self.device
+        )
 
     def policy(self, states: Union[Array, Tensor]) -> Policy:
         st = self.device.tensor(states)
@@ -88,9 +89,7 @@ class SeparatedSacNet(nn.Module, ContinuousQFunction):
         return itertools.chain(self.critic1.parameters(), self.critic2.parameters())
 
     def forward(
-            self,
-            states: Union[Array, Tensor],
-            action: Union[Array, Tensor]
+        self, states: Union[Array, Tensor], action: Union[Array, Tensor]
     ) -> Tuple[Tensor, Tensor, Policy]:
         s, a = self.device.tensor(states), self.device.tensor(action)
         sa = torch.cat((s, a), dim=1)
@@ -100,27 +99,25 @@ class SeparatedSacNet(nn.Module, ContinuousQFunction):
 
 
 def fc_separated(
-        actor_units: Sequence[int] = [256, 256],
-        critic_units: Sequence[int] = [256, 256],
-        policy_type: type = TanhGaussianDist,
-        init: Initializer = Initializer(
-            weight_init=fanin_uniform(),
-            bias_init=constant(0.1)
-        ),
+    actor_units: List[int] = [256, 256],
+    critic_units: List[int] = [256, 256],
+    policy_type: type = TanhGaussianDist,
+    init: Initializer = Initializer(
+        weight_init=fanin_uniform(), bias_init=constant(0.1)
+    ),
 ) -> NetFn:
     """SAC network with separated bodys
     """
-    def _net(state_dim: Tuple[int, ...], action_dim: int, device: Device) -> SeparatedSacNet:
+
+    def _net(
+        state_dim: Sequence[int], action_dim: int, device: Device
+    ) -> SeparatedSACNet:
         actor_body = FcBody(state_dim[0], units=actor_units, init=init)
         critic1 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
         critic2 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
         policy = policy_type(action_dim)
-        return SeparatedSacNet(
-            actor_body,
-            critic1,
-            critic2,
-            policy,
-            device=device,
-            init=init,
+        return SeparatedSACNet(
+            actor_body, critic1, critic2, policy, device=device, init=init,
         )
+
     return _net

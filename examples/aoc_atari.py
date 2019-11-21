@@ -2,21 +2,19 @@
 """
 import os
 from rainy import Config, net
-from rainy.agents import AocAgent
+from rainy.agents import AOCAgent
 from rainy.envs import Atari, atari_parallel
 from rainy.lib.explore import DummyCooler, EpsGreedy
 import rainy.utils.cli as cli
 from torch.optim import RMSprop
 
 
-def config(game: str = 'Breakout') -> Config:
+def config(game: str = "Breakout") -> Config:
     c = Config()
     c.set_env(lambda: Atari(game, frame_stack=False))
-    c.set_optimizer(
-        lambda params: RMSprop(params, lr=7e-4, alpha=0.99, eps=1e-5)
-    )
+    c.set_optimizer(lambda params: RMSprop(params, lr=7e-4, alpha=0.99, eps=1e-5))
     c.set_explorer(lambda: EpsGreedy(1.0, DummyCooler(0.1)))
-    c.set_net_fn('option-critic', net.option_critic.conv_shared(num_options=4))
+    c.set_net_fn("option-critic", net.option_critic.conv_shared(num_options=4))
     c.nworkers = 16
     c.nsteps = 5
     c.set_parallel_env(atari_parallel())
@@ -35,5 +33,5 @@ def config(game: str = 'Breakout') -> Config:
     return c
 
 
-if __name__ == '__main__':
-    cli.run_cli(config, AocAgent, script_path=os.path.realpath(__file__))
+if __name__ == "__main__":
+    cli.run_cli(config, AOCAgent, script_path=os.path.realpath(__file__))

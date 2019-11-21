@@ -25,7 +25,7 @@ class NoopResetEnv(gym.Wrapper):
         self.noop_max = noop_max
         self.override_num_noops = None
         self.noop_action = 0
-        assert env.unwrapped.get_action_meanings()[0] == 'NOOP'
+        assert env.unwrapped.get_action_meanings()[0] == "NOOP"
 
     def reset(self, **kwargs):
         """ Do no-op action for a number of steps in [1, noop_max]."""
@@ -50,7 +50,7 @@ class FireResetEnv(gym.Wrapper):
     def __init__(self, env):
         """Take action on reset for environments that are fixed until firing."""
         gym.Wrapper.__init__(self, env)
-        assert env.unwrapped.get_action_meanings()[1] == 'FIRE'
+        assert env.unwrapped.get_action_meanings()[1] == "FIRE"
         assert len(env.unwrapped.get_action_meanings()) >= 3
 
     def reset(self, **kwargs):
@@ -215,7 +215,7 @@ class FrameStack(gym.Wrapper):
             low=0,
             high=255,
             shape=(shp[:-1] + (shp[-1] * k,)),
-            dtype=env.observation_space.dtype
+            dtype=env.observation_space.dtype,
         )
 
     def reset(self):
@@ -271,6 +271,7 @@ class LazyFrames:
 
 class FlickerFrame(gym.ObservationWrapper):
     """Stochastically flicker frames."""
+
     def __init__(self, env: gym.Env, p: float = 0.5) -> None:
         super().__init__(env)
         self.p = p
@@ -286,6 +287,7 @@ class StickyActionEnv(gym.Wrapper):
     """Repeat the same action stochastically
     From https://github.com/openai/random-network-distillation/blob/master/atari_wrappers.py
     """
+
     def __init__(self, env: gym.Env, p: float = 0.25) -> None:
         super().__init__(env)
         self.p = p
@@ -302,15 +304,15 @@ class StickyActionEnv(gym.Wrapper):
 
 
 def make_atari(
-        env_id: str,
-        timelimit: bool = True,
-        override_timelimit: Optional[int] = None,
-        v4: bool = False,
-        sticky_actions: bool = False,
-        noop_reset: bool = True,
+    env_id: str,
+    timelimit: bool = True,
+    override_timelimit: Optional[int] = None,
+    v4: bool = False,
+    sticky_actions: bool = False,
+    noop_reset: bool = True,
 ) -> gym.Env:
-    version = 'v0' if sticky_actions else 'v4'
-    env = gym.make('{}NoFrameskip-{}'.format(env_id, version))
+    version = "v0" if sticky_actions else "v4"
+    env = gym.make("{}NoFrameskip-{}".format(env_id, version))
     if not timelimit:
         env = env.env
     if timelimit and override_timelimit is not None:
@@ -324,12 +326,12 @@ def make_atari(
 
 
 def wrap_deepmind(
-        env: gym.Env,
-        episodic_life: bool = False,
-        fire_reset: bool = False,
-        clip_reward: bool = True,
-        flicker_frame: bool = False,
-        frame_stack: bool = True,
+    env: gym.Env,
+    episodic_life: bool = False,
+    fire_reset: bool = False,
+    clip_reward: bool = True,
+    flicker_frame: bool = False,
+    frame_stack: bool = True,
 ) -> gym.Env:
     """Configure environment for DeepMind-style Atari.
        About FireResetEnv, I recommend to see the discussion at
@@ -337,7 +339,7 @@ def wrap_deepmind(
     """
     if episodic_life:
         env = EpisodicLifeEnv(env)
-    if fire_reset and 'FIRE' in env.unwrapped.get_action_meanings():
+    if fire_reset and "FIRE" in env.unwrapped.get_action_meanings():
         env = FireResetEnv(env)
     env = WarpFrame(env)
     if clip_reward:

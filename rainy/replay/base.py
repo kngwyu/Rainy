@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Generic, List, TypeVar
 
-ReplayFeed = TypeVar('ReplayFeed')
+ReplayFeed = TypeVar("ReplayFeed")
 
 
 class ReplayBuffer(ABC, Generic[ReplayFeed]):
@@ -19,4 +19,3 @@ class ReplayBuffer(ABC, Generic[ReplayFeed]):
     @abstractmethod
     def __len__(self):
         pass
-

@@ -10,11 +10,12 @@ from ..prelude import Array
 class TransposeObs(gym.ObservationWrapper):
     """Transpose & Scale image
     """
+
     def __init__(
-            self,
-            env: gym.Env,
-            transpose: Tuple[int, int, int] = (2, 0, 1),
-            scale: float = 255.0
+        self,
+        env: gym.Env,
+        transpose: Tuple[int, int, int] = (2, 0, 1),
+        scale: float = 255.0,
     ) -> None:
         super().__init__(env)
         obs_shape = self.observation_space.shape
@@ -22,7 +23,7 @@ class TransposeObs(gym.ObservationWrapper):
             low=self.observation_space.low[0, 0, 0],
             high=self.observation_space.high[0, 0, 0] / scale,
             shape=[obs_shape[i] for i in transpose],
-            dtype=self.observation_space.dtype
+            dtype=self.observation_space.dtype,
         )
         self.scale = scale
         self.transpose = transpose
@@ -40,10 +41,7 @@ class AddTimeStep(gym.ObservationWrapper):
         super().__init__(env)
         obs = self.observation_space
         self.observation_space: gym.Box = Box(
-            low=obs.low[0],
-            high=obs.high[0],
-            shape=[obs.shape[0] + 1],
-            dtype=obs.dtype
+            low=obs.low[0], high=obs.high[0], shape=[obs.shape[0] + 1], dtype=obs.dtype
         )
 
     def observation(self, obs: Array[float]) -> Array[float]:

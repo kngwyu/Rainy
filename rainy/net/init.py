@@ -1,10 +1,10 @@
 from functools import partial
 import numpy as np
-from typing import Iterable, Optional
+from typing import Callable, Iterable, Optional
 import torch
 from torch import nn, Tensor
 
-InitFn = partial
+InitFn = Callable[[Tensor], Tensor]
 
 
 def uniform(min: float = -1.0, max: float = 1.0) -> InitFn:
@@ -15,16 +15,18 @@ def normal(mean: float = 0.0, std: float = 1.0) -> InitFn:
     return partial(nn.init.normal_, mean=mean, std=std)
 
 
-def orthogonal(gain: float = 1.) -> InitFn:
+def orthogonal(gain: float = 1.0, nonlinearity: Optional[str] = None) -> InitFn:
+    if nonlinearity is not None:
+        gain = nn.init.calculate_gain(nonlinearity)
     return partial(nn.init.orthogonal_, gain=gain)
 
 
-def kaiming_normal(nonlinearity='leaky_relu', **kwargs) -> InitFn:
-    return partial(nn.init.kaiming_normal_, nonlinearity=nonlinearity, **kwargs)
+def kaiming_normal(**kwargs) -> InitFn:
+    return partial(nn.init.kaiming_normal_, **kwargs)
 
 
-def kaiming_uniform(nonlinearity='leaky_relu', **kwargs) -> InitFn:
-    return partial(nn.init.kaiming_uniform_, nonlinearity=nonlinearity, **kwargs)
+def kaiming_uniform(**kwargs) -> InitFn:
+    return partial(nn.init.kaiming_uniform_, **kwargs)
 
 
 def fanin_uniform() -> InitFn:
@@ -35,6 +37,7 @@ def fanin_uniform() -> InitFn:
             fan_in = np.prod(w.shape[1:])
         bound = 1.0 / np.sqrt(fan_in)
         return nn.init.uniform_(w, -bound, bound)
+
     return _fanin_uniform
 
 
@@ -49,35 +52,30 @@ def zero() -> InitFn:
 def lstm_bias(forget: float = 1.0, other: float = 0.0) -> InitFn:
     """Set forget bias and others separately.
     """
+
     @torch.no_grad()
-    def __set_bias(t: Tensor) -> None:
+    def __set_bias(t: Tensor) -> Tensor:
         i = t.size(0) // 4
         t.fill_(other)
-        t[i:2 * i].fill_(forget)
-    return partial(__set_bias)
+        return t[i : 2 * i].fill_(forget)
+
+    return __set_bias
 
 
 class Initializer:
     """Utility Class to initialize weight parameters of NN
     """
+
     def __init__(
-            self,
-            nonlinearity: Optional[str] = None,
-            weight_init: InitFn = orthogonal(),
-            bias_init: InitFn = zero(),
-            scale: float = 1.,
+        self,
+        weight_init: InitFn = orthogonal(),
+        bias_init: InitFn = zero(),
+        scale: float = 1.0,
     ) -> None:
         """If nonlinearity is specified, use orthogonal
            with calucurated gain by torch.init.calculate_gain.
         """
         self.weight_init = weight_init
-        if nonlinearity is not None:
-            if 'gain' in self.weight_init.keywords:
-                self.weight_init.keywords['gain'] = nn.init.calculate_gain(nonlinearity)
-            elif 'nonlinearity' in self.weight_init.keywords:
-                self.weight_init.keywords['nonlinearity'] = nonlinearity
-            else:
-                raise ValueError('{} doesn\'t have gain', self.weight_init)
         self.bias_init = bias_init
         self.scale = scale
 
@@ -99,9 +97,9 @@ class Initializer:
         if isinstance(mod, nn.BatchNorm2d):
             return self.__init_batch_norm(mod)
         for name, param in mod.named_parameters():
-            if 'weight' in name:
+            if "weight" in name:
                 self.weight_init(param)
-            elif 'bias' in name:
+            elif "bias" in name:
                 self.bias_init(param)
         return mod
 

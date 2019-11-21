@@ -3,20 +3,18 @@ Some hyper parametes are from https://github.com/openai/baselines/blob/master/ba
 """
 import os
 from rainy import Config, net
-from rainy.agents import A2cAgent
+from rainy.agents import A2CAgent
 from rainy.envs import Atari, atari_parallel
 import rainy.utils.cli as cli
 from torch.optim import RMSprop
 
 
-def config(game: str = 'Breakout') -> Config:
+def config(game: str = "Breakout") -> Config:
     c = Config()
     c.set_env(lambda: Atari(game, frame_stack=False))
-    c.set_optimizer(
-        lambda params: RMSprop(params, lr=7e-4, alpha=0.99, eps=1e-5)
-    )
+    c.set_optimizer(lambda params: RMSprop(params, lr=7e-4, alpha=0.99, eps=1e-5))
     #  c.set_net_fn('actor-critic', net.actor_critic.ac_conv(rnn=net.GruBlock))
-    c.set_net_fn('actor-critic', net.actor_critic.ac_conv())
+    c.set_net_fn("actor-critic", net.actor_critic.ac_conv())
     c.nworkers = 16
     c.nsteps = 5
     c.set_parallel_env(atari_parallel())
@@ -33,5 +31,5 @@ def config(game: str = 'Breakout') -> Config:
     return c
 
 
-if __name__ == '__main__':
-    cli.run_cli(config, A2cAgent, script_path=os.path.realpath(__file__))
+if __name__ == "__main__":
+    cli.run_cli(config, A2CAgent, script_path=os.path.realpath(__file__))

@@ -1,6 +1,7 @@
 # Rainy
 [![Actions Status](https://github.com/kngwyu/Rainy/workflows/Tests/badge.svg)](https://github.com/kngwyu/Rainy/actions)
 [![PyPI version](https://img.shields.io/pypi/v/Rainy?style=flat-square)](https://pypi.org/project/rainy/)
+[![Black](https://img.shields.io/badge/code%20style-black-000.svg)](https://github.com/psf/black)
 
 Reinforcement learning utilities and algrithm implementations using PyTorch.
 

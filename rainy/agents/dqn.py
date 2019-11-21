@@ -5,22 +5,22 @@ from torch import nn, Tensor
 from typing import Tuple
 from .base import OneStepAgent
 from ..config import Config
-from ..replay import DqnReplayFeed
+from ..replay import DQNReplayFeed
 from ..prelude import Action, Array, State
 
 
-class DqnAgent(OneStepAgent):
+class DQNAgent(OneStepAgent):
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        assert self.env.spec.is_discrete(), 'DQN only supports discrete action spaces'
-        self.net = config.net('value')
+        assert self.env.spec.is_discrete(), "DQN only supports discrete action spaces"
+        self.net = config.net("value")
         self.target_net = deepcopy(self.net)
         self.optimizer = config.optimizer(self.net.parameters())
         self.criterion = nn.MSELoss()
         self.policy = config.explorer()
-        self.eval_policy = config.explorer(key='eval')
+        self.eval_policy = config.explorer(key="eval")
         self.replay = config.replay_buffer()
-        assert self.replay.feed == DqnReplayFeed
+        assert self.replay.feed == DQNReplayFeed
         self.batch_indices = config.device.indices(config.replay_batch_size)
 
     def set_mode(self, train: bool = True) -> None:
@@ -64,3 +64,13 @@ class DqnAgent(OneStepAgent):
         self.network_log(q_value=q_current.mean().item(), value_loss=loss.item())
         if (self.update_steps + 1) % self.config.sync_freq == 0:
             self.target_net.load_state_dict(self.net.state_dict())
+
+
+class DoubleDQNAgent(DQNAgent):
+    @torch.no_grad()
+    def _q_next(self, next_states: Array) -> Tensor:
+        """Returns Q values of next_states, supposing torch.no_grad() is called
+        """
+        q_next = self.target_net(next_states)
+        q_values = self.net.q_values(next_states, nostack=True)
+        return q_next[self.batch_indices, q_values.argmax(dim=-1)]

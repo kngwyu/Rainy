@@ -22,5 +22,5 @@ def config() -> rainy.Config:
     return c
 
 
-if __name__ == '__main__':
-    run_cli(config, rainy.agents.A2cAgent, script_path=os.path.realpath(__file__))
+if __name__ == "__main__":
+    run_cli(config, rainy.agents.A2CAgent, script_path=os.path.realpath(__file__))

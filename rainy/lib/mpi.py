@@ -3,13 +3,15 @@ from torch import Tensor
 from torch.optim import Optimizer
 from typing import Tuple
 from ..prelude import Array, Params
+
 try:
     import horovod.torch as hvd
+
     hvd.init()
     IS_MPI_ROOT = hvd.rank() == 0
 
     if hvd.size() == 1:
-        raise ModuleNotFoundError('When hvd.size() == 1 we do not use horovod')
+        raise ModuleNotFoundError("When hvd.size() == 1 we do not use horovod")
 
     def setup_models(*args) -> None:
         for model in args:
@@ -46,6 +48,7 @@ try:
         mean = hvd.allreduce_(t.mean(dim=0))
         var = hvd.allreduce_((t - mean).pow(2).mean(dim=0))
         return mean, var
+
 
 except ModuleNotFoundError:
 

@@ -21,8 +21,7 @@ class ParallelEnv(ABC, Generic[Action, State]):
 
     @abstractmethod
     def step(
-            self,
-            actions: Iterable[Action]
+        self, actions: Iterable[Action]
     ) -> Tuple[Array[State], Array[float], Array[bool], Array[Any]]:
         pass
 
@@ -78,8 +77,7 @@ class MultiProcEnv(ParallelEnv):
         return np.array([env.recv() for env in self.envs])
 
     def step(
-            self,
-            actions: Iterable[Action]
+        self, actions: Iterable[Action]
     ) -> Tuple[Array[State], Array[float], Array[bool], Array[Any]]:
         for env, action in zip(self.envs, actions):
             env.step(action)
@@ -162,8 +160,7 @@ class DummyParallelEnv(ParallelEnv):
         return np.array([e.reset() for e in self.envs])
 
     def step(
-            self,
-            actions: Iterable[Action]
+        self, actions: Iterable[Action]
     ) -> Tuple[Array[State], Array[float], Array[bool], Array[Any]]:
         res = [e.step_and_reset(a) for (a, e) in zip(actions, self.envs)]
         return tuple(map(np.array, zip(*res)))  # type: ignore

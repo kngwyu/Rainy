@@ -24,5 +24,5 @@ def config() -> rainy.Config:
     return c
 
 
-if __name__ == '__main__':
-    run_cli(config, rainy.agents.PpoAgent, script_path=os.path.realpath(__file__))
+if __name__ == "__main__":
+    run_cli(config, rainy.agents.PPOAgent, script_path=os.path.realpath(__file__))

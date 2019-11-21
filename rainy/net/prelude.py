@@ -1,5 +1,5 @@
 from torch import nn
-from typing import Callable, Tuple
+from typing import Callable, Sequence
 from ..utils.device import Device
 
-NetFn = Callable[[Tuple[int, ...], int, Device], nn.Module]
+NetFn = Callable[[Sequence[int], int, Device], nn.Module]

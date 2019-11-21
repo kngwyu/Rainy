@@ -6,36 +6,33 @@ from .prelude import Array
 from .utils.misc import has_freq_in_interval
 from .lib.mpi import IS_MPI_ROOT
 
-SAVE_FILE_DEFAULT = 'rainy-agent.pth'
-SAVE_FILE_OLD = 'rainy-agent.save'
-ACTION_FILE_DEFAULT = 'actions.json'
+SAVE_FILE_DEFAULT = "rainy-agent.pth"
+SAVE_FILE_OLD = "rainy-agent.save"
+ACTION_FILE_DEFAULT = "actions.json"
 
 
 def train_agent(
-        ag: Agent,
-        episode_offset: int = 0,
-        saveid_start: int = 0,
-        save_file_name: str = SAVE_FILE_DEFAULT,
-        action_file_name: str = ACTION_FILE_DEFAULT,
+    ag: Agent,
+    episode_offset: int = 0,
+    saveid_start: int = 0,
+    save_file_name: str = SAVE_FILE_DEFAULT,
+    action_file_name: str = ACTION_FILE_DEFAULT,
 ) -> None:
     ag.logger.summary_setting(
-        'train',
-        ['episodes', 'total_steps', 'update_steps'],
+        "train",
+        ["episodes", "total_steps", "update_steps"],
         interval=ag.config.episode_log_freq,
         color="red",
     )
     ag.logger.summary_setting(
-        'eval',
-        ['total_steps', 'update_steps'],
-        color="green",
-        dtype_is_array=True,
+        "eval", ["total_steps", "update_steps"], color="green", dtype_is_array=True,
     )
     action_file = Path(action_file_name)
 
     def log_episode(epsodes: int, results: List[EpisodeResult]) -> None:
         for i, res in enumerate(results):
             ag.logger.submit(
-                'train',
+                "train",
                 episodes=episodes + i + episode_offset,
                 total_steps=ag.total_steps,
                 update_steps=ag.update_steps,
@@ -46,17 +43,15 @@ def train_agent(
     def log_eval() -> None:
         logdir = ag.logger.logdir
         if ag.config.save_eval_actions and logdir:
-            fname = logdir.joinpath('{}-{}{}'.format(
-                action_file.stem,
-                episodes,
-                action_file.suffix
-            ))
+            fname = logdir.joinpath(
+                "{}-{}{}".format(action_file.stem, episodes, action_file.suffix)
+            )
             res = _eval_impl(ag, fname)
         else:
             res = _eval_impl(ag, None)
         rewards, length = _reward_and_length(res)
         ag.logger.submit(
-            'eval',
+            "eval",
             total_steps=ag.total_steps,
             update_steps=ag.update_steps,
             rewards=rewards,
@@ -77,7 +72,7 @@ def train_agent(
         if has_freq_in_interval(steps, step_diff, ag.config.eval_freq) and IS_MPI_ROOT:
             log_eval()
         if has_freq_in_interval(steps, step_diff, ag.config.save_freq) and IS_MPI_ROOT:
-            ag.save(save_file_name + '.{}'.format(save_id))
+            ag.save(save_file_name + ".{}".format(save_id))
             save_id += 1
     log_eval()
     ag.save(save_file_name)
@@ -85,16 +80,13 @@ def train_agent(
 
 
 def _eval_impl(
-        ag: Agent,
-        save_file: Optional[Path],
-        render: bool = False,
-        replay: bool = False,
+    ag: Agent, save_file: Optional[Path], render: bool = False, replay: bool = False,
 ) -> List[EpisodeResult]:
     n = ag.config.eval_times
     ag.set_mode(train=False)
     if save_file is not None and save_file.is_file():
         res = [ag.eval_and_save(save_file.as_posix(), render=render) for _ in range(n)]
-    elif hasattr(ag, 'eval_parallel') and not render and not replay:
+    elif hasattr(ag, "eval_parallel") and not render and not replay:
         res = ag.eval_parallel(n)  # type: ignore
     else:
         res = [ag.eval_episode(render=render) for _ in range(n)]
@@ -102,7 +94,9 @@ def _eval_impl(
     return res
 
 
-def _reward_and_length(results: List[EpisodeResult]) -> Tuple[Array[float], Array[float]]:
+def _reward_and_length(
+    results: List[EpisodeResult],
+) -> Tuple[Array[float], Array[float]]:
     rewards = np.array([t.reward for t in results])
     length = np.array([t.length for t in results])
     return rewards, length
@@ -117,16 +111,16 @@ def _load_agent(file_name: str, logdir: Path, ag: Agent) -> bool:
 
 
 def retrain_agent(
-        ag: Agent,
-        logdir_: str,
-        load_file_name: str = SAVE_FILE_DEFAULT,
-        additional_steps: int = 100
+    ag: Agent,
+    logdir_: str,
+    load_file_name: str = SAVE_FILE_DEFAULT,
+    additional_steps: int = 100,
 ) -> None:
     logdir = Path(logdir_)
     if not _load_agent(load_file_name, logdir, ag):
-        raise ValueError('Load file {} does not exists'.format(load_file_name))
+        raise ValueError("Load file {} does not exists".format(load_file_name))
     total_steps, episodes = ag.logger.retrive(logdir)
-    save_files = list(logdir.glob(SAVE_FILE_DEFAULT + '.*'))
+    save_files = list(logdir.glob(SAVE_FILE_DEFAULT + ".*"))
     if len(save_files) > 0:
         save_id = len(save_files)
     else:
@@ -137,43 +131,50 @@ def retrain_agent(
 
 
 def eval_agent(
-        ag: Agent,
-        logdir: str,
-        load_file_name: str = SAVE_FILE_DEFAULT,
-        render: bool = False,
-        replay: bool = False,
-        action_file: Optional[str] = None,
+    ag: Agent,
+    logdir: str,
+    load_file_name: str = SAVE_FILE_DEFAULT,
+    render: bool = False,
+    replay: bool = False,
+    action_file: str = "best_actions.json",
 ) -> None:
     path = Path(logdir)
     if not _load_agent(load_file_name, path, ag):
-        raise ValueError('Load file {} does not exists'.format())
-    save_file = path.joinpath if ag.config.save_eval_actions and action_file else None
+        raise ValueError("Load file {} does not exists".format())
+    if ag.config.save_eval_actions:
+        save_file: Optional[Path] = path.joinpath(action_file)
+    else:
+        save_file = None
     res = _eval_impl(ag, save_file, render, replay)
-    print('{}'.format(res))
+    print("{}".format(res))
     if render:
-        input('--Press Enter to exit--')
+        input("--Press Enter to exit--")
     if replay:
         try:
             ag.config.eval_env.unwrapped.replay()
         except Exception:
-            print('--replay was specified, but environment has no function named replay')
+            print(
+                "--replay was specified, but environment has no function named replay"
+            )
     ag.close()
 
 
 def random_agent(
-        ag: Agent,
-        render: bool = False,
-        replay: bool = False,
-        action_file: Optional[str] = None
+    ag: Agent,
+    render: bool = False,
+    replay: bool = False,
+    action_file: Optional[str] = None,
 ) -> None:
     if action_file:
         res = ag.random_and_save(action_file, render=render)
     else:
         res = ag.random_episode(render=render)
-    print('{}'.format(res))
+    print("{}".format(res))
     if replay:
         try:
             ag.config.eval_env.unwrapped.replay()
         except Exception:
-            print('--replay was specified, but environment has no function named replay')
+            print(
+                "--replay was specified, but environment has no function named replay"
+            )
     ag.close()

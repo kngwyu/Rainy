@@ -14,18 +14,19 @@ class Cooler(ABC):
 
     def lr_decay(self, optim: Optimizer) -> None:
         for param_group in optim.param_groups:
-            if 'lr' in param_group:
-                param_group['lr'] = self.__call__()
+            if "lr" in param_group:
+                param_group["lr"] = self.__call__()
 
 
 class LinearCooler(Cooler):
     """decrease epsilon linearly, from initial to minimal, via `max_step` steps
     """
+
     def __init__(self, initial: float, minimal: float, max_step: int) -> None:
         if initial < minimal:
             raise ValueError(
-                f'[LinearCooler.__init__] the minimal value({minimal})'
-                ' is bigger than the initial value {initial}'
+                f"[LinearCooler.__init__] the minimal value({minimal})"
+                " is bigger than the initial value {initial}"
             )
         self.base = initial - minimal
         self.minimal = minimal
@@ -40,6 +41,7 @@ class LinearCooler(Cooler):
 class DummyCooler(Cooler):
     """Do nothing
     """
+
     def __init__(self, initial: float, *args) -> None:
         self.initial = initial
 
@@ -63,6 +65,7 @@ class Explorer(ABC):
 class Greedy(Explorer):
     """deterministic greedy policy
     """
+
     def select_from_value(self, value: Tensor) -> LongTensor:
         return value.argmax(-1)  # type: ignore
 
@@ -73,6 +76,7 @@ class Greedy(Explorer):
 class EpsGreedy(Explorer):
     """ε-greedy policy
     """
+
     def __init__(self, epsilon: float, cooler: Cooler) -> None:
         self.epsilon = epsilon
         self.cooler = cooler
@@ -91,7 +95,9 @@ class EpsGreedy(Explorer):
 
 
 class GaussianNoise(Explorer):
-    def __init__(self, std: Cooler = DummyCooler(0.1), clip: Optional[float] = None) -> None:
+    def __init__(
+        self, std: Cooler = DummyCooler(0.1), clip: Optional[float] = None
+    ) -> None:
         self.std = std
         self.clip = clip
 
@@ -107,10 +113,7 @@ class GaussianNoise(Explorer):
 
 class OrnsteinUhlenbeck(Explorer):
     def __init__(
-            self,
-            std: Cooler = DummyCooler(0.2),
-            theta: float = 0.15,
-            dt: float = 1e-2
+        self, std: Cooler = DummyCooler(0.2), theta: float = 0.15, dt: float = 1e-2
     ) -> None:
         self.theta = theta
         self.mu = 0.0
@@ -121,8 +124,9 @@ class OrnsteinUhlenbeck(Explorer):
     def add_noise(self, action: Tensor):
         if self.x_prev is None:
             self.x_prev = torch.zeros_like(action)
-        self.x_prev += self.x_prev.sub(self.mu).mul_(self.theta) + \
-            torch.randn_like(action).mul_(self.std()).mul_(self.dt.sqrt())
+        self.x_prev += self.x_prev.sub(self.mu).mul_(self.theta) + torch.randn_like(
+            action
+        ).mul_(self.std()).mul_(self.dt.sqrt())
         return self.x_prev + action
 
     def select_from_value(self, value: Tensor) -> LongTensor:

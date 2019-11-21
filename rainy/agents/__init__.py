@@ -1,11 +1,9 @@
-from .a2c import A2cAgent
-from .acktr import AcktrAgent
-from .aoc import AocAgent
+from .a2c import A2CAgent
+from .acktr import ACKTRAgent
+from .aoc import AOCAgent
 from .base import Agent, EpisodeResult, NStepParallelAgent, OneStepAgent
-from .ddpg import DdpgAgent
-from .ddqn import DoubleDqnAgent
-from .dqn import DqnAgent
-from .ppo import PpoAgent
-from .sac import SacAgent
-from .td3 import Td3Agent
-
+from .ddpg import DDPGAgent
+from .dqn import DQNAgent, DoubleDQNAgent
+from .ppo import PPOAgent
+from .sac import SACAgent
+from .td3 import TD3Agent
