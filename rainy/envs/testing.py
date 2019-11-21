@@ -5,6 +5,7 @@ from gym.spaces import Discrete
 import numpy as np
 from typing import Sequence, Tuple
 from .ext import EnvExt, EnvSpec
+from ..prelude import Array
 
 ACTION_DIM = 10
 
@@ -39,7 +40,7 @@ class DummyEnv(EnvExt):
         self.array_dim = array_dim
         self.flatten = flatten
         if self.flatten:
-            dim = (np.prod(self.array_dim),)
+            dim: Sequence[int] = (np.prod(self.array_dim),)
         else:
             dim = self.array_dim
         self.spec = EnvSpec(dim, Discrete(ACTION_DIM))
@@ -59,7 +60,7 @@ class DummyEnv(EnvExt):
     def close(self) -> None:
         pass
 
-    def extract(self, state: State) -> np.ndarray:
+    def extract(self, state: State) -> Array:
         res = state.to_array(self.array_dim)
         if self.flatten:
             return res.flatten()
