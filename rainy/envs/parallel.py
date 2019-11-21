@@ -3,7 +3,7 @@ import multiprocessing as mp
 from multiprocessing.connection import Connection
 import numpy as np
 from numpy import ndarray
-from typing import Any, Callable, Generic, Iterable, Tuple
+from typing import Any, Callable, Generic, Iterable, Sequence, Tuple
 from .ext import EnvExt, EnvSpec
 from ..prelude import Action, Array, State
 
@@ -11,6 +11,9 @@ EnvGen = Callable[[], EnvExt]
 
 
 class ParallelEnv(ABC, Generic[Action, State]):
+    num_envs: int
+    spec: EnvSpec
+
     @abstractmethod
     def close(self):
         pass
@@ -30,21 +33,11 @@ class ParallelEnv(ABC, Generic[Action, State]):
         pass
 
     @property
-    @abstractmethod
-    def num_envs(self) -> int:
-        pass
-
-    @property
-    @abstractmethod
-    def spec(self) -> EnvSpec:
-        pass
-
-    @property
     def action_dim(self) -> int:
         return self.spec.action_dim
 
     @property
-    def state_dim(self) -> Tuple[int, ...]:
+    def state_dim(self) -> Sequence[int]:
         return self.spec.state_dim
 
     @property
@@ -64,8 +57,9 @@ class MultiProcEnv(ParallelEnv):
         assert nworkers >= 2
         envs_tmp = [env_gen() for _ in range(nworkers)]
         self.to_array = envs_tmp[0].extract
-        self._spec = envs_tmp[0].spec
+        self.spec = envs_tmp[0].spec
         self.envs = [_ProcHandler(e) for e in envs_tmp]
+        self.num_envs = nworkers
 
     def close(self) -> None:
         for env in self.envs:
@@ -87,14 +81,6 @@ class MultiProcEnv(ParallelEnv):
     def seed(self, seeds: Iterable[int]) -> None:
         for env, seed in zip(self.envs, seeds):
             env.seed(seed)
-
-    @property
-    def num_envs(self) -> int:
-        return len(self.envs)
-
-    @property
-    def spec(self) -> EnvSpec:
-        return self._spec
 
     def extract(self, states: Iterable[State]) -> ndarray:
         return np.asarray([self.to_array(s) for s in states])
@@ -151,6 +137,8 @@ class _ProcWorker(mp.Process):
 class DummyParallelEnv(ParallelEnv):
     def __init__(self, env_gen: EnvGen, nworkers: int) -> None:
         self.envs = [env_gen() for _ in range(nworkers)]
+        self.spec = self.envs[0].spec
+        self.num_envs = nworkers
 
     def close(self) -> None:
         for env in self.envs:
@@ -168,14 +156,6 @@ class DummyParallelEnv(ParallelEnv):
     def seed(self, seeds: Iterable[int]) -> None:
         for env, seed in zip(self.envs, seeds):
             env.seed(seed)
-
-    @property
-    def num_envs(self) -> int:
-        return len(self.envs)
-
-    @property
-    def spec(self) -> EnvSpec:
-        return self.envs[0].spec
 
     def extract(self, states: Iterable[State]) -> ndarray:
         return np.asarray([e.extract(s) for (s, e) in zip(states, self.envs)])

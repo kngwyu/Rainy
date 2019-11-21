@@ -61,6 +61,8 @@ class AOCAgent(NStepParallelAgent[State]):
     It's a synchronous batched version of A2OC: Asynchronou Adavantage Option Critic
     """
 
+    SAVED_MEMBERS = "net", "opt_explorer"
+
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self.net: OptionCriticNet = config.net("option-critic")  # type: ignore
@@ -77,9 +79,6 @@ class AOCAgent(NStepParallelAgent[State]):
         self.eval_prev_options: LongTensor = config.device.zeros(
             config.nworkers, dtype=torch.long
         )
-
-    def members_to_save(self) -> Tuple[str, ...]:
-        return "net", "opt_explorer"
 
     def _reset(self, initial_states: Array[State]) -> None:
         self.storage.set_initial_state(initial_states)

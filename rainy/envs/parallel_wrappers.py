@@ -1,6 +1,5 @@
 import numpy as np
 from typing import Any, Iterable, Tuple
-from .ext import EnvSpec
 from .parallel import ParallelEnv
 from ..prelude import Action, Array, State
 from ..utils import RunningMeanStd
@@ -9,6 +8,8 @@ from ..utils import RunningMeanStd
 class ParallelEnvWrapper(ParallelEnv[Action, State]):
     def __init__(self, penv: ParallelEnv) -> None:
         self.penv = penv
+        self.num_envs = penv.num_envs
+        self.spec = self.penv.spec
 
     def close(self) -> None:
         self.penv.close()
@@ -23,14 +24,6 @@ class ParallelEnvWrapper(ParallelEnv[Action, State]):
 
     def seed(self, seeds: Iterable[int]) -> None:
         self.penv.seed(seeds)
-
-    @property
-    def num_envs(self) -> int:
-        return self.penv.num_envs
-
-    @property
-    def spec(self) -> EnvSpec:
-        return self.penv.spec
 
     def extract(self, states: Iterable[State]) -> Array:
         return self.penv.extract(states)

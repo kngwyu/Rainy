@@ -2,32 +2,30 @@ from copy import deepcopy
 import numpy as np
 import torch
 from torch import nn, Tensor
+from torch.nn import functional as F
 from typing import Tuple
 from .base import OneStepAgent
 from ..config import Config
-from ..replay import DQNReplayFeed
 from ..prelude import Action, Array, State
 
 
 class DQNAgent(OneStepAgent):
+    SAVED_MEMBERS = "net", "target_net", "policy", "total_steps"
+
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        assert self.env.spec.is_discrete(), "DQN only supports discrete action spaces"
+        if not self.env.spec.is_discrete():
+            raise RuntimeError("DQN only supports discrete action space.")
         self.net = config.net("value")
         self.target_net = deepcopy(self.net)
         self.optimizer = config.optimizer(self.net.parameters())
-        self.criterion = nn.MSELoss()
         self.policy = config.explorer()
         self.eval_policy = config.explorer(key="eval")
         self.replay = config.replay_buffer()
-        assert self.replay.feed == DQNReplayFeed
         self.batch_indices = config.device.indices(config.replay_batch_size)
 
     def set_mode(self, train: bool = True) -> None:
         self.net.train(mode=train)
-
-    def members_to_save(self) -> Tuple[str, ...]:
-        return "net", "target_net", "policy", "total_steps"
 
     @torch.no_grad()
     def eval_action(self, state: Array) -> Action:
@@ -56,7 +54,7 @@ class DQNAgent(OneStepAgent):
         q_next = self._q_next(next_states).mul_(self.tensor(1.0 - done))
         q_target = self.tensor(rewards).add_(q_next.mul_(self.config.discount_factor))
         q_current = self.net(states)[self.batch_indices, actions]
-        loss = self.criterion(q_current, q_target)
+        loss = F.mse_loss(q_current, q_target)
         self.optimizer.zero_grad()
         loss.backward()
         nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)

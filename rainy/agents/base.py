@@ -6,6 +6,7 @@ import torch
 from torch import nn, Tensor
 from typing import (
     Callable,
+    ClassVar,
     Generic,
     Iterable,
     List,
@@ -34,6 +35,8 @@ class Agent(ABC):
     """Children must call super().__init__(config) first
     """
 
+    SAVED_MEMBERS: ClassVar[Sequence[str]]
+
     def __init__(self, config: Config) -> None:
         self.config = config
         self.logger = config.logger
@@ -45,16 +48,6 @@ class Agent(ABC):
             interval=config.network_log_freq,
             color="blue",
         )
-
-    @abstractmethod
-    def members_to_save(self) -> Sequence[str]:
-        """Here you can specify members you want to save.
-
-    Examples::
-        def members_to_save(self):
-            return "net", "target"
-        """
-        pass
 
     @abstractmethod
     def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
@@ -146,7 +139,7 @@ class Agent(ABC):
         if not mpi.IS_MPI_ROOT:
             return None
         save_dict = {}
-        for member_str in self.members_to_save():
+        for member_str in self.SAVED_MEMBERS:
             value = getattr(self, member_str)
             if isinstance(value, nn.DataParallel):
                 save_dict[member_str] = value.module.state_dict()
@@ -164,7 +157,7 @@ class Agent(ABC):
             return None
         saved_dict = torch.load(filename, map_location=self.config.device.unwrapped)
         #  For backward compatibility, we need to check both index and name
-        for idx, member_str in enumerate(self.members_to_save()):
+        for idx, member_str in enumerate(self.SAVED_MEMBERS):
             if idx in saved_dict:
                 saved_item = saved_dict[idx]
             elif member_str in saved_dict:
@@ -299,7 +292,7 @@ class NStepParallelAgent(Agent, Generic[State]):
                     EpisodeResult(i["episode"]["r"], i["episode"]["l"])
                 )
         else:
-            for i in filter(lambda i: done[i], range(self.config.nworkers)):  # type: ignore
+            for i in filter(lambda i: done[i], range(self.config.nworkers)):
                 self.episode_results.append(
                     EpisodeResult(self.rewards[i], self.episode_length[i])
                 )

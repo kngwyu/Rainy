@@ -1,6 +1,5 @@
 import torch
 from torch import Tensor
-from typing import Tuple
 from .a2c import A2CAgent
 from ..lib.rollout import RolloutSampler
 from ..lib import mpi
@@ -11,6 +10,8 @@ from ..prelude import Array
 
 
 class PPOAgent(A2CAgent):
+    SAVED_MEMBERS = "net", "clip_eps", "clip_cooler", "optimizer"
+
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self.net: ActorCriticNet = config.net("actor-critic")  # type: ignore
@@ -25,9 +26,6 @@ class PPOAgent(A2CAgent):
         mpi.setup_models(self.net)
         self.optimizer = mpi.setup_optimizer(self.optimizer)
 
-    def members_to_save(self) -> Tuple[str, ...]:
-        return "net", "clip_eps", "clip_cooler", "optimizer"
-
     def _policy_loss(
         self, policy: Policy, advantages: Tensor, old_log_probs: Tensor
     ) -> Tensor:
@@ -38,7 +36,8 @@ class PPOAgent(A2CAgent):
 
     def _value_loss(self, value: Tensor, old_value: Tensor, returns: Tensor) -> Tensor:
         """Clip value function loss.
-        OpenAI baselines says it reduces variability during Critic training... but I'm not sure.
+        OpenAI baselines says it reduces variability during Critic training...
+        but I'm not sure.
         """
         unclipped_loss = (value - returns).pow(2)
         if not self.config.ppo_value_clip:

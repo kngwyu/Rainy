@@ -10,16 +10,8 @@ from .init import Initializer, orthogonal
 class NetworkBlock(nn.Module, ABC):
     """Defines a NN block which returns 1-dimension Tensor
     """
-
-    @property
-    @abstractmethod
-    def input_dim(self) -> Sequence[int]:
-        pass
-
-    @property
-    @abstractmethod
-    def output_dim(self) -> int:
-        pass
+    input_dim: Sequence[int]
+    output_dim: int
 
 
 class DummyBlock(nn.Module):
@@ -36,14 +28,8 @@ class LinearHead(NetworkBlock):
     ) -> None:
         super().__init__()
         self.fc: nn.Linear = init(nn.Linear(input_dim, output_dim))  # type: ignore
-
-    @property
-    def input_dim(self) -> Sequence[int]:
-        return (self.fc.in_features,)
-
-    @property
-    def output_dim(self) -> int:
-        return self.fc.out_features
+        self.input_dim = (input_dim, )
+        self.output_dim = output_dim
 
     def forward(self, x: Tensor) -> Tensor:
         return self.fc(x)
@@ -64,16 +50,9 @@ class ConvBody(NetworkBlock):
         super().__init__()
         self.cnns = init.make_list(cnns)
         self.fc: nn.Linear = init(fc)  # type: ignore
-        self._input_dim = input_dim
+        self.input_dim = input_dim
+        self.output_dim = self.fc.out_features
         self.activator = activator
-
-    @property
-    def input_dim(self) -> Sequence[int]:
-        return self._input_dim
-
-    @property
-    def output_dim(self) -> int:
-        return self.fc.out_features
 
     def forward(self, x: Tensor) -> Tensor:
         for cnn in self.cnns:
@@ -164,7 +143,9 @@ class ResNetBody(NetworkBlock):
             )
 
         super().__init__()
-        self._input_dim = input_dim
+
+        self.input_dim = input_dim
+        self.output_dim = fc_out
         self.res_blocks = init.make_list(
             [layer(*t) for t in zip([input_dim[0]] + channels, channels, maxpools)]
         )
@@ -180,14 +161,6 @@ class ResNetBody(NetworkBlock):
         x = self.fc(x.view(x.size(0), -1))
         return self.relu(x)
 
-    @property
-    def input_dim(self) -> Sequence[int]:
-        return self._input_dim
-
-    @property
-    def output_dim(self) -> int:
-        return self.fc.out_features
-
 
 class FcBody(NetworkBlock):
     def __init__(
@@ -198,26 +171,18 @@ class FcBody(NetworkBlock):
         init: Initializer = Initializer(),
     ) -> None:
         super().__init__()
-        self._input_dim = input_dim
+        self.input_dim = (input_dim, )
+        self.output_dim = units[-1]
         dims = [input_dim] + units
         self.layers = init.make_list(
             map(lambda i, o: nn.Linear(i, o), *zip(dims[:-1], dims[1:]))
         )
         self.activator = activator
-        self.dims = dims
 
     def forward(self, x: Tensor) -> Tensor:
         for layer in self.layers:
             x = self.activator(layer(x))
         return x
-
-    @property
-    def input_dim(self) -> Sequence[int]:
-        return (self.dims[0],)
-
-    @property
-    def output_dim(self) -> int:
-        return self.dims[-1]
 
 
 def make_cnns(
