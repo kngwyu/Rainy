@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from torch import nn, Tensor
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Sequence, Tuple, Union
 from .block import DQNConv, FcBody, ResNetBody, LinearHead, NetworkBlock
 from .init import Initializer, orthogonal
 from .policy import CategoricalDist, Policy, PolicyDist
@@ -83,7 +83,7 @@ class SharedBodyACNet(ActorCriticNet):
         self.to(device.unwrapped)
 
     @property
-    def state_dim(self) -> Tuple[int, ...]:
+    def state_dim(self) -> Sequence[int]:
         return self.body.input_dim
 
     @property
@@ -187,7 +187,7 @@ def fc_shared(
     """
 
     def _net(
-        state_dim: Tuple[int, ...], action_dim: int, device: Device
+        state_dim: Sequence[int], action_dim: int, device: Device
     ) -> SharedBodyACNet:
         body = FcBody(state_dim[0], **kwargs)
         policy_dist = policy(action_dim, device)

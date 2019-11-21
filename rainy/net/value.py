@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from torch import nn, Tensor
-from typing import Tuple, Union
+from typing import Sequence, Tuple, Union
 from .block import DQNConv, FcBody, LinearHead, NetworkBlock
 from .prelude import NetFn
 from ..utils import Device
@@ -23,7 +23,7 @@ class DiscreteQFunction(ABC):
 
     @property
     @abstractmethod
-    def state_dim(self) -> Tuple[int, ...]:
+    def state_dim(self) -> Sequence[int]:
         pass
 
     @property
@@ -63,7 +63,7 @@ class DiscreteQValueNet(DiscreteQFunction, nn.Module):
         return x
 
     @property
-    def state_dim(self) -> Tuple[int, ...]:
+    def state_dim(self) -> Sequence[int]:
         return self.body.input_dim
 
     @property
@@ -84,7 +84,7 @@ def dqn_conv(*args, **kwargs) -> NetFn:
 
 def fc(*args, **kwargs) -> NetFn:
     def _net(
-        state_dim: Tuple[int, ...], action_dim: int, device: Device
+        state_dim: Sequence[int], action_dim: int, device: Device
     ) -> DiscreteQValueNet:
         body = FcBody(state_dim[0], *args, **kwargs)
         head = LinearHead(body.output_dim, action_dim)

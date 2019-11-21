@@ -1,15 +1,14 @@
-from abc import ABC
 import gym
 from gym import spaces
 import numpy as np
-from typing import Any, Generic, Tuple
+from typing import Any, Generic, Sequence, Tuple
 from ..prelude import Action, Array, State
 
 
 class EnvSpec:
     def __init__(
         self,
-        state_dim: Tuple[int, ...],
+        state_dim: Sequence[int],
         action_space: gym.Space,
         use_reward_monitor: bool = False,
     ) -> None:
@@ -39,7 +38,7 @@ class EnvSpec:
         return isinstance(self.action_space, spaces.Discrete)
 
 
-class EnvExt(gym.Env, ABC, Generic[Action, State]):
+class EnvExt(gym.Env, Generic[Action, State]):
     def __init__(self, env: gym.Env) -> None:
         self._env = env
         self.spec = EnvSpec(self._env.observation_space.shape, self._env.action_space)
@@ -96,7 +95,7 @@ class EnvExt(gym.Env, ABC, Generic[Action, State]):
         return self.spec.action_dim
 
     @property
-    def state_dim(self) -> Tuple[int, ...]:
+    def state_dim(self) -> Sequence[int]:
         """
         Extended method.
         Returns a shape of observation space.

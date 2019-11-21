@@ -1,6 +1,6 @@
 from torch import nn
 from torch.optim import Optimizer, RMSprop
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 from .envs import ClassicalControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEnv
 from .net import actor_critic, deterministic, option_critic, sac, value
 from .net.prelude import NetFn
@@ -16,7 +16,7 @@ class Config:
     def __init__(self) -> None:
         # action/state dims are initialized lazily
         self.action_dim = 0
-        self.state_dim: Tuple[int, ...] = (0,)
+        self.state_dim: Sequence[int] = (0,)
 
         # Common parameters
         self.discount_factor = 0.99

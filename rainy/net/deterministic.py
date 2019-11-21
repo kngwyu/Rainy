@@ -118,7 +118,7 @@ def fc_seprated(
     """
 
     def _net(
-        state_dim: Tuple[int, ...], action_dim: int, device: Device
+        state_dim: Sequence[int], action_dim: int, device: Device
     ) -> SeparatedDDPGNet:
         actor_body = FcBody(state_dim[0], units=actor_units, init=init)
         critic_body = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
@@ -144,7 +144,7 @@ def td3_fc_seprated(
     """
 
     def _net(
-        state_dim: Tuple[int, ...], action_dim: int, device: Device
+        state_dim: Sequence[int], action_dim: int, device: Device
     ) -> SeparatedTD3Net:
         actor_body = FcBody(state_dim[0], units=actor_units, init=init)
         critic1 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)

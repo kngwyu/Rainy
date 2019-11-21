@@ -183,7 +183,7 @@ class GruBlock(RnnBlock[GruState]):
         in_shape = x.shape
         if in_shape == hidden.h.shape:
             out, h = self.gru(x.unsqueeze(0), _apply_mask1(mask_, hidden.h))
-            return out.squeeze(0), GruState(h.squeeze_(0))
+            return out.squeeze(0), GruState(h.squeeze_(0))  # type: ignore
         # forward Nsteps altogether
         nsteps = in_shape[0] // hidden.h.size(0)
         x, mask = _reshape_batch(x, mask_, nsteps)

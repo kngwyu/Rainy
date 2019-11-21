@@ -1,8 +1,9 @@
-"""From https://github.com/openai/baselines/blob/master/baselines/common/running_mean_std.py
+"""
+From https://github.com/openai/baselines/blob/master/baselines/common/running_mean_std.py
 """
 import numpy as np
 import torch
-from typing import Tuple
+from typing import Sequence
 from ..lib import mpi
 from ..prelude import Array
 from ..utils import Device
@@ -13,7 +14,7 @@ class RunningMeanStd:
     """Calcurate running mean and variance
     """
 
-    def __init__(self, shape: Tuple[int, ...], epsilon: float = 1.0e-4) -> None:
+    def __init__(self, shape: Sequence[int], epsilon: float = 1.0e-4) -> None:
         self.mean = np.zeros(shape, "float64")
         self.var = np.ones(shape, "float64")
         self.count = epsilon

@@ -94,7 +94,7 @@ def fc_shared(
     **kwargs
 ) -> NetFn:
     def _net(
-        state_dim: Tuple[int, ...], action_dim: int, device: Device
+        state_dim: Sequence[int], action_dim: int, device: Device
     ) -> SharedBodyOCNet:
         body = FcBody(state_dim[0], **kwargs)
         ac_head = LinearHead(body.output_dim, action_dim * num_options, policy_init())

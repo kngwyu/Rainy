@@ -2,7 +2,7 @@ import copy
 import itertools
 import torch
 from torch import nn, Tensor
-from typing import Iterable, List, Tuple, Union
+from typing import Iterable, List, Sequence, Tuple, Union
 from .block import FcBody, LinearHead, NetworkBlock
 from .init import Initializer, fanin_uniform, constant
 from .misc import SoftUpdate
@@ -110,7 +110,7 @@ def fc_separated(
     """
 
     def _net(
-        state_dim: Tuple[int, ...], action_dim: int, device: Device
+        state_dim: Sequence[int], action_dim: int, device: Device
     ) -> SeparatedSACNet:
         actor_body = FcBody(state_dim[0], units=actor_units, init=init)
         critic1 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
