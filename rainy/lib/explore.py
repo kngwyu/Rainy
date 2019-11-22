@@ -84,11 +84,11 @@ class EpsGreedy(Explorer):
     def select_from_value(self, value: Tensor) -> LongTensor:
         old_eps = self.epsilon
         self.epsilon = self.cooler()
-        out_shape, action_dim = value.shape[:-1], value.size(-1)
-        greedy = value.argmax(-1).view(-1).cpu()
-        random = torch.randint(action_dim, value.shape[:-1]).view(-1)
-        res = torch.where(torch.zeros(out_shape).view(-1) < old_eps, random, greedy)
-        return res.reshape(out_shape).to(value.device)  # type: ignore
+        action_dim = value.size(-1)
+        greedy = value.argmax(-1).cpu()
+        random = torch.randint_like(greedy, 0, action_dim)
+        random_pos = torch.empty(greedy.shape).uniform_() < old_eps
+        return torch.where(random_pos, random, greedy)
 
     def add_noise(self, action: Tensor) -> Tensor:
         raise NotImplementedError("We can't use EpsGreedy with continuous action")
