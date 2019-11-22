@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from torch import nn, Tensor
-from typing import Sequence, Tuple, Union
+from typing import Sequence, Tuple
 from .block import DQNConv, FcBody, LinearHead, NetworkBlock
 from .prelude import NetFn
 from ..utils import Device

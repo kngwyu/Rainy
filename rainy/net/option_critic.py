@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 from torch import nn, Tensor
-from typing import Callable, Sequence, Tuple, Union
+from typing import Callable, Sequence, Tuple
 from .actor_critic import policy_init
 from .block import DQNConv, FcBody, LinearHead, NetworkBlock
 from .policy import BernoulliDist, BernoulliPolicy, CategoricalDist, Policy, PolicyDist
 from .prelude import NetFn
-from ..prelude import Array
+from ..prelude import ArrayLike
 from ..utils import Device
 
 
@@ -17,13 +17,11 @@ class OptionCriticNet(nn.Module, ABC):
     state_dim: Sequence[int]
 
     @abstractmethod
-    def opt_q(self, states: Union[Array, Tensor]) -> Tensor:
+    def opt_q(self, states: ArrayLike) -> Tensor:
         pass
 
     @abstractmethod
-    def forward(
-        self, states: Union[Array, Tensor]
-    ) -> Tuple[Policy, Tensor, BernoulliPolicy]:
+    def forward(self, states: ArrayLike) -> Tuple[Policy, Tensor, BernoulliPolicy]:
         pass
 
 
@@ -53,13 +51,11 @@ class SharedBodyOCNet(OptionCriticNet):
         self.state_dim = self.body.input_dim
         self.to(device.unwrapped)
 
-    def opt_q(self, states: Union[Array, Tensor]) -> Tensor:
+    def opt_q(self, states: ArrayLike) -> Tensor:
         feature = self.body(self.device.tensor(states))
         return self.optq_head(feature)
 
-    def forward(
-        self, states: Union[Array, Tensor]
-    ) -> Tuple[Policy, Tensor, BernoulliPolicy]:
+    def forward(self, states: ArrayLike) -> Tuple[Policy, Tensor, BernoulliPolicy]:
         feature = self.body(self.device.tensor(states))
         policy = self.actor_head(feature).view(-1, self.num_options, self.action_dim)
         opt_q = self.optq_head(feature)

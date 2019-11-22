@@ -3,18 +3,18 @@ from itertools import chain
 from rainy.utils import Device
 import torch
 from torch import nn, Tensor
-from typing import Iterable, List, Sequence, Tuple, Union
+from typing import Iterable, List, Sequence, Tuple
 from .block import FcBody, LinearHead, NetworkBlock
 from .init import Initializer, kaiming_uniform
 from .misc import SoftUpdate
 from .prelude import NetFn
 from .value import ContinuousQFunction
-from ..prelude import Array, ArrayLike
+from ..prelude import ArrayLike
 
 
 class DeterministicPolicyNet(ABC):
     @abstractmethod
-    def action(self, state: Union[Array, Tensor]) -> Tensor:
+    def action(self, state: ArrayLike) -> Tensor:
         pass
 
 
@@ -61,9 +61,7 @@ class SeparatedDDPGNet(DDPGNet):
         sa = torch.cat((s, a), dim=1)
         return self.critic(sa)
 
-    def forward(
-        self, states: Union[Array, Tensor], action: Union[Array, Tensor]
-    ) -> Tuple[Tensor, Tensor]:
+    def forward(self, states: ArrayLike, action: ArrayLike) -> Tuple[Tensor, Tensor]:
         s = self.device.tensor(states)
         a = self.device.tensor(action)
         sa = torch.cat((s, a), dim=1)

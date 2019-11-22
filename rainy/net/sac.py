@@ -2,14 +2,14 @@ import copy
 import itertools
 import torch
 from torch import nn, Tensor
-from typing import Iterable, List, Sequence, Tuple, Union
+from typing import Iterable, List, Sequence, Tuple
 from .block import FcBody, LinearHead, NetworkBlock
 from .init import Initializer, fanin_uniform, constant
 from .misc import SoftUpdate
 from .policy import Policy, PolicyDist, TanhGaussianDist
 from .prelude import NetFn
 from .value import ContinuousQFunction
-from ..prelude import Array, Self
+from ..prelude import ArrayLike, Self
 from ..utils import Device
 
 
@@ -24,9 +24,7 @@ class SACTarget(SoftUpdate):
         SoftUpdate.soft_update(self.critic1, other.critic1, coef)  # type: ignore
         SoftUpdate.soft_update(self.critic2, other.critic2, coef)  # type: ignore
 
-    def q_values(
-        self, states: Union[Array, Tensor], action: Union[Array, Tensor]
-    ) -> Tuple[Tensor, Tensor]:
+    def q_values(self, states: ArrayLike, action: ArrayLike) -> Tuple[Tensor, Tensor]:
         sa = torch.cat((self.device.tensor(states), self.device.tensor(action)), dim=1)
         return self.critic1(sa), self.critic2(sa)
 
@@ -58,15 +56,11 @@ class SeparatedSACNet(nn.Module, ContinuousQFunction):
         self.device = device
         self.to(device.unwrapped)
 
-    def q_value(
-        self, states: Union[Array, Tensor], action: Union[Array, Tensor]
-    ) -> Tensor:
+    def q_value(self, states: ArrayLike, action: ArrayLike) -> Tensor:
         sa = torch.cat((self.device.tensor(states), self.device.tensor(action)), dim=1)
         return self.critic1(sa)
 
-    def q_values(
-        self, states: Union[Array, Tensor], action: Union[Array, Tensor]
-    ) -> Tuple[Tensor, Tensor]:
+    def q_values(self, states: ArrayLike, action: ArrayLike) -> Tuple[Tensor, Tensor]:
         sa = torch.cat((self.device.tensor(states), self.device.tensor(action)), dim=1)
         return self.critic1(sa), self.critic2(sa)
 
@@ -75,7 +69,7 @@ class SeparatedSACNet(nn.Module, ContinuousQFunction):
             copy.deepcopy(self.critic1), copy.deepcopy(self.critic2), self.device
         )
 
-    def policy(self, states: Union[Array, Tensor]) -> Policy:
+    def policy(self, states: ArrayLike) -> Policy:
         st = self.device.tensor(states)
         if st.dim() == 1:
             st = st.view(1, -1)
@@ -89,7 +83,7 @@ class SeparatedSACNet(nn.Module, ContinuousQFunction):
         return itertools.chain(self.critic1.parameters(), self.critic2.parameters())
 
     def forward(
-        self, states: Union[Array, Tensor], action: Union[Array, Tensor]
+        self, states: ArrayLike, action: ArrayLike
     ) -> Tuple[Tensor, Tensor, Policy]:
         s, a = self.device.tensor(states), self.device.tensor(action)
         sa = torch.cat((s, a), dim=1)
