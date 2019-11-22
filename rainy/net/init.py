@@ -29,6 +29,10 @@ def kaiming_uniform(**kwargs) -> InitFn:
     return partial(nn.init.kaiming_uniform_, **kwargs)
 
 
+def xavier_uniform(**kwargs) -> InitFn:
+    return partial(nn.init.xavier_uniform_, **kwargs)
+
+
 def fanin_uniform() -> InitFn:
     def _fanin_uniform(w: Tensor) -> Tensor:
         if w.dim() <= 2:

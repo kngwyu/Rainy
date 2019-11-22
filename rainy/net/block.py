@@ -1,6 +1,6 @@
 """Defines some reusable NN layers, called 'Block'
 """
-from abc import ABC, abstractmethod
+from abc import ABC
 import numpy as np
 from torch import nn, Tensor
 from typing import List, Sequence, Tuple
