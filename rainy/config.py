@@ -2,7 +2,7 @@ from torch import nn
 from torch.optim import Optimizer, RMSprop
 from typing import Callable, Dict, List, Optional, Sequence
 from .envs import ClassicalControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEnv
-from .net import actor_critic, deterministic, option_critic, sac, value
+from .net import actor_critic, bootstrap, deterministic, option_critic, sac, value
 from .net.prelude import NetFn
 from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
 from .lib import mpi
@@ -43,6 +43,10 @@ class Config:
             None: lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000)),
             "eval": lambda: EpsGreedy(0.01, DummyCooler(0.01)),
         }
+
+        # For BootDQN
+        self.num_ensembles = 10
+        self.replay_enqueue_prob = 0.5
 
         # Reward scaling
         # Currently only used by SAC
@@ -101,6 +105,7 @@ class Config:
         # Default Networks
         self.__net: Dict[str, NetFn] = {
             "dqn": value.fc(),
+            "bootdqn": bootstrap.fc_separated(10),
             "actor-critic": actor_critic.fc_shared(),
             "ddpg": deterministic.fc_seprated(),
             "td3": deterministic.td3_fc_seprated(),

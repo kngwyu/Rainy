@@ -74,6 +74,7 @@ class DoubleDQNAgent(DQNAgent):
 class EpisodicDQNAgent(DQNAgent):
     """Same as DQN, but does an update per episode.
     """
+
     SAVED_MEMBERS = "net", "policy", "total_steps"
 
     def __init__(self, config: Config) -> None:

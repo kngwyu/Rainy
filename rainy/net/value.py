@@ -5,14 +5,12 @@ from typing import Sequence, Tuple, Union
 from .block import DQNConv, FcBody, LinearHead, NetworkBlock
 from .prelude import NetFn
 from ..utils import Device
-from ..prelude import Array
+from ..prelude import Array, ArrayLike
 
 
 class ContinuousQFunction(ABC):
     @abstractmethod
-    def q_value(
-        self, states: Union[Array, Tensor], action: Union[Array, Tensor]
-    ) -> Tensor:
+    def q_value(self, states: ArrayLike, action: ArrayLike) -> Tensor:
         pass
 
 
@@ -59,7 +57,7 @@ class DiscreteQValueNet(DiscreteQFunction, nn.Module):
         else:
             return self.forward(np.stack([state]))
 
-    def forward(self, x: Union[Array, Tensor]) -> Tensor:
+    def forward(self, x: ArrayLike) -> Tensor:
         x = self.device.tensor(x)
         x = self.body(x)
         x = self.head(x)

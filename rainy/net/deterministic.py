@@ -9,7 +9,7 @@ from .init import Initializer, kaiming_uniform
 from .misc import SoftUpdate
 from .prelude import NetFn
 from .value import ContinuousQFunction
-from ..prelude import Array
+from ..prelude import Array, ArrayLike
 
 
 class DeterministicPolicyNet(ABC):
@@ -51,13 +51,11 @@ class SeparatedDDPGNet(DDPGNet):
     def critic_params(self) -> Iterable[Tensor]:
         return self.critic.parameters()
 
-    def action(self, states: Union[Array, Tensor]) -> Tensor:
+    def action(self, states: ArrayLike) -> Tensor:
         s = self.device.tensor(states)
         return self.actor(s).mul(self.action_coef)
 
-    def q_value(
-        self, states: Union[Array, Tensor], action: Union[Array, Tensor]
-    ) -> Tensor:
+    def q_value(self, states: ArrayLike, action: ArrayLike) -> Tensor:
         s = self.device.tensor(states)
         a = self.device.tensor(action)
         sa = torch.cat((s, a), dim=1)
@@ -99,9 +97,7 @@ class SeparatedTD3Net(SeparatedDDPGNet):
     def critic_params(self) -> Iterable[Tensor]:
         return chain(self.critic.parameters(), self.critic2.parameters())
 
-    def q_values(
-        self, states: Union[Array, Tensor], action: Union[Array, Tensor],
-    ) -> Tuple[Tensor, Tensor]:
+    def q_value(self, states: ArrayLike, action: ArrayLike) -> Tensor:
         s = self.device.tensor(states)
         a = self.device.tensor(action)
         sa = torch.cat((s, a), dim=1)
