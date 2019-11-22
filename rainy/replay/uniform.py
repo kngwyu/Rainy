@@ -1,3 +1,4 @@
+import numpy as np
 from typing import Callable, Generic, List, NamedTuple, Tuple, Type
 from .array_deque import ArrayDeque
 from .base import ReplayFeed, ReplayBuffer
@@ -18,7 +19,11 @@ class UniformReplayBuffer(ReplayBuffer, Generic[ReplayFeed]):
             self.buf.pop_front()
 
     def sample(self, batch_size: int) -> List[ReplayFeed]:
-        return [self.buf[idx] for idx in sample_indices(len(self.buf), batch_size)]
+        if self.allow_overlap:
+            indices = np.random.randint(len(self.buf), size=batch_size)
+        else:
+            indices = sample_indices(len(self.buf), batch_size)
+        return [self.buf[idx] for idx in indices]
 
     def __len__(self):
         return len(self.buf)

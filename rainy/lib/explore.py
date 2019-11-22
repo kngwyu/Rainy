@@ -51,7 +51,7 @@ class DummyCooler(Cooler):
 
 class Explorer(ABC):
     def select_action(self, state: Array, qfunc: DiscreteQFunction) -> LongTensor:
-        return self.select_from_value(qfunc.q_values(state).detach())
+        return self.select_from_value(qfunc.q_value(state).detach())
 
     @abstractmethod
     def select_from_value(self, value: Tensor) -> LongTensor:

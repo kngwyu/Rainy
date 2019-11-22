@@ -3,7 +3,7 @@ from .acktr import ACKTRAgent
 from .aoc import AOCAgent
 from .base import Agent, EpisodeResult, NStepParallelAgent, OneStepAgent
 from .ddpg import DDPGAgent
-from .dqn import DQNAgent, DoubleDQNAgent
+from .dqn import DQNAgent, DoubleDQNAgent, EpisodicDQNAgent
 from .ppo import PPOAgent
 from .sac import SACAgent
 from .td3 import TD3Agent

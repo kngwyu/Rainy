@@ -26,7 +26,7 @@ class Config:
         self.eval_deterministic = True
 
         # Replay buffer
-        self.replay_batch_size = 10
+        self.replay_batch_size = 64
         self.replay_size = 10000
         self.train_start = 1000
         self.__replay: Callable[
@@ -38,7 +38,7 @@ class Config:
         self.parallel_seeds: List[int] = []
 
         # For DQN-like algorithms
-        self.sync_freq = 200
+        self.sync_freq = 1000
         self.__explore: Dict[Optional[str], Callable[[], Explorer]] = {
             None: lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000)),
             "eval": lambda: EpsGreedy(0.01, DummyCooler(0.01)),
@@ -100,7 +100,7 @@ class Config:
 
         # Default Networks
         self.__net: Dict[str, NetFn] = {
-            "value": value.fc(),
+            "dqn": value.fc(),
             "actor-critic": actor_critic.fc_shared(),
             "ddpg": deterministic.fc_seprated(),
             "td3": deterministic.td3_fc_seprated(),

@@ -18,7 +18,7 @@ class ContinuousQFunction(ABC):
 
 class DiscreteQFunction(ABC):
     @abstractmethod
-    def q_values(self, state: Array, nostack: bool = False) -> Tensor:
+    def q_value(self, state: Array, nostack: bool = False) -> Tensor:
         pass
 
     @property
@@ -37,20 +37,23 @@ class DiscreteQValueNet(DiscreteQFunction, nn.Module):
     """
 
     def __init__(
-        self, body: NetworkBlock, head: NetworkBlock, device: Device = Device()
+        self,
+        body: NetworkBlock,
+        head: NetworkBlock,
+        device: Device = Device(),
+        do_not_use_data_parallel: bool = False,
     ) -> None:
-        assert body.output_dim == np.prod(
-            head.input_dim
-        ), "body output and head input must have a same dimention"
+        if body.output_dim != np.prod(head.input_dim):
+            raise ValueError("body output and head input must have a same dimention")
         super().__init__()
         self.head = head
         self.body = body
-        if device.is_multi_gpu():
+        if not do_not_use_data_parallel and device.is_multi_gpu():
             self.body = device.data_parallel(body)  # type: ignore
         self.device = device
         self.to(self.device.unwrapped)
 
-    def q_values(self, state: Array, nostack: bool = False) -> Tensor:
+    def q_value(self, state: Array, nostack: bool = False) -> Tensor:
         if nostack:
             return self.forward(state)
         else:
