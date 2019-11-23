@@ -46,7 +46,7 @@ class Config:
 
         # For BootDQN
         self.num_ensembles = 10
-        self.replay_enqueue_prob = 0.5
+        self.replay_prob = 0.5
 
         # Reward scaling
         # Currently only used by SAC

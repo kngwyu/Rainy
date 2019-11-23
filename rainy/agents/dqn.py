@@ -7,6 +7,7 @@ from typing import Tuple
 from .base import OneStepAgent
 from ..config import Config
 from ..prelude import Action, Array, State
+from ..replay import DQNReplayFeed
 
 
 class DQNAgent(OneStepAgent):
@@ -22,6 +23,8 @@ class DQNAgent(OneStepAgent):
         self.policy = config.explorer()
         self.eval_policy = config.explorer(key="eval")
         self.replay = config.replay_buffer()
+        if self.replay.feed is not DQNReplayFeed:
+            raise RuntimeError("DQNAgent needs DQNReplayFeed")
         self.batch_indices = config.device.indices(config.replay_batch_size)
 
     def set_mode(self, train: bool = True) -> None:
@@ -49,7 +52,7 @@ class DQNAgent(OneStepAgent):
 
     def _train(self) -> None:
         obs = self.replay.sample(self.config.replay_batch_size)
-        obs = [ob.to_ndarray(self.env.extract) for ob in obs]
+        obs = [ob.to_array(self.env.extract) for ob in obs]
         states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
         q_next = self._q_next(next_states).mul_(self.tensor(1.0 - done))
         q_target = self.tensor(rewards).add_(q_next.mul_(self.config.discount_factor))

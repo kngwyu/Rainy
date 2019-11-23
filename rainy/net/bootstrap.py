@@ -3,6 +3,7 @@ from copy import deepcopy
 import numpy as np
 import torch
 from torch import nn, Tensor
+from torch.nn import functional as F
 from typing import List, Sequence
 from .block import FcBody, LinearHead, NetworkBlock
 from .init import Initializer, xavier_uniform
@@ -14,10 +15,17 @@ from ..prelude import Array, ArrayLike
 
 class BootstrappedQFunction(DiscreteQFunction):
     active_head: int
+    device: Device
 
     @abstractmethod
-    def forward(self, index: int, x: ArrayLike) -> Tensor:
+    def forward(self, states: ArrayLike) -> Tensor:
         pass
+
+    def q_s_a(self, states: ArrayLike, actions: ArrayLike) -> Tensor:
+        qs = self(self.device.tensor(states))
+        act = self.device.tensor(actions, dtype=torch.long)
+        action_mask = F.one_hot(act, num_classes=qs.size(-1)).float()
+        return torch.einsum("bka,ba->bk", qs, action_mask)
 
 
 class SeparatedBootQValueNet(BootstrappedQFunction, nn.Module):
@@ -25,12 +33,13 @@ class SeparatedBootQValueNet(BootstrappedQFunction, nn.Module):
         super().__init__()
         self.q_nets = nn.ModuleList(q_nets)
         self.active_head = 0
+        self.device = q_nets[0].device
 
     def q_value(self, state: Array) -> Tensor:
         return self.q_nets[self.active_head].q_value(state)
 
-    def forward(self, index: int, x: ArrayLike) -> Tensor:
-        return self.q_nets[index](x)
+    def forward(self, x: ArrayLike) -> Tensor:
+        return torch.stack([q(x) for q in self.q_nets], dim=1)
 
     @property
     def state_dim(self) -> Sequence[int]:

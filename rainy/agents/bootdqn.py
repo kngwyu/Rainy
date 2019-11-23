@@ -1,3 +1,8 @@
+"""
+This module has an implementation of Bootstrapped DQN, which is described in
+- Deep Exploration via Bootstrapped DQN(https://arxiv.org/abs/1602.04621)
+- Randomized Prior Functions for Deep Reinforcement Learning(https://arxiv.org/abs/1806.03335)
+"""
 import numpy as np
 import torch
 from torch import Tensor
@@ -6,9 +11,13 @@ from typing import Tuple
 from .base import OneStepAgent
 from ..config import Config
 from ..prelude import Action, Array, State
+from ..replay import BootDQNReplayFeed
 
 
 class BootDQNAgent(OneStepAgent):
+    """It's the 2nd version of BootDQN described in RPF paper.
+    """
+
     SAVED_MEMBERS = "net", "policy", "total_steps"
 
     def __init__(self, config: Config) -> None:
@@ -19,12 +28,10 @@ class BootDQNAgent(OneStepAgent):
         self.optimizer = config.optimizer(self.net.parameters())
         self.policy = config.explorer()
         self.eval_policy = config.explorer(key="eval")
-        self.batch_indices = config.device.indices(config.replay_batch_size)
-        self.replays = []
-        for _ in range(self.config.num_ensembles):
-            replay = config.replay_buffer()
-            replay.allow_overlap = True
-            self.replays.append(replay)
+        self.replay = config.replay_buffer()
+        self.replay.allow_overlap = True
+        if self.replay.feed is not BootDQNReplayFeed:
+            raise RuntimeError("BootDQNAgent needs BootDQNReplayFeed")
 
     def set_mode(self, train: bool = True) -> None:
         self.net.train(mode=train)
@@ -37,28 +44,27 @@ class BootDQNAgent(OneStepAgent):
         action = self.policy.select_action(self.env.extract(state), self.net).item()
         next_state, reward, done, info = self.env.step(action)
         n_ens = self.config.num_ensembles
-        mask = np.random.uniform(0, 1, n_ens) < self.config.replay_enqueue_prob
-        for i in filter(lambda i: mask[i], range(n_ens)):
-            self.replays[i].append(state, action, reward, next_state, done)
+        mask = np.random.uniform(0, 1, n_ens) < self.config.replay_prob
+        self.replay.append(state, action, reward, next_state, done, mask)
         if done:
             self._train()
             self.net.active_head = np.random.randint(n_ens)
         return next_state, reward, done, info
 
     @torch.no_grad()
-    def _q_next(self, i: int, next_states: Array) -> Tensor:
-        return self.net(i, next_states).max(axis=-1)[0]
+    def _q_next(self, next_states: Array) -> Tensor:
+        return self.net(next_states).max(axis=-1)[0]
 
     def _train(self) -> None:
         gamma = self.config.discount_factor
-        loss = 0
-        for i, replay in enumerate(self.replays):
-            obs = replay.sample(self.config.replay_batch_size)
-            obs = [ob.to_ndarray(self.env.extract) for ob in obs]
-            states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
-            q_next = self._q_next(i, next_states).mul_(self.tensor(1.0 - done))
-            q_target = self.tensor(rewards).add_(q_next.mul_(gamma))
-            q_current = self.net(i, states)[self.batch_indices, actions]
-            loss += F.mse_loss(q_current, q_target)
-        self._backward(loss, self.optimizer, self.net.parameters())
-        self.network_log(q_value=q_current.mean().item(), value_loss=loss.item())
+        obs = self.replay.sample(self.config.replay_batch_size)
+        obs = [ob.to_array(self.env.extract) for ob in obs]
+        states, actions, rewards, next_states, done, mask = map(np.asarray, zip(*obs))
+        q_next = self._q_next(next_states)
+        r = self.tensor(rewards).view(-1, 1)
+        q_target = r + q_next * self.tensor(1.0 - done).mul_(gamma).view(-1, 1)
+        q_current = self.net.q_s_a(states, actions)
+        mse = F.mse_loss(q_current, q_target, reduction="none")
+        masked_loss = mse.mul_(self.tensor(mask)).mean()
+        self._backward(masked_loss.mean(), self.optimizer, self.net.parameters())
+        self.network_log(q_value=q_current.mean().item(), value_loss=masked_loss.item())
