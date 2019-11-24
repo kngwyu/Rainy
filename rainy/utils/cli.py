@@ -40,7 +40,12 @@ def rainy_cli(
     help="Comment that would be wrote to fingerprint.txt",
 )
 @click.option("--prefix", type=str, default="", help="Prefix of the log directory")
-def train(ctx: click.Context, comment: Optional[str], prefix: str) -> None:
+@click.option(
+    "--eval-render", is_flag=True, help="Render the environment when evaluating"
+)
+def train(
+    ctx: click.Context, comment: Optional[str], prefix: str, eval_render: bool = True
+) -> None:
     c = ctx.obj["config"]
     script_path = ctx.obj["script_path"]
     if script_path is not None:
@@ -53,7 +58,7 @@ def train(ctx: click.Context, comment: Optional[str], prefix: str) -> None:
             script_path, prefix=prefix, fingerprint=fingerprint
         )
     ag = ctx.obj["make_agent"](c)
-    run.train_agent(ag)
+    run.train_agent(ag, eval_render=eval_render)
     if mpi.IS_MPI_ROOT:
         print(
             "random play: {}, trained: {}".format(
