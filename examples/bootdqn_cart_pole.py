@@ -2,7 +2,7 @@ import click
 import os
 from rainy import Config
 from rainy.agents import BootDQNAgent
-from rainy.envs import ClassicalControl
+from rainy.envs import ClassicControl
 from rainy.net import bootstrap
 from rainy.replay import BootDQNReplayFeed, UniformReplayBuffer
 import rainy.utils.cli as cli
@@ -10,7 +10,7 @@ import rainy.utils.cli as cli
 
 def config(envname: str = "CartPole-v0", rpf: bool = False) -> Config:
     c = Config()
-    c.set_env(lambda: ClassicalControl(envname))
+    c.set_env(lambda: ClassicControl(envname))
     c.max_steps = 100000
     c.episode_log_freq = 100
     if rpf:

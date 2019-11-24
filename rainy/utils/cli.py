@@ -20,10 +20,7 @@ from .. import run
 )
 @click.pass_context
 def rainy_cli(
-    ctx: click.Context,
-    envname: Optional[str],
-    seed: Optional[int],
-    **kwargs,
+    ctx: click.Context, envname: Optional[str], seed: Optional[int], **kwargs,
 ) -> None:
     cfg_gen = ctx.obj["config_gen"]
     if envname is not None:
@@ -167,7 +164,7 @@ def run_cli(
     config_gen: Callable[..., Config],
     agent_gen: Callable[[Config], Agent],
     script_path: Optional[str] = None,
-    options: List[click.Command] = []
+    options: List[click.Command] = [],
 ) -> None:
     obj = {
         "config_gen": config_gen,

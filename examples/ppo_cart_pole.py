@@ -1,13 +1,13 @@
 import os
 import rainy
 from rainy.utils.cli import run_cli
-from rainy.envs import MultiProcEnv
+from rainy.envs import ClassicControl, MultiProcEnv
 from torch.optim import Adam
 
 
 def config(envname: str = "CartPole-v0") -> rainy.Config:
     c = rainy.Config()
-    c.set_env(lambda: ClassicalControl(envname))
+    c.set_env(lambda: ClassicControl(envname))
     c.max_steps = int(1e5)
     c.nworkers = 8
     c.nsteps = 32

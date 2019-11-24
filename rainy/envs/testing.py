@@ -1,4 +1,4 @@
-"""Dummy environment for testing
+"""Dummy environment and utitlities for testing
 """
 from enum import Enum
 from gym.spaces import Discrete

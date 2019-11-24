@@ -15,6 +15,24 @@ from .parallel_wrappers import (
 from ..prelude import Self, State
 
 
+gym.envs.register(
+    id="CartPoleSwingUp-v0",
+    entry_point="rainy.envs.swingup:CartPoleSwingUp",
+    max_episode_steps=1000,
+    kwargs=dict(start_position="arbitary"),
+    reward_threshold=900,
+)
+
+
+gym.envs.register(
+    id="CartPoleSwingUp-v1",
+    entry_point="rainy.envs.swingup:CartPoleSwingUp",
+    max_episode_steps=1000,
+    kwargs=dict(start_position="bottom"),
+    reward_threshold=900,
+)
+
+
 class AtariConfig:
     STYLES = ["deepmind", "baselines", "dopamine", "rnd"]
 
@@ -96,11 +114,14 @@ def atari_parallel(frame_stack: bool = True) -> Callable[[EnvGen, int], Parallel
     return __wrap
 
 
-class ClassicalControl(EnvExt):
-    def __init__(self, name: str = "CartPole-v0", max_steps: int = 200) -> None:
+class ClassicControl(EnvExt):
+    def __init__(
+        self, name: str = "CartPole-v0", max_steps: Optional[int] = None
+    ) -> None:
         self.name = name
         super().__init__(gym.make(name))
-        self._env._max_episode_steps = max_steps
+        if max_steps is not None:
+            self._env._max_episode_steps = max_steps
 
 
 class PyBullet(EnvExt):

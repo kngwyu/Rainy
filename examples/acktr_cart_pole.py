@@ -2,7 +2,7 @@ import os
 from rainy import Config
 from rainy.agents import ACKTRAgent
 import rainy.utils.cli as cli
-from rainy.envs import MultiProcEnv
+from rainy.envs import ClassicControl, MultiProcEnv
 from rainy.lib import kfac
 
 
@@ -15,7 +15,7 @@ KFAC_KWARGS = {
 
 def config(envname: str = "CartPole-v0") -> Config:
     c = Config()
-    c.set_env(lambda: ClassicalControl(envname))
+    c.set_env(lambda: ClassicControl(envname))
     c.max_steps = int(4e5)
     c.nworkers = 12
     c.nsteps = 20
