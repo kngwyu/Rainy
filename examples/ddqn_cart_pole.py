@@ -4,8 +4,9 @@ from rainy.agents import DoubleDQNAgent
 import rainy.utils.cli as cli
 
 
-def config() -> Config:
+def config(envname: str = "CartPole-v0") -> Config:
     c = Config()
+    c.set_env(lambda: ClassicalControl(envname))
     c.max_steps = 100000
     return c
 

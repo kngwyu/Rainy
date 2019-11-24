@@ -4,7 +4,7 @@ from rainy.agents import DQNAgent
 import rainy.utils.cli as cli
 
 
-def config() -> Config:
+def config(envname: str = "CartPole-v0") -> Config:
     c = Config()
     c.max_steps = 100000
     c.episode_log_freq = 100

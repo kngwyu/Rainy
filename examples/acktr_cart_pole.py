@@ -13,8 +13,9 @@ KFAC_KWARGS = {
 }
 
 
-def config() -> Config:
+def config(envname: str = "CartPole-v0") -> Config:
     c = Config()
+    c.set_env(lambda: ClassicalControl(envname))
     c.max_steps = int(4e5)
     c.nworkers = 12
     c.nsteps = 20
