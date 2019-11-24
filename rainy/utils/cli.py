@@ -12,6 +12,7 @@ from .. import run
 @click.option(
     "--envname", type=str, default=None, help="Name of environment passed to config_gen"
 )
+@click.option("--max-steps", type=int, default=None, help="Max steps of the training")
 @click.option(
     "--seed",
     type=int,
@@ -20,11 +21,17 @@ from .. import run
 )
 @click.pass_context
 def rainy_cli(
-    ctx: click.Context, envname: Optional[str], seed: Optional[int], **kwargs,
+    ctx: click.Context,
+    envname: Optional[str],
+    max_steps: Optional[int],
+    seed: Optional[int],
+    **kwargs,
 ) -> None:
     cfg_gen = ctx.obj["config_gen"]
     if envname is not None:
         kwargs["envname"] = envname
+    if max_steps is not None:
+        kwargs["max_steps"] = max_steps
     ctx.obj["config"] = cfg_gen(**kwargs)
     ctx.obj["config"].seed = seed
     ctx.obj["envname"] = "Default" if envname is None else envname
