@@ -15,20 +15,31 @@ from .parallel_wrappers import (
 from ..prelude import Self, State
 
 
+# Same as bsuite
 gym.envs.register(
     id="CartPoleSwingUp-v0",
     entry_point="rainy.envs.swingup:CartPoleSwingUp",
     max_episode_steps=1000,
-    kwargs=dict(start_position="arbitary"),
-    reward_threshold=900,
+    kwargs=dict(start_position="bottom", allow_noop=True),
+    reward_threshold=800,
 )
 
-
+# More difficult
 gym.envs.register(
     id="CartPoleSwingUp-v1",
     entry_point="rainy.envs.swingup:CartPoleSwingUp",
     max_episode_steps=1000,
-    kwargs=dict(start_position="bottom"),
+    kwargs=dict(start_position="bottom", allow_noop=True, height_threshold=0.9),
+    reward_threshold=800,
+)
+
+
+# No movecost
+gym.envs.register(
+    id="CartPoleSwingUp-v2",
+    entry_point="rainy.envs.swingup:CartPoleSwingUp",
+    max_episode_steps=1000,
+    kwargs=dict(start_position="botttom", allow_noop=False),
     reward_threshold=900,
 )
 
