@@ -14,12 +14,19 @@ from ..prelude import Array, ArrayLike
 
 
 class BootstrappedQFunction(DiscreteQFunction):
-    active_head: int
     device: Device
 
     @abstractmethod
     def forward(self, states: ArrayLike) -> Tensor:
         pass
+
+    @abstractmethod
+    def q_i_s(self, index: int, states: ArrayLike) -> Tensor:
+        pass
+
+    def q_value(self, state: Array) -> Tensor:
+        values = self(state)
+        return values.mean(dim=1)
 
     def q_s_a(self, states: ArrayLike, actions: ArrayLike) -> Tensor:
         qs = self(self.device.tensor(states))
@@ -32,14 +39,13 @@ class SeparatedBootQValueNet(BootstrappedQFunction, nn.Module):
     def __init__(self, q_nets: List[DiscreteQFunction]):
         super().__init__()
         self.q_nets = nn.ModuleList(q_nets)
-        self.active_head = 0
         self.device = q_nets[0].device
-
-    def q_value(self, state: Array) -> Tensor:
-        return self.q_nets[self.active_head].q_value(state)
 
     def forward(self, x: ArrayLike) -> Tensor:
         return torch.stack([q(x) for q in self.q_nets], dim=1)
+
+    def q_i_s(self, index: int, states: ArrayLike) -> Tensor:
+        return self.q_nets[index](states)
 
     @property
     def state_dim(self) -> Sequence[int]:

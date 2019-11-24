@@ -15,35 +15,6 @@ from .parallel_wrappers import (
 from ..prelude import Self, State
 
 
-# Same as bsuite
-gym.envs.register(
-    id="CartPoleSwingUp-v0",
-    entry_point="rainy.envs.swingup:CartPoleSwingUp",
-    max_episode_steps=1000,
-    kwargs=dict(start_position="bottom", allow_noop=True),
-    reward_threshold=800,
-)
-
-# More difficult
-gym.envs.register(
-    id="CartPoleSwingUp-v1",
-    entry_point="rainy.envs.swingup:CartPoleSwingUp",
-    max_episode_steps=1000,
-    kwargs=dict(start_position="bottom", allow_noop=True, height_threshold=0.9),
-    reward_threshold=800,
-)
-
-
-# No movecost
-gym.envs.register(
-    id="CartPoleSwingUp-v2",
-    entry_point="rainy.envs.swingup:CartPoleSwingUp",
-    max_episode_steps=1000,
-    kwargs=dict(start_position="botttom", allow_noop=False),
-    reward_threshold=900,
-)
-
-
 class AtariConfig:
     STYLES = ["deepmind", "baselines", "dopamine", "rnd"]
 
@@ -182,3 +153,41 @@ def pybullet_parallel(
         return penv
 
     return __wrap
+
+
+# Same as bsuite
+gym.envs.register(
+    id="CartPoleSwingUp-v0",
+    entry_point="rainy.envs.swingup:CartPoleSwingUp",
+    max_episode_steps=1000,
+    kwargs=dict(start_position="bottom", allow_noop=True),
+    reward_threshold=800,
+)
+
+# More difficult
+gym.envs.register(
+    id="CartPoleSwingUp-v1",
+    entry_point="rainy.envs.swingup:CartPoleSwingUp",
+    max_episode_steps=1000,
+    kwargs=dict(start_position="bottom", allow_noop=True, height_threshold=0.9),
+    reward_threshold=800,
+)
+
+
+# No movecost
+gym.envs.register(
+    id="CartPoleSwingUp-v2",
+    entry_point="rainy.envs.swingup:CartPoleSwingUp",
+    max_episode_steps=1000,
+    kwargs=dict(start_position="bottom", allow_noop=False),
+    reward_threshold=900,
+)
+
+# Arbitary start
+gym.envs.register(
+    id="CartPoleSwingUp-v3",
+    entry_point="rainy.envs.swingup:CartPoleSwingUp",
+    max_episode_steps=1000,
+    kwargs=dict(start_position="arbitary", allow_noop=False),
+    reward_threshold=900,
+)
