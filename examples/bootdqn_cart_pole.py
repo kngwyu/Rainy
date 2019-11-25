@@ -24,6 +24,7 @@ def config(
     c.set_env(lambda: ClassicControl(envname))
     c.max_steps = max_steps
     c.episode_log_freq = 100
+    c.replay_prob = replay_prob
     if rpf:
         c.set_net_fn("bootdqn", bootstrap.rpf_fc_separated(10, prior_scale=prior_scale))
     c.set_replay_buffer(
