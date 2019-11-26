@@ -16,6 +16,7 @@ Python >= 3.6.1
 |**Algorithm** |**Multi Worker(Sync)**|**Recurrent**                   |**Discrete Action** |**Continuous Action**|**MPI support**   |
 | ------------ | -------------------- | ------------------------------ | ------------------ | ------------------- | ---------------- |
 |DQN/Double DQN|:x:                   |:x:                             |:heavy_check_mark:  |:x:                  |:x:               |
+|BootDQN/RPF   |:x:                   |:x:                             |:heavy_check_mark:  |:x:                  |:x:               |
 |DDPG          |:x:                   |:x:                             |:x:                 |:heavy_check_mark:   |:x:               |
 |TD3           |:x:                   |:x:                             |:x:                 |:heavy_check_mark:   |:x:               |
 |SAC           |:x:                   |:x:                             |:x:                 |:heavy_check_mark:   |:x:               |
@@ -39,6 +40,12 @@ Python >= 3.6.1
 
 ### DDQN (Double DQN)
 - https://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/viewPaper/12389
+
+### Bootstrapped DQN
+- https://arxiv.org/abs/1602.04621
+
+### RPF(Randomized Prior Functions)
+- https://arxiv.org/abs/1806.03335
 
 ### DDPQ(Deep Deterministic Policy Gradient)
 - https://arxiv.org/abs/1509.02971
