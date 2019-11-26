@@ -2,6 +2,7 @@ from numpy import ndarray
 import gym
 from typing import Callable, Optional
 from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
+from .deepsea import DeepSea as DeepSeaGymEnv
 from .ext import EnvExt, EnvSpec
 from .monitor import RewardMonitor
 from .obs_wrappers import AddTimeStep, TransposeObs
@@ -104,6 +105,12 @@ class ClassicControl(EnvExt):
         super().__init__(gym.make(name))
         if max_steps is not None:
             self._env._max_episode_steps = max_steps
+
+
+class DeepSea(EnvExt):
+    def __init__(self, size: int, noise: float = 0.0) -> None:
+        env = DeepSeaGymEnv(size, noise)
+        super().__init__(env)
 
 
 class PyBullet(EnvExt):

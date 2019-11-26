@@ -14,6 +14,7 @@ class EpisodicDQNAgent(OneStepAgent):
     """A DQN variant, which has no target network and
     updates the target only once per episode.
     """
+
     SAVED_MEMBERS = "net", "policy", "total_steps"
 
     def __init__(self, config: Config) -> None:
