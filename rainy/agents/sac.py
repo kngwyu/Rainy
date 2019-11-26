@@ -103,7 +103,7 @@ class SACAgent(OneStepAgent):
 
     def _train(self) -> None:
         obs = self.replay.sample(self.config.replay_batch_size)
-        obs = [ob.to_ndarray(self.env.extract) for ob in obs]
+        obs = [ob.to_array(self.env.extract) for ob in obs]
         states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
         q1, q2, policy = self.net(states, actions)
 

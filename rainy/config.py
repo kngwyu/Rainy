@@ -1,8 +1,8 @@
 from torch import nn
 from torch.optim import Optimizer, RMSprop
 from typing import Callable, Dict, List, Optional, Sequence
-from .envs import ClassicalControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEnv
-from .net import actor_critic, deterministic, option_critic, sac, value
+from .envs import ClassicControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEnv
+from .net import actor_critic, bootstrap, deterministic, option_critic, sac, value
 from .net.prelude import NetFn
 from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
 from .lib import mpi
@@ -26,7 +26,7 @@ class Config:
         self.eval_deterministic = True
 
         # Replay buffer
-        self.replay_batch_size = 10
+        self.replay_batch_size = 64
         self.replay_size = 10000
         self.train_start = 1000
         self.__replay: Callable[
@@ -38,11 +38,15 @@ class Config:
         self.parallel_seeds: List[int] = []
 
         # For DQN-like algorithms
-        self.sync_freq = 200
+        self.sync_freq = 1000
         self.__explore: Dict[Optional[str], Callable[[], Explorer]] = {
             None: lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000)),
             "eval": lambda: EpsGreedy(0.01, DummyCooler(0.01)),
         }
+
+        # For BootDQN
+        self.num_ensembles = 10
+        self.replay_prob = 0.5
 
         # Reward scaling
         # Currently only used by SAC
@@ -100,7 +104,8 @@ class Config:
 
         # Default Networks
         self.__net: Dict[str, NetFn] = {
-            "value": value.fc(),
+            "dqn": value.fc(),
+            "bootdqn": bootstrap.fc_separated(10),
             "actor-critic": actor_critic.fc_shared(),
             "ddpg": deterministic.fc_seprated(),
             "td3": deterministic.td3_fc_seprated(),
@@ -110,7 +115,7 @@ class Config:
 
         # Environments
         self.eval_times = 1
-        self.__env = lambda: ClassicalControl()
+        self.__env = lambda: ClassicControl()
         self.__eval_env: Optional[EnvExt] = None
         self.__paralle_env = lambda env_gen, num_w: DummyParallelEnv(env_gen, num_w)
 

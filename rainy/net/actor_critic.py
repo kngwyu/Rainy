@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from torch import nn, Tensor
-from typing import Callable, List, Optional, Sequence, Tuple, Union
+from typing import Callable, List, Optional, Sequence, Tuple
 from .block import DQNConv, FcBody, ResNetBody, LinearHead, NetworkBlock
 from .init import Initializer, orthogonal
 from .policy import CategoricalDist, Policy, PolicyDist
 from .prelude import NetFn
 from .recurrent import DummyRnn, RnnBlock, RnnState
-from ..prelude import Array
+from ..prelude import ArrayLike
 from ..utils import Device
 
 
@@ -27,7 +27,7 @@ class ActorCriticNet(nn.Module, ABC):
     @abstractmethod
     def policy(
         self,
-        states: Union[Array, Tensor],
+        states: ArrayLike,
         rnns: Optional[RnnState] = None,
         masks: Optional[Tensor] = None,
     ) -> Tuple[Policy, RnnState]:
@@ -36,7 +36,7 @@ class ActorCriticNet(nn.Module, ABC):
     @abstractmethod
     def value(
         self,
-        states: Union[Array, Tensor],
+        states: ArrayLike,
         rnns: Optional[RnnState] = None,
         masks: Optional[Tensor] = None,
     ) -> Tensor:
@@ -45,7 +45,7 @@ class ActorCriticNet(nn.Module, ABC):
     @abstractmethod
     def forward(
         self,
-        states: Union[Array, Tensor],
+        states: ArrayLike,
         rnns: Optional[RnnState] = None,
         masks: Optional[Tensor] = None,
     ) -> Tuple[Policy, Tensor, RnnState]:
@@ -96,7 +96,7 @@ class SharedBodyACNet(ActorCriticNet):
 
     def _features(
         self,
-        states: Union[Array, Tensor],
+        states: ArrayLike,
         rnns: Optional[RnnState] = None,
         masks: Optional[Tensor] = None,
     ) -> Tuple[Tensor, RnnState]:
@@ -108,7 +108,7 @@ class SharedBodyACNet(ActorCriticNet):
 
     def policy(
         self,
-        states: Union[Array, Tensor],
+        states: ArrayLike,
         rnns: Optional[RnnState] = None,
         masks: Optional[Tensor] = None,
     ) -> Tuple[Policy, RnnState]:
@@ -117,7 +117,7 @@ class SharedBodyACNet(ActorCriticNet):
 
     def value(
         self,
-        states: Union[Array, Tensor],
+        states: ArrayLike,
         rnns: Optional[RnnState] = None,
         masks: Optional[Tensor] = None,
     ) -> Tensor:
@@ -126,7 +126,7 @@ class SharedBodyACNet(ActorCriticNet):
 
     def forward(
         self,
-        states: Union[Array, Tensor],
+        states: ArrayLike,
         rnns: Optional[RnnState] = None,
         masks: Optional[Tensor] = None,
     ) -> Tuple[Policy, Tensor, RnnState]:

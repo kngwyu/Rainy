@@ -12,7 +12,7 @@ KFAC_KWARGS = {
 }
 
 
-def config(game: str = "Breakout") -> Config:
+def config(envname: str = "Breakout") -> Config:
     c = Config()
     c.set_env(lambda: Atari(game, frame_stack=False))
     c.set_optimizer(kfac.default_sgd(eta_max=0.2))

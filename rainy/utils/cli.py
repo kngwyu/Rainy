@@ -1,5 +1,5 @@
 import click
-from typing import Callable, Optional, Tuple
+from typing import Callable, List, Optional
 
 from ..agents import Agent
 from ..config import Config
@@ -10,44 +10,32 @@ from .. import run
 
 @click.group()
 @click.option(
-    "--gpu", required=False, type=int, help="How many gpus you allow the script to use"
-)
-@click.option(
     "--envname", type=str, default=None, help="Name of environment passed to config_gen"
 )
+@click.option("--max-steps", type=int, default=None, help="Max steps of the training")
 @click.option(
     "--seed",
     type=int,
     default=None,
     help="Random seed set before training. Left for backward comaptibility",
 )
-@click.option(
-    "--override", type=str, default="", help="Override string(see README for detail)"
-)
 @click.pass_context
 def rainy_cli(
     ctx: click.Context,
-    gpu: Tuple[int],
     envname: Optional[str],
+    max_steps: Optional[int],
     seed: Optional[int],
-    override: str,
+    **kwargs,
 ) -> None:
-    ctx.obj["gpu"] = gpu
     cfg_gen = ctx.obj["config_gen"]
-    ctx.obj["config"] = cfg_gen(envname) if envname is not None else cfg_gen()
+    if envname is not None:
+        kwargs["envname"] = envname
+    if max_steps is not None:
+        kwargs["max_steps"] = max_steps
+    ctx.obj["config"] = cfg_gen(**kwargs)
     ctx.obj["config"].seed = seed
-    ctx.obj["override"] = override
     ctx.obj["envname"] = "Default" if envname is None else envname
-    if len(override) > 0:
-        import builtins
-
-        try:
-            exec(override, builtins.__dict__, {"config": ctx.obj["config"]})
-        except Exception as e:
-            print(
-                "!!! Your override string '{}' contains an error !!!".format(override)
-            )
-            raise e
+    ctx.obj["kwargs"] = kwargs
 
 
 @rainy_cli.command(help="Train agents")
@@ -59,20 +47,25 @@ def rainy_cli(
     help="Comment that would be wrote to fingerprint.txt",
 )
 @click.option("--prefix", type=str, default="", help="Prefix of the log directory")
-def train(ctx: click.Context, comment: Optional[str], prefix: str) -> None:
+@click.option(
+    "--eval-render", is_flag=True, help="Render the environment when evaluating"
+)
+def train(
+    ctx: click.Context, comment: Optional[str], prefix: str, eval_render: bool = True
+) -> None:
     c = ctx.obj["config"]
     script_path = ctx.obj["script_path"]
     if script_path is not None:
         fingerprint = dict(
             comment="" if comment is None else comment,
             envname=ctx.obj["envname"],
-            override=ctx.obj["override"],
+            kwargs=ctx.obj["kwargs"],
         )
         c.logger.set_dir_from_script_path(
             script_path, prefix=prefix, fingerprint=fingerprint
         )
     ag = ctx.obj["make_agent"](c)
-    run.train_agent(ag)
+    run.train_agent(ag, eval_render=eval_render)
     if mpi.IS_MPI_ROOT:
         print(
             "random play: {}, trained: {}".format(
@@ -174,14 +167,21 @@ def ipython(ctx: click.Context, logdir: Optional[str]) -> None:
     _open_ipython(logdir)
 
 
+def _add_options(options: List[click.Command] = []) -> click.Group:
+    for option in options:
+        rainy_cli.params.append(option)
+
+
 def run_cli(
     config_gen: Callable[..., Config],
     agent_gen: Callable[[Config], Agent],
     script_path: Optional[str] = None,
+    options: List[click.Command] = [],
 ) -> None:
     obj = {
         "config_gen": config_gen,
         "make_agent": agent_gen,
         "script_path": script_path,
     }
+    _add_options(options)
     rainy_cli(obj=obj)

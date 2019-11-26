@@ -7,6 +7,7 @@ ReplayFeed = TypeVar("ReplayFeed")
 class ReplayBuffer(ABC, Generic[ReplayFeed]):
     def __init__(self, feed: Type[ReplayFeed]) -> None:
         self.feed = feed
+        self.allow_overlap = False
 
     @abstractmethod
     def append(self, *args) -> None:

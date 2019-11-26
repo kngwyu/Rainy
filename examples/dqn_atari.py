@@ -7,14 +7,14 @@ import rainy.utils.cli as cli
 from torch.optim import RMSprop
 
 
-def config(game: str = "Breakout") -> Config:
+def config(envname: str = "Breakout") -> Config:
     c = Config()
     c.set_env(lambda: Atari(game))
     c.set_optimizer(
         lambda params: RMSprop(params, lr=0.00025, alpha=0.95, eps=0.01, centered=True)
     )
     c.set_explorer(lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, int(1e6))))
-    c.set_net_fn("value", net.value.dqn_conv())
+    c.set_net_fn("dqn", net.value.dqn_conv())
     c.replay_size = int(1e6)
     c.replay_batch_size = 32
     c.train_start = 50000

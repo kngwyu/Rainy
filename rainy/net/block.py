@@ -1,6 +1,6 @@
 """Defines some reusable NN layers, called 'Block'
 """
-from abc import ABC, abstractmethod
+from abc import ABC
 import numpy as np
 from torch import nn, Tensor
 from typing import List, Sequence, Tuple
@@ -10,6 +10,7 @@ from .init import Initializer, orthogonal
 class NetworkBlock(nn.Module, ABC):
     """Defines a NN block which returns 1-dimension Tensor
     """
+
     input_dim: Sequence[int]
     output_dim: int
 
@@ -28,7 +29,7 @@ class LinearHead(NetworkBlock):
     ) -> None:
         super().__init__()
         self.fc: nn.Linear = init(nn.Linear(input_dim, output_dim))  # type: ignore
-        self.input_dim = (input_dim, )
+        self.input_dim = (input_dim,)
         self.output_dim = output_dim
 
     def forward(self, x: Tensor) -> Tensor:
@@ -171,7 +172,7 @@ class FcBody(NetworkBlock):
         init: Initializer = Initializer(),
     ) -> None:
         super().__init__()
-        self.input_dim = (input_dim, )
+        self.input_dim = (input_dim,)
         self.output_dim = units[-1]
         dims = [input_dim] + units
         self.layers = init.make_list(

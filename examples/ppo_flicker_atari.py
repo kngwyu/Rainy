@@ -5,7 +5,7 @@ from rainy.envs import Atari, atari_parallel
 import rainy.utils.cli as cli
 
 
-def config(game: str = "Breakout") -> rainy.Config:
+def config(envname: str = "Breakout") -> rainy.Config:
     c = ppo_atari.config(game)
     c.set_env(lambda: Atari(game, flicker_frame=True, frame_stack=False))
     c.set_parallel_env(atari_parallel(frame_stack=False))

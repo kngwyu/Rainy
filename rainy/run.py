@@ -17,6 +17,7 @@ def train_agent(
     saveid_start: int = 0,
     save_file_name: str = SAVE_FILE_DEFAULT,
     action_file_name: str = ACTION_FILE_DEFAULT,
+    eval_render: bool = False,
 ) -> None:
     ag.logger.summary_setting(
         "train",
@@ -46,9 +47,9 @@ def train_agent(
             fname = logdir.joinpath(
                 "{}-{}{}".format(action_file.stem, episodes, action_file.suffix)
             )
-            res = _eval_impl(ag, fname)
+            res = _eval_impl(ag, fname, render=eval_render)
         else:
-            res = _eval_impl(ag, None)
+            res = _eval_impl(ag, None, render=eval_render)
         rewards, length = _reward_and_length(res)
         ag.logger.submit(
             "eval",

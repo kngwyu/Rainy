@@ -9,7 +9,7 @@ import rainy.utils.cli as cli
 from torch.optim import RMSprop
 
 
-def config(game: str = "Breakout") -> Config:
+def config(envname: str = "Breakout") -> Config:
     c = Config()
     c.set_env(lambda: Atari(game, frame_stack=False))
     c.set_optimizer(lambda params: RMSprop(params, lr=7e-4, alpha=0.99, eps=1e-5))

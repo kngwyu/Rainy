@@ -37,6 +37,11 @@ class EnvSpec:
     def is_discrete(self) -> bool:
         return isinstance(self.action_space, spaces.Discrete)
 
+    def __repr__(self) -> str:
+        return "EnvSpec(state_dim: {} action_space: {})".format(
+            self.state_dim, self.action_space
+        )
+
 
 class EnvExt(gym.Env, Generic[Action, State]):
     def __init__(self, env: gym.Env) -> None:

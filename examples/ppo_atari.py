@@ -6,7 +6,7 @@ from rainy.envs import Atari, atari_parallel
 from torch.optim import Adam
 
 
-def config(game: str = "Breakout") -> Config:
+def config(envname: str = "Breakout") -> Config:
     c = Config()
     c.set_env(lambda: Atari(game, frame_stack=False))
     #  c.set_net_fn('actor-critic', net.actor_critic.ac_conv(rnn=net.GruBlock))

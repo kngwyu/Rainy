@@ -2,6 +2,7 @@ from numpy import ndarray
 import gym
 from typing import Callable, Optional
 from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
+from .deepsea import DeepSea as DeepSeaGymEnv
 from .ext import EnvExt, EnvSpec
 from .monitor import RewardMonitor
 from .obs_wrappers import AddTimeStep, TransposeObs
@@ -96,11 +97,20 @@ def atari_parallel(frame_stack: bool = True) -> Callable[[EnvGen, int], Parallel
     return __wrap
 
 
-class ClassicalControl(EnvExt):
-    def __init__(self, name: str = "CartPole-v0", max_steps: int = 200) -> None:
+class ClassicControl(EnvExt):
+    def __init__(
+        self, name: str = "CartPole-v0", max_steps: Optional[int] = None
+    ) -> None:
         self.name = name
         super().__init__(gym.make(name))
-        self._env._max_episode_steps = max_steps
+        if max_steps is not None:
+            self._env._max_episode_steps = max_steps
+
+
+class DeepSea(EnvExt):
+    def __init__(self, size: int, noise: float = 0.0) -> None:
+        env = DeepSeaGymEnv(size, noise)
+        super().__init__(env)
 
 
 class PyBullet(EnvExt):
@@ -150,3 +160,41 @@ def pybullet_parallel(
         return penv
 
     return __wrap
+
+
+# Same as bsuite
+gym.envs.register(
+    id="CartPoleSwingUp-v0",
+    entry_point="rainy.envs.swingup:CartPoleSwingUp",
+    max_episode_steps=1000,
+    kwargs=dict(start_position="bottom", allow_noop=True),
+    reward_threshold=800,
+)
+
+# More difficult
+gym.envs.register(
+    id="CartPoleSwingUp-v1",
+    entry_point="rainy.envs.swingup:CartPoleSwingUp",
+    max_episode_steps=1000,
+    kwargs=dict(start_position="bottom", allow_noop=True, height_threshold=0.9),
+    reward_threshold=800,
+)
+
+
+# No movecost
+gym.envs.register(
+    id="CartPoleSwingUp-v2",
+    entry_point="rainy.envs.swingup:CartPoleSwingUp",
+    max_episode_steps=1000,
+    kwargs=dict(start_position="bottom", allow_noop=False),
+    reward_threshold=900,
+)
+
+# Arbitary start
+gym.envs.register(
+    id="CartPoleSwingUp-v3",
+    entry_point="rainy.envs.swingup:CartPoleSwingUp",
+    max_episode_steps=1000,
+    kwargs=dict(start_position="arbitary", allow_noop=False),
+    reward_threshold=900,
+)
