@@ -91,8 +91,10 @@ class AOCAgent(NStepParallelAgent[State]):
     ) -> Tuple[LongTensor, ByteTensor]:
         current_beta = beta[self.worker_indices, prev_options]
         do_options_end = current_beta.action()
-        use_new_options = do_options_end.add(1.0 - self.storage.masks[-1]) > 0.9
-        epsgreedy_options = self.opt_explorer.select_from_value(opt_q)
+        use_new_options = do_options_end.add(1.0 - self.storage.masks[-1]) > 0.001
+        epsgreedy_options = self.opt_explorer.select_from_value(opt_q).to(
+            prev_options.device
+        )
         options = torch.where(use_new_options, epsgreedy_options, prev_options)
         return options, use_new_options  # type: ignore
 
@@ -109,8 +111,8 @@ class AOCAgent(NStepParallelAgent[State]):
             state = np.stack([state] * self.config.nworkers)
         policy = self._eval_policy(
             state, self.config.device.tensor([0], dtype=torch.long)
-        )[0]
-        return policy.eval_action(self.config.eval_deterministic)
+        )
+        return policy[0].eval_action(self.config.eval_deterministic)
 
     def eval_action_parallel(
         self, states: Array, mask: torch.Tensor, ent: Optional[Array[float]] = None
