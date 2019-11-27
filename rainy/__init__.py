@@ -1,5 +1,5 @@
 from .config import Config
-from .run import train_agent
+from .experiment import Experiment
 
 
 __version__ = "0.4.0"

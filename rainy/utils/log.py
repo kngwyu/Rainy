@@ -21,10 +21,7 @@ class LogStore:
     def submit(self, d: Dict[str, Any]) -> int:
         res = 0
         for key, value in d.items():
-            if isinstance(value, list):
-                self.inner[key].extend(value)
-            else:
-                self.inner[key].append(value)
+            self.inner[key].append(value)
             if res == 0:
                 res = len(self.inner[key])
         return res
@@ -181,6 +178,7 @@ class ExperimentLogger:
         self._closed = True
 
     def _truncate_and_dump(self, name: str) -> None:
+        print(name)
         df = self._store[name].into_df()
         path = self.logdir.joinpath(name + ".csv")
         include_header = not path.exists()

@@ -3,9 +3,9 @@ from typing import Callable, List, Optional
 
 from ..agents import Agent
 from ..config import Config
+from ..experiment import Experiment
 from ..ipython import _open_ipython
 from ..lib import mpi
-from .. import run
 
 
 @click.group()
@@ -19,12 +19,18 @@ from .. import run
     default=None,
     help="Random seed set before training. Left for backward comaptibility",
 )
+@click.option("--model", type=str, default=None, help="Name of the save file")
+@click.option(
+    "--action-file", type=str, default="actions.json", help="Name of the action file",
+)
 @click.pass_context
 def rainy_cli(
     ctx: click.Context,
     envname: Optional[str],
     max_steps: Optional[int],
     seed: Optional[int],
+    model: Optional[str],
+    action_file: Optional[str],
     **kwargs,
 ) -> None:
     cfg_gen = ctx.obj["config_gen"]
@@ -32,8 +38,10 @@ def rainy_cli(
         kwargs["envname"] = envname
     if max_steps is not None:
         kwargs["max_steps"] = max_steps
-    ctx.obj["config"] = cfg_gen(**kwargs)
-    ctx.obj["config"].seed = seed
+    config = cfg_gen(**kwargs)
+    config.seed = seed
+    ag = ctx.obj["agent_gen"](config)
+    ctx.obj["experiment"] = Experiment(ag, model, action_file)
     ctx.obj["envname"] = "Default" if envname is None else envname
     ctx.obj["kwargs"] = kwargs
 
@@ -53,23 +61,22 @@ def rainy_cli(
 def train(
     ctx: click.Context, comment: Optional[str], prefix: str, eval_render: bool = True
 ) -> None:
-    c = ctx.obj["config"]
     script_path = ctx.obj["script_path"]
+    experiment = ctx.obj["experiment"]
     if script_path is not None:
         fingerprint = dict(
             comment="" if comment is None else comment,
             envname=ctx.obj["envname"],
             kwargs=ctx.obj["kwargs"],
         )
-        c.logger.set_dir_from_script_path(
+        experiment.logger.set_dir_from_script_path(
             script_path, prefix=prefix, fingerprint=fingerprint
         )
-    ag = ctx.obj["make_agent"](c)
-    run.train_agent(ag, eval_render=eval_render)
+    experiment.train(eval_render=eval_render)
     if mpi.IS_MPI_ROOT:
         print(
             "random play: {}, trained: {}".format(
-                ag.random_episode(), ag.eval_episode()
+                experiment.ag.random_episode(), experiment.ag.eval_episode()
             )
         )
 
@@ -82,88 +89,64 @@ def train(
     is_flag=True,
     help="Show replay(works only with special environments, e.g., rogue-gym)",
 )
-@click.option(
-    "--action-file",
-    type=str,
-    default="best-actions.json",
-    help="Name of the action file",
-)
 @click.pass_context
-def random(
-    ctx: click.Context, save: bool, render: bool, replay: bool, action_file: str
-) -> None:
-    c = ctx.obj["config"]
-    ag = ctx.obj["make_agent"](c)
+def random(ctx: click.Context, save: bool, render: bool, replay: bool) -> None:
+    experiment = ctx.obj["experiment"]
     if save:
-        run.random_agent(ag, render=render, replay=replay, action_file=action_file)
+        experiment.random(render=render, replay=replay, action_file=action_file)
     else:
-        run.random_agent(ag, render=render, replay=replay)
+        experiment.random(render=render, replay=replay)
 
 
 @rainy_cli.command(help="Given a save file and restart training")
 @click.pass_context
 @click.argument("logdir", type=str)
 @click.option(
-    "--model", type=str, default=run.SAVE_FILE_DEFAULT, help="Name of the save file"
-)
-@click.option(
     "--additional-steps",
     type=int,
     default=100,
     help="The number of  additional training steps",
 )
-def retrain(ctx: click.Context, logdir: str, model: str, additional_steps: int) -> None:
-    c = ctx.obj["config"]
-    ag = ctx.obj["make_agent"](c)
-    run.retrain_agent(
-        ag, logdir, load_file_name=model, additional_steps=additional_steps
-    )
-    print("random play: {}, trained: {}".format(ag.random_episode(), ag.eval_episode()))
+@click.option(
+    "--eval-render", is_flag=True, help="Render the environment when evaluating"
+)
+def retrain(
+    ctx: click.Context, logdir: str, additional_steps: int, eval_render: bool
+) -> None:
+    experiment = ctx.obj["experiment"]
+    experiment.retrain(logdir, additional_steps, eval_render)
+    if mpi.IS_MPI_ROOT:
+        print(
+            "random play: {}, trained: {}".format(
+                experiment.ag.random_episode(), experiment.ag.eval_episode()
+            )
+        )
 
 
 @rainy_cli.command(help="Load a specified save file and evaluate the agent")
 @click.argument("logdir", type=str)
-@click.option(
-    "--model", type=str, default=run.SAVE_FILE_DEFAULT, help="Name of the save file"
-)
 @click.option("--render", is_flag=True, help="Render the agent")
 @click.option(
     "--replay",
     is_flag=True,
     help="Show replay(works only with special environments, e.g., rogue-gym)",
 )
-@click.option(
-    "--action-file",
-    type=str,
-    default="best-actions.json",
-    help="Name of the action file",
-)
 @click.pass_context
 def eval(
     ctx: click.Context,
     logdir: str,
-    model: str,
     render: bool,
     replay: bool,
-    action_file: str,
 ) -> None:
-    c = ctx.obj["config"]
-    ag = ctx.obj["make_agent"](c)
-    run.eval_agent(
-        ag,
-        logdir,
-        load_file_name=model,
-        render=render,
-        replay=replay,
-        action_file=action_file,
-    )
+    experiment = ctx.obj["experiment"]
+    experiment.evaluate(logdir, render=render, replay=replay)
 
 
 @rainy_cli.command(help="Open an ipython shell with rainy imported")
 @click.option("--logdir", type=str, help="Name of the directly where the log file")
 @click.pass_context
 def ipython(ctx: click.Context, logdir: Optional[str]) -> None:
-    config, make_agent = ctx.obj["config"], ctx.obj["make_agent"]  # noqa
+    config_gen, agent_gen = ctx.obj["config_gen"], ctx.obj["agent_gen"]  # noqa
     _open_ipython(logdir)
 
 
@@ -180,7 +163,7 @@ def run_cli(
 ) -> None:
     obj = {
         "config_gen": config_gen,
-        "make_agent": agent_gen,
+        "agent_gen": agent_gen,
         "script_path": script_path,
     }
     _add_options(options)
