@@ -178,7 +178,6 @@ class ExperimentLogger:
         self._closed = True
 
     def _truncate_and_dump(self, name: str) -> None:
-        print(name)
         df = self._store[name].into_df()
         path = self.logdir.joinpath(name + ".csv")
         include_header = not path.exists()
