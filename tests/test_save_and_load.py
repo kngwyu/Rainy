@@ -18,7 +18,7 @@ def config() -> Config:
     if not LOG_DIR.exists():
         LOG_DIR.mkdir()
     c.logger.logdir = Path(LOG_DIR)
-    c.logger.setup()
+    c.logger.setup_logdir()
     return c
 
 
