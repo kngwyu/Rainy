@@ -1,3 +1,4 @@
+import click
 from pathlib import Path
 from typing import List, Optional
 import warnings
@@ -77,6 +78,11 @@ class Experiment:
         self.ag.save(self._save_file_name + suffix)
 
     def train(self, saveid_start: int = 0, eval_render: bool = False) -> None:
+        if not self.logger.ready:
+            self.logger.setup()
+        logdir = self.logger.logdir.as_posix()
+        click.secho(f"Train stared :) Logdir: {logdir}", bg="white", fg="black")
+
         episodes = 0
         steps = 0
         save_id = saveid_start

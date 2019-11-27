@@ -69,7 +69,7 @@ def train(
             envname=ctx.obj["envname"],
             kwargs=ctx.obj["kwargs"],
         )
-        experiment.logger.set_dir_from_script_path(
+        experiment.logger.setup_from_script_path(
             script_path, prefix=prefix, fingerprint=fingerprint
         )
     experiment.train(eval_render=eval_render)
@@ -132,12 +132,7 @@ def retrain(
     help="Show replay(works only with special environments, e.g., rogue-gym)",
 )
 @click.pass_context
-def eval(
-    ctx: click.Context,
-    logdir: str,
-    render: bool,
-    replay: bool,
-) -> None:
+def eval(ctx: click.Context, logdir: str, render: bool, replay: bool,) -> None:
     experiment = ctx.obj["experiment"]
     experiment.evaluate(logdir, render=render, replay=replay)
 

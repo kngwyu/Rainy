@@ -80,9 +80,10 @@ class ExperimentLogger:
         self._show_summary = show_summary
         self._closed = False
         self._time_offset = dt.timedelta(0)
+        self.ready = False
         atexit.register(self.close)
 
-    def set_dir_from_script_path(
+    def setup_from_script_path(
         self, script_path_: str, prefix: str = "", fingerprint: Dict[str, str] = {},
     ) -> None:
         script_path = Path(script_path_)
@@ -93,7 +94,7 @@ class ExperimentLogger:
         time = self.exp_start.strftime("%y%m%d-%H%M%S")
         self.logdir = Path(logdir_top).joinpath(self.exp_name).joinpath(time)
         fingerprint.update(self.git_metadata(script_path))
-        self.setup(fingerprint=fingerprint)
+        self.setup_logdir(fingerprint=fingerprint)
 
     def retrive(self, logdir: Path) -> Tuple[int, int]:
         self.logdir = logdir
@@ -126,7 +127,7 @@ class ExperimentLogger:
             warnings.warn("{} is not in a git repository".format(script_path))
         return res
 
-    def setup(self, fingerprint: Dict[str, str] = {}) -> None:
+    def setup_logdir(self, fingerprint: Dict[str, str] = {}) -> None:
         if not self.logdir.exists():
             self.logdir.mkdir(parents=True)
         finger = self.logdir.joinpath(self.FINGERPRINT)
@@ -134,6 +135,7 @@ class ExperimentLogger:
             f.write("name: {}\nstarttime: {}\n".format(self.exp_name, self.exp_start))
             for fkey in fingerprint.keys():
                 f.write("{}: {}\n".format(fkey, fingerprint[fkey]))
+        self.ready = True
 
     def submit(self, name: str, **kwargs) -> None:
         """Stores log.
@@ -164,7 +166,6 @@ class ExperimentLogger:
         min_, max_ = indices_df.iloc[0], indices_df.iloc[-1]
         range_str = "\n".join([f"{idx}: {min_[idx]}-{max_[idx]}" for idx in indices])
         click.secho(range_str, bg="black", fg="white")
-
         df.drop(columns=indices, inplace=True)
         describe = df.describe()
         describe.drop(labels="count", inplace=True)
