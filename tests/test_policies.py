@@ -14,7 +14,7 @@ from rainy.net import policy as P
             P.CategoricalPolicy(torch.empty(100).uniform_().view(10, 10)),
             lambda x: 0 <= x < 10,
         ),
-        (P.GaussianPolicy(torch.zeros(10), torch.ones(10)), lambda x: -3 <= x <= 3,),
+        (P.GaussianPolicy(torch.zeros(10), torch.ones(10)), lambda x: -10 <= x <= 10,),
         (
             P.TanhGaussianPolicy(torch.zeros(10), torch.ones(10)),
             lambda x: -1 <= x <= 1,
