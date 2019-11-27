@@ -1,13 +1,10 @@
-import numpy as np
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from .agents import Agent, EpisodeResult
-from .prelude import Array
 from .utils.misc import has_freq_in_interval
 from .lib.mpi import IS_MPI_ROOT
 
 SAVE_FILE_DEFAULT = "rainy-agent.pth"
-SAVE_FILE_OLD = "rainy-agent.save"
 ACTION_FILE_DEFAULT = "actions.json"
 
 
@@ -26,7 +23,10 @@ def train_agent(
         color="red",
     )
     ag.logger.summary_setting(
-        "eval", ["total_steps", "update_steps"], color="green", dtype_is_array=True,
+        "eval",
+        ["total_steps", "update_steps"],
+        interval=ag.config.eval_times,
+        color="green",
     )
     action_file = Path(action_file_name)
 
@@ -47,10 +47,11 @@ def train_agent(
             fname = logdir.joinpath(
                 "{}-{}{}".format(action_file.stem, episodes, action_file.suffix)
             )
-            res = _eval_impl(ag, fname, render=eval_render)
+            results = _eval_impl(ag, fname, render=eval_render)
         else:
-            res = _eval_impl(ag, None, render=eval_render)
-        rewards, length = _reward_and_length(res)
+            results = _eval_impl(ag, None, render=eval_render)
+        rewards = [t.reward for t in results]
+        length = [t.reward for t in results]
         ag.logger.submit(
             "eval",
             total_steps=ag.total_steps,
@@ -93,14 +94,6 @@ def _eval_impl(
         res = [ag.eval_episode(render=render) for _ in range(n)]
     ag.set_mode(train=True)
     return res
-
-
-def _reward_and_length(
-    results: List[EpisodeResult],
-) -> Tuple[Array[float], Array[float]]:
-    rewards = np.array([t.reward for t in results])
-    length = np.array([t.length for t in results])
-    return rewards, length
 
 
 def _load_agent(file_name: str, logdir: Path, ag: Agent) -> bool:

@@ -21,7 +21,10 @@ class LogStore:
     def submit(self, d: Dict[str, Any]) -> int:
         res = 0
         for key, value in d.items():
-            self.inner[key].append(value)
+            if isinstance(value, list):
+                self.inner[key].extend(value)
+            else:
+                self.inner[key].append(value)
             if res == 0:
                 res = len(self.inner[key])
         return res
@@ -56,7 +59,6 @@ class SummarySetting(NamedTuple):
     indices: List[str]
     interval: int
     color: str
-    dtype_is_array: bool
 
 
 class ExperimentLogger:
@@ -149,23 +151,14 @@ class ExperimentLogger:
             self._truncate_and_dump(name)
 
     def summary_setting(
-        self,
-        name: str,
-        indices: List[str],
-        interval: int = 1,
-        color: str = "black",
-        dtype_is_array: bool = False,
+        self, name: str, indices: List[str], interval: int = 1, color: str = "black",
     ) -> None:
         if "sec" not in indices:
             indices.append("sec")
-        if dtype_is_array and interval > 1:
-            raise ValueError("You have to set interval=1 when dtype_is_array==True")
-        self._summary_setting[name] = SummarySetting(
-            indices, interval, color, dtype_is_array
-        )
+        self._summary_setting[name] = SummarySetting(indices, interval, color)
 
     def show_summary(self, name: str) -> None:
-        indices, interval, color, dtype_is_array = self._summary_setting[name]
+        indices, interval, color = self._summary_setting[name]
         df = self._store[name][-interval:].to_df()
         indices_df = df[indices]
         click.secho(
@@ -176,8 +169,6 @@ class ExperimentLogger:
         click.secho(range_str, bg="black", fg="white")
 
         df.drop(columns=indices, inplace=True)
-        if dtype_is_array:
-            df = DataFrame(dict(df.iloc[0].items()))
         describe = df.describe()
         describe.drop(labels="count", inplace=True)
         click.echo(df.describe())
