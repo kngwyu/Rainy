@@ -145,7 +145,7 @@ def ipython(ctx: click.Context, logdir: Optional[str]) -> None:
     _open_ipython(logdir)
 
 
-def _add_options(options: List[click.Command] = []) -> click.Group:
+def _add_options(options: List[click.Command]) -> click.Group:
     for option in options:
         rainy_cli.params.append(option)
 

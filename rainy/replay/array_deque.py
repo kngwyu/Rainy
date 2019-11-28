@@ -7,12 +7,17 @@ from ..utils.sample import sample_indices
 
 class ArrayDeque(Sequence):
     def __init__(
-        self, capacity: Optional[int] = None, init_list: List[Any] = []
+        self, capacity: Optional[int] = None, init_list: Optional[List[Any]] = None
     ) -> None:
         self.capacity = capacity
         self.front: List[Any] = []
-        if capacity:
-            init_list = init_list[-capacity:]
+        if init_list is None:
+            init_list = []
+        else:
+            if capacity is not None:
+                init_list = init_list[-capacity:].copy()
+            else:
+                init_list = init_list.copy()
         self.back: List[Any] = init_list
 
     def __len__(self):

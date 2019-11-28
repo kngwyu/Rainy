@@ -4,9 +4,10 @@ from typing import Iterator
 from ..prelude import Array
 
 
-def sample_indices(n: int, k: int) -> np.ndarray:
+def sample_indices(n: int, k: int) -> Array:
     """Sample k numbers from [0, n)
-       Based on https://github.com/chainer/chainerrl/blob/master/chainerrl/misc/random.py
+       Based on
+    https://github.com/chainer/chainerrl/blob/master/chainerrl/misc/random.py
     """
     if 3 * k >= n:
         return np.random.choice(n, k, replace=False)
