@@ -3,13 +3,13 @@ from .sample import RecurrentBatchSampler, sample_indices
 
 
 def test_sample_large():
-    arr = sample_indices(100, 90)
-    assert np.unique(arr).__len__() == 90
+    arr = sample_indices(1000, 900)
+    assert np.unique(arr).shape[0] == 900
 
 
 def test_sample_small():
-    arr = sample_indices(100, 30)
-    assert np.unique(arr).__len__() == 30
+    arr = sample_indices(1000, 100)
+    assert np.unique(arr).shape[0] == 100
 
 
 def test_recurrent_batch_sampler():
