@@ -4,7 +4,6 @@ from typing import Callable, List, Optional
 from ..agents import Agent
 from ..config import Config
 from ..experiment import Experiment
-from ..ipython import _open_ipython
 from ..lib import mpi
 
 
@@ -135,14 +134,6 @@ def retrain(
 def eval(ctx: click.Context, logdir: str, render: bool, replay: bool,) -> None:
     experiment = ctx.obj["experiment"]
     experiment.evaluate(logdir, render=render, replay=replay)
-
-
-@rainy_cli.command(help="Open an ipython shell with rainy imported")
-@click.option("--logdir", type=str, help="Name of the directly where the log file")
-@click.pass_context
-def ipython(ctx: click.Context, logdir: Optional[str]) -> None:
-    config_gen, agent_gen = ctx.obj["config_gen"], ctx.obj["agent_gen"]  # noqa
-    _open_ipython(logdir)
 
 
 def _add_options(options: List[click.Command] = []) -> click.Group:
