@@ -135,7 +135,7 @@ class Agent(ABC):
         env.save_history(fname)
         return res
 
-    def save(self, filename: str) -> None:
+    def save(self, filename: str, directory: Optional[Path] = None) -> None:
         if not mpi.IS_MPI_ROOT:
             return None
         save_dict = {}
@@ -147,15 +147,19 @@ class Agent(ABC):
                 save_dict[member_str] = value.state_dict()
             else:
                 save_dict[member_str] = value
-        logdir = self.config.logger.logdir
-        if logdir is None:
-            logdir = Path(".")
-        torch.save(save_dict, logdir.joinpath(filename))
+        if directory is None:
+            directory = self.logger.logdir
+        torch.save(save_dict, directory.joinpath(filename))
 
-    def load(self, filename: str) -> None:
+    def load(self, filename: str, directory: Optional[Path] = None) -> bool:
         if not mpi.IS_MPI_ROOT:
-            return None
-        saved_dict = torch.load(filename, map_location=self.config.device.unwrapped)
+            return False
+        if directory is None:
+            directory = self.logger.logdir
+        path = directory.joinpath(filename)
+        if not path.exists():
+            return False
+        saved_dict = torch.load(path, map_location=self.config.device.unwrapped)
         #  For backward compatibility, we need to check both index and name
         for idx, member_str in enumerate(self.SAVED_MEMBERS):
             if idx in saved_dict:
@@ -172,6 +176,7 @@ class Agent(ABC):
                 mem.load_state_dict(saved_item)
             else:
                 setattr(self, member_str, saved_item)
+        return True
 
     def tensor(self, arr: ArrayLike, dtype: torch.dtype = torch.float32) -> Tensor:
         """A shorthand method for calling `device.tensor`.

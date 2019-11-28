@@ -75,7 +75,7 @@ class Experiment:
         return freq and turn != 0 and turn // freq != (turn - width) // freq
 
     def _save(self, suffix: str = "") -> None:
-        self.ag.save(self._save_file_name + suffix)
+        self.ag.save(self._save_file_name + suffix, self.logger.logdir)
 
     def train(self, saveid_start: int = 0, eval_render: bool = False) -> None:
         if not self.logger.ready:
@@ -126,9 +126,8 @@ class Experiment:
         return res
 
     def _load_agent(self, logdir: Path) -> bool:
-        p = logdir.joinpath(self._save_file_name)
         if p.exists():
-            self.ag.load(p.as_posix())
+            self.ag.load(self._save_file_name, logdir)
             return True
         return False
 
