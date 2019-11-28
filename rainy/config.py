@@ -214,9 +214,6 @@ class Config:
             self.ppo_clip, self.ppo_clip_min, self.nsteps * self.nworkers
         )
 
-    def ipython_mode(self) -> None:
-        self.logger._show_summary = False
-
     def __repr__(self) -> str:
         d = filter(lambda t: not t[0].startswith("_Config"), self.__dict__.items())
         return "Config: " + str(dict(d))
