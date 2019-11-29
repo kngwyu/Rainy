@@ -136,7 +136,6 @@ def eval(ctx: click.Context, logdir: str, render: bool, replay: bool,) -> None:
     experiment.evaluate(logdir, render=render, replay=replay)
 
 
-
 def _add_options(options: List[click.Command]) -> click.Group:
     for option in options:
         rainy_cli.params.append(option)

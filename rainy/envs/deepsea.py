@@ -68,13 +68,13 @@ class DeepSea(gym.Env):
             self.player_trans = rendering.Transform()
             v = np.array([(0.0, 0.0), (2.0, 0.0), (1.5, -1.0), (0.5, -1.0)])
             player = rendering.make_polygon(v * player_size / 2)
-            player.set_color(1.0, 0.0, 0.0)
+            player.set_color(0.0, 0.0, 1.0)
             player.add_attr(self.player_trans)
             self._viewer.add_geom(player)
-        self.player_trans.set_translation(
-            player_size * self._column, self.SCREEN_SIZE - player_size * self._row,
-        )
-        return self.viewer.render(return_rgb_array=mode == "rgb_array")
+        x = player_size * self._column
+        y = self.SCREEN_SIZE - player_size * self._row
+        self.player_trans.set_translation(x, y)
+        return self._viewer.render(return_rgb_array=mode == "rgb_array")
 
     def _get_observation(self, row: int, column: int) -> np.ndarray:
         observation = np.zeros(shape=(self._size, self._size), dtype=np.float32)
