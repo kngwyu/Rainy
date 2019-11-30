@@ -75,7 +75,7 @@ class ExperimentLogger:
 
         self._store: DefaultDict[str, LogStore] = defaultdict(LogStore)
         self._summary_setting: DefaultDict[str, SummarySetting] = defaultdict(
-            lambda: SummarySetting(["time"], 1, "black")
+            lambda: SummarySetting(["sec"], 1, "black")
         )
         self._show_summary = show_summary
         self._closed = False
