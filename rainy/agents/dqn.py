@@ -26,6 +26,7 @@ class EpisodicDQNAgent(OneStepAgent):
         self.policy = config.explorer()
         self.eval_policy = config.explorer(key="eval")
         self.replay = config.replay_buffer()
+        self.replay.allow_overlap = True
         if self.replay.feed is not DQNReplayFeed:
             raise RuntimeError("DQNAgent needs DQNReplayFeed")
         self.batch_indices = config.device.indices(config.replay_batch_size)
@@ -67,6 +68,7 @@ class DQNAgent(EpisodicDQNAgent):
 
     def __init__(self, config: Config) -> None:
         super().__init__(config)
+        self.replay.allow_overlap = False
         self.target_net = deepcopy(self.net)
 
     def step(self, state: State) -> Tuple[State, float, bool, dict]:
