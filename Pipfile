@@ -12,7 +12,7 @@ extras=["ipython"]
 path = "."
 
 [packages.importlib_metadata]
-markers = "python_version < '3.8.0"
+markers = "python_version < '3.8.0'"
 
 [dev-packages]
 pytest = "==3.10.1"
