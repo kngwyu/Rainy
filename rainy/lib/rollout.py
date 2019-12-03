@@ -1,6 +1,6 @@
 import torch
 from torch import Tensor
-from typing import Generic, NamedTuple, Iterator, List, Optional
+from typing import DefaultDict, Dict, Generic, NamedTuple, Iterator, List, Optional
 from ..envs import ParallelEnv, State
 from ..net import DummyRnn, Policy, RnnBlock, RnnState
 from ..utils import Device
@@ -23,6 +23,7 @@ class RolloutStorage(Generic[State]):
         self.nsteps = nsteps
         self.nworkers = nworkers
         self.device = device
+        self.additional_slots: DefaultDict[str, List[Any]] = DefaultDict(list)
 
     def initialized(self) -> bool:
         return len(self.states) != 0
@@ -41,6 +42,7 @@ class RolloutStorage(Generic[State]):
         rnn_state: RnnState = DummyRnn.DUMMY_STATE,
         policy: Optional[Policy] = None,
         value: Optional[Tensor] = None,
+        **additional_values
     ) -> None:
         assert self.states, "[RolloutStorage.push] Call set_initial_state first"
         self.states.append(state)
@@ -51,14 +53,18 @@ class RolloutStorage(Generic[State]):
             self.policies.append(policy)
         if value is not None:
             self.values.append(value.to(self.device.unwrapped))
+        for name, value in additional_values.items():
+            self.additional_slots[name].append(value)
 
     def reset(self) -> None:
         self.masks = [self.masks[-1]]
         self.states = [self.states[-1]]
         self.rnn_states = [self.rnn_states[-1]]
-        self.rewards = []
-        self.policies = []
-        self.values = []
+        self.rewards.clear()
+        self.policies.clear()
+        self.values.clear()
+        for value in self.additional_slots.values():
+            value.clear()
 
     def batch_states(self, penv: ParallelEnv) -> Tensor:
         states = [self.device.tensor(penv.extract(s)) for s in self.states[:-1]]
@@ -165,5 +171,5 @@ class RolloutSampler:
             if self.rnn_init is DummyRnn.DUMMY_STATE
             else RecurrentBatchSampler
         )
-        for i in sampler_cls(self.nsteps, self.nworkers, self.minibatch_size):  # type: ignore
+        for i in sampler_cls(self.nsteps, self.nworkers, self.minibatch_size):
             yield self._make_batch(i)
