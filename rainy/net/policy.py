@@ -69,6 +69,10 @@ class Policy(ABC):
     def entropy(self) -> Tensor:
         pass
 
+    @abstractmethod
+    def detach(self) -> Self:
+        pass
+
 
 class BernoulliPolicy(Policy):
     def __init__(self, *args, **kwargs) -> None:
@@ -89,6 +93,9 @@ class BernoulliPolicy(Policy):
 
     def __getitem__(self, idx: Index) -> Self:
         return BernoulliPolicy(logits=self.dist.logits[idx])
+
+    def detach(self) -> Self:
+        return BernoulliPolicy(logits=self.dist.logits.detach())
 
 
 class CategoricalPolicy(Policy):
@@ -111,6 +118,9 @@ class CategoricalPolicy(Policy):
     def __getitem__(self, idx: Index) -> Self:
         return CategoricalPolicy(logits=self.dist.logits[idx])
 
+    def detach(self) -> Self:
+        return CategoricalPolicy(logits=self.dist.logits.detach())
+
 
 class GaussianPolicy(Policy):
     def __init__(self, *args, **kwargs) -> None:
@@ -131,6 +141,9 @@ class GaussianPolicy(Policy):
 
     def __getitem__(self, idx: Index) -> Self:
         return GaussianPolicy(self.dist.mean[idx], self.dist.stddev[idx])
+
+    def detach(self) -> Self:
+        return GaussianPolicy(self.dist.mean.detach(), self.dist.stddev.detach())
 
 
 class TanhGaussianPolicy(GaussianPolicy):
@@ -153,7 +166,10 @@ class TanhGaussianPolicy(GaussianPolicy):
         return torch.tanh(self.dist.mean)
 
     def log_prob(self, use_baction: bool = False) -> Tensor:
-        action = self._baction if use_baction else self._action
+        if use_baction:
+            action = self._baction
+        else:
+            action = self.action()
         if self._pre_tanh is None:
             pre_tanh = torch.log((1.0 + action) / (1.0 - action)) / 2
         else:
@@ -161,6 +177,12 @@ class TanhGaussianPolicy(GaussianPolicy):
         log_n = self.dist.log_prob(pre_tanh).sum(-1)
         log_da_du = torch.log(1.0 - action ** 2 + self.epsilon).sum(-1)
         return log_n - log_da_du
+
+    def __getitem__(self, idx: Index) -> Self:
+        return TanhGaussianPolicy(self.dist.mean[idx], self.dist.stddev[idx])
+
+    def detach(self) -> Self:
+        return TanhGaussianPolicy(self.dist.mean.detach(), self.dist.stddev.detach())
 
 
 class PolicyDist(ABC, nn.Module):

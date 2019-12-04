@@ -53,3 +53,23 @@ def test_getitem(policy: P.Policy) -> None:
 def test_baction(policy: P.Policy) -> None:
     action = policy.baction()
     assert action.requires_grad
+
+
+@pytest.mark.parametrize(
+    "policy",
+    [
+        P.BernoulliPolicy(torch.empty(10).uniform_().requires_grad_()),
+        P.CategoricalPolicy(torch.empty(100).uniform_().view(10, 10).requires_grad_()),
+        P.GaussianPolicy(
+            torch.zeros(10).requires_grad_(), torch.ones(10).requires_grad_()
+        ),
+        P.TanhGaussianPolicy(
+            torch.zeros(10).requires_grad_(), torch.ones(10).requires_grad_()
+        ),
+    ],
+)
+def test_detach(policy: P.Policy) -> None:
+    log_pi = policy.log_prob()
+    assert log_pi.requires_grad
+    detached = policy.detach()
+    assert not detached.log_prob().requires_grad
