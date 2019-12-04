@@ -1,3 +1,4 @@
+import click
 import os
 import rainy
 from rainy.utils.cli import run_cli
@@ -5,7 +6,9 @@ from rainy.envs import ClassicControl, MultiProcEnv
 from torch.optim import Adam
 
 
-def config(envname: str = "CartPole-v0") -> rainy.Config:
+def config(
+    envname: str = "CartPole-v0", use_rnn: bool = False, use_separated: bool = False
+) -> rainy.Config:
     c = rainy.Config()
     c.set_env(lambda: ClassicControl(envname))
     c.max_steps = int(1e5)
@@ -21,10 +24,19 @@ def config(envname: str = "CartPole-v0") -> rainy.Config:
     c.use_gae = True
     c.ppo_clip = 0.2
     c.eval_freq = 1000
-    c.eval_times = 8
-    # c.set_net_fn('actor-critic', rainy.net.actor_critic.fc_shared(rnn=rainy.net.GruBlock))
+    c.eval_times = 4
+    if use_rnn:
+        c.set_net_fn(
+            "actor-critic", rainy.net.actor_critic.fc_shared(rnn=rainy.net.GruBlock)
+        )
+    elif use_separated:
+        c.set_net_fn("actor-critic", rainy.net.actor_critic.fc_separated())
     return c
 
 
 if __name__ == "__main__":
-    run_cli(config, rainy.agents.PPOAgent, script_path=os.path.realpath(__file__))
+    options = [
+        click.Option(["--use-rnn"], is_flag=True),
+        click.Option(["--use-separated"], is_flag=True),
+    ]
+    run_cli(config, rainy.agents.PPOAgent, os.path.realpath(__file__), options)

@@ -2,7 +2,7 @@ import copy
 import itertools
 import torch
 from torch import nn, Tensor
-from typing import Iterable, List, Sequence, Tuple
+from typing import Iterable, List, Sequence, Tuple, Type
 from .block import FcBody, LinearHead, NetworkBlock
 from .init import Initializer, fanin_uniform, constant
 from .misc import SoftUpdate
@@ -95,7 +95,7 @@ class SeparatedSACNet(nn.Module, ContinuousQFunction):
 def fc_separated(
     actor_units: List[int] = [256, 256],
     critic_units: List[int] = [256, 256],
-    policy_type: type = TanhGaussianDist,
+    policy_type: Type[PolicyDist] = TanhGaussianDist,
     init: Initializer = Initializer(
         weight_init=fanin_uniform(), bias_init=constant(0.1)
     ),
@@ -110,8 +110,6 @@ def fc_separated(
         critic1 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
         critic2 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
         policy = policy_type(action_dim)
-        return SeparatedSACNet(
-            actor_body, critic1, critic2, policy, device=device, init=init,
-        )
+        return SeparatedSACNet(actor_body, critic1, critic2, policy, device=device, init=init)
 
     return _net
