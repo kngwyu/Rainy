@@ -169,7 +169,7 @@ class ExperimentLogger:
         df.drop(columns=indices, inplace=True)
         describe = df.describe()
         describe.drop(labels="count", inplace=True)
-        click.echo(df.describe())
+        click.echo(describe)
 
     def close(self) -> None:
         if self._closed:
