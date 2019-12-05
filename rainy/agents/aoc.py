@@ -91,7 +91,8 @@ class AOCAgent(NStepParallelAgent[State]):
     ) -> Tuple[LongTensor, ByteTensor]:
         current_beta = beta[self.worker_indices, prev_options]
         do_options_end = current_beta.action()
-        use_new_options = do_options_end.add(1.0 - self.storage.masks[-1]) > 0.001
+        # If do_options[i] == 1 or the episode ends, use new option.
+        use_new_options = do_options_end.add(1.0 - self.storage.masks[-1]) > 0.1
         epsgreedy_options = self.opt_explorer.select_from_value(opt_q).to(
             prev_options.device
         )
