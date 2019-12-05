@@ -110,6 +110,8 @@ def fc_separated(
         critic1 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
         critic2 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
         policy = policy_type(action_dim)
-        return SeparatedSACNet(actor_body, critic1, critic2, policy, device=device, init=init)
+        return SeparatedSACNet(
+            actor_body, critic1, critic2, policy, device=device, init=init
+        )
 
     return _net

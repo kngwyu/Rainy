@@ -14,6 +14,7 @@ from ..utils import Device
 class ActorCriticNet(nn.Module, ABC):
     """Network with Policy + Value Head
     """
+
     state_dim: Sequence[int]
     action_dim: int
     recurrent_body: RnnBlock
@@ -190,10 +191,7 @@ def policy_init() -> Initializer:
 
 
 def _make_ac_shared(
-    body: NetworkBlock,
-    policy_dist: PolicyDist,
-    device: Device,
-    rnn: Type[RnnBlock],
+    body: NetworkBlock, policy_dist: PolicyDist, device: Device, rnn: Type[RnnBlock],
 ) -> SharedACNet:
     rnn_ = rnn(body.output_dim, body.output_dim)
     ac_head = LinearHead(body.output_dim, policy_dist.input_dim, policy_init())
@@ -227,9 +225,7 @@ def ac_conv(
 
 
 def fc_shared(
-    policy: Type[PolicyDist] = CategoricalDist,
-    rnn: Type[RnnBlock] = DummyRnn,
-    **kwargs
+    policy: Type[PolicyDist] = CategoricalDist, rnn: Type[RnnBlock] = DummyRnn, **kwargs
 ) -> NetFn:
     """FC body head ActorCritic network
     """

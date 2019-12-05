@@ -86,9 +86,7 @@ def conv_shared(
 
 
 def fc_shared(
-    num_options: int = 8,
-    policy: Type[PolicyDist] = CategoricalDist,
-    **kwargs
+    num_options: int = 8, policy: Type[PolicyDist] = CategoricalDist, **kwargs
 ) -> NetFn:
     def _net(
         state_dim: Sequence[int], action_dim: int, device: Device
