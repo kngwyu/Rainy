@@ -34,8 +34,9 @@ class Policy(ABC):
     def set_action(self, action: Tensor) -> None:
         self._action = action
 
+    @torch.no_grad()
     def sample(self) -> Tensor:
-        return self.dist.sample().detach()
+        return self.dist.sample()
 
     def rsample(self) -> Tensor:
         """Sampling by reparameterization trick,

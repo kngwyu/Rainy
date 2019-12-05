@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from torch import nn, Tensor
-from typing import Callable, List, Optional, Sequence, Tuple, Type
+from typing import List, Optional, Sequence, Tuple, Type
 from .block import DQNConv, FcBody, ResNetBody, LinearHead, NetworkBlock
 from .init import Initializer, orthogonal
 from .policy import CategoricalDist, Policy, PolicyDist
