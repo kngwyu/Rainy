@@ -1,5 +1,5 @@
 import click
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Type
 
 from ..agents import Agent
 from ..config import Config
@@ -39,7 +39,7 @@ def rainy_cli(
         kwargs["max_steps"] = max_steps
     config = cfg_gen(**kwargs)
     config.seed = seed
-    ag = ctx.obj["agent_gen"](config)
+    ag = ctx.obj["agent_cls"](config)
     ctx.obj["experiment"] = Experiment(ag, model, action_file)
     ctx.obj["envname"] = "Default" if envname is None else envname
     ctx.obj["kwargs"] = kwargs
@@ -143,13 +143,13 @@ def _add_options(options: List[click.Command]) -> click.Group:
 
 def run_cli(
     config_gen: Callable[..., Config],
-    agent_gen: Callable[[Config], Agent],
+    agent_cls: Type[Agent],
     script_path: Optional[str] = None,
     options: List[click.Command] = [],
 ) -> None:
     obj = {
         "config_gen": config_gen,
-        "agent_gen": agent_gen,
+        "agent_cls": agent_cls,
         "script_path": script_path,
     }
     _add_options(options)

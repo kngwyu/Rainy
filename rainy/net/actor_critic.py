@@ -193,7 +193,7 @@ def _make_ac_shared(
     body: NetworkBlock,
     policy_dist: PolicyDist,
     device: Device,
-    rnn: Callable[[int, int], RnnBlock],
+    rnn: Type[RnnBlock],
 ) -> SharedACNet:
     rnn_ = rnn(body.output_dim, body.output_dim)
     ac_head = LinearHead(body.output_dim, policy_dist.input_dim, policy_init())
@@ -204,10 +204,10 @@ def _make_ac_shared(
 
 
 def ac_conv(
-    policy: Callable[[int, Device], PolicyDist] = CategoricalDist,
+    policy: Type[PolicyDist] = CategoricalDist,
     hidden_channels: Tuple[int, int, int] = (32, 64, 32),
     output_dim: int = 256,
-    rnn: Callable[[int, int], RnnBlock] = DummyRnn,
+    rnn: Type[RnnBlock] = DummyRnn,
     **kwargs
 ) -> NetFn:
     """Convolutuion network used for atari experiments
@@ -228,7 +228,7 @@ def ac_conv(
 
 def fc_shared(
     policy: Type[PolicyDist] = CategoricalDist,
-    rnn: Callable[[int, int], RnnBlock] = DummyRnn,
+    rnn: Type[RnnBlock] = DummyRnn,
     **kwargs
 ) -> NetFn:
     """FC body head ActorCritic network
@@ -263,9 +263,9 @@ def fc_separated(
 
 
 def impala_conv(
-    policy: Callable[[int, Device], PolicyDist] = CategoricalDist,
+    policy: Type[PolicyDist] = CategoricalDist,
     channels: List[int] = [16, 32, 32],
-    rnn: Callable[[int, int], RnnBlock] = DummyRnn,
+    rnn: Type[RnnBlock] = DummyRnn,
     **kwargs
 ) -> NetFn:
     """Convolutuion network used in IMPALA

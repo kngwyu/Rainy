@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from torch import nn, Tensor
-from typing import Callable, Sequence, Tuple
+from typing import Sequence, Tuple, Type
 from .actor_critic import policy_init
 from .block import DQNConv, FcBody, LinearHead, NetworkBlock
 from .policy import BernoulliDist, BernoulliPolicy, CategoricalDist, Policy, PolicyDist
@@ -65,7 +65,7 @@ class SharedBodyOCNet(OptionCriticNet):
 
 def conv_shared(
     num_options: int = 8,
-    policy: Callable[[int, Device], PolicyDist] = CategoricalDist,
+    policy: Type[PolicyDist] = CategoricalDist,
     hidden_channels: Tuple[int, int, int] = (32, 64, 32),
     output_dim: int = 256,
     **kwargs
@@ -87,7 +87,7 @@ def conv_shared(
 
 def fc_shared(
     num_options: int = 8,
-    policy: Callable[[int, Device], PolicyDist] = CategoricalDist,
+    policy: Type[PolicyDist] = CategoricalDist,
     **kwargs
 ) -> NetFn:
     def _net(
