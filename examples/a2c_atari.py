@@ -11,7 +11,7 @@ from torch.optim import RMSprop
 
 def config(envname: str = "Breakout") -> Config:
     c = Config()
-    c.set_env(lambda: Atari(game, frame_stack=False))
+    c.set_env(lambda: Atari(envname, frame_stack=False))
     c.set_optimizer(lambda params: RMSprop(params, lr=7e-4, alpha=0.99, eps=1e-5))
     #  c.set_net_fn('actor-critic', net.actor_critic.ac_conv(rnn=net.GruBlock))
     c.set_net_fn("actor-critic", net.actor_critic.ac_conv())
@@ -22,7 +22,7 @@ def config(envname: str = "Breakout") -> Config:
     c.value_loss_weight = 1.0
     c.use_gae = False
     c.max_steps = int(2e7)
-    c.eval_env = Atari(game)
+    c.eval_env = Atari(envname)
     c.use_reward_monitor = True
     c.eval_deterministic = False
     c.episode_log_freq = 100

@@ -9,7 +9,7 @@ from torch.optim import RMSprop
 
 def config(envname: str = "Breakout") -> Config:
     c = Config()
-    c.set_env(lambda: Atari(game))
+    c.set_env(lambda: Atari(envname))
     c.set_optimizer(
         lambda params: RMSprop(params, lr=0.00025, alpha=0.95, eps=0.01, centered=True)
     )
@@ -20,7 +20,7 @@ def config(envname: str = "Breakout") -> Config:
     c.train_start = 50000
     c.sync_freq = 10000
     c.max_steps = int(2e7)
-    c.eval_env = Atari(game, episodic_life=False)
+    c.eval_env = Atari(envname, episodic_life=False)
     c.eval_freq = None
     c.seed = 1
     c.use_reward_monitor = True

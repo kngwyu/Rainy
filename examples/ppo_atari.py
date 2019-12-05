@@ -8,7 +8,7 @@ from torch.optim import Adam
 
 def config(envname: str = "Breakout") -> Config:
     c = Config()
-    c.set_env(lambda: Atari(game, frame_stack=False))
+    c.set_env(lambda: Atari(envname, frame_stack=False))
     #  c.set_net_fn('actor-critic', net.actor_critic.ac_conv(rnn=net.GruBlock))
     c.set_net_fn("actor-critic", net.actor_critic.ac_conv())
     c.set_parallel_env(atari_parallel())
@@ -27,7 +27,7 @@ def config(envname: str = "Breakout") -> Config:
     c.use_reward_monitor = True
     c.lr_min = None  # set 0.0 if you decrease ppo_clip
     # eval settings
-    c.eval_env = Atari(game)
+    c.eval_env = Atari(envname)
     c.episode_log_freq = 100
     c.eval_freq = None
     c.save_freq = None

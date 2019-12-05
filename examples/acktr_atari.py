@@ -14,7 +14,7 @@ KFAC_KWARGS = {
 
 def config(envname: str = "Breakout") -> Config:
     c = Config()
-    c.set_env(lambda: Atari(game, frame_stack=False))
+    c.set_env(lambda: Atari(envname, frame_stack=False))
     c.set_optimizer(kfac.default_sgd(eta_max=0.2))
     c.set_preconditioner(lambda net: kfac.KfacPreConditioner(net, **KFAC_KWARGS))
     c.set_net_fn("actor-critic", net.actor_critic.ac_conv())
@@ -25,7 +25,7 @@ def config(envname: str = "Breakout") -> Config:
     c.use_gae = True
     c.lr_min = 0.0
     c.max_steps = int(2e7)
-    c.eval_env = Atari(game)
+    c.eval_env = Atari(envname)
     c.eval_freq = None
     c.episode_log_freq = 100
     c.use_reward_monitor = True
