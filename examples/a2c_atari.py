@@ -1,5 +1,6 @@
 """Train A2C agent in ALE game registerd in gym.
-Some hyper parametes are from https://github.com/openai/baselines/blob/master/baselines/a2c/a2c.py
+Some hyper parametes are from OpenAI baselines:
+https://github.com/openai/baselines/blob/master/baselines/a2c/a2c.py
 """
 import os
 from rainy import Config, net

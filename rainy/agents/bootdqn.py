@@ -1,7 +1,9 @@
 """
 This module has an implementation of Bootstrapped DQN, which is described in
-- Deep Exploration via Bootstrapped DQN(https://arxiv.org/abs/1602.04621)
-- Randomized Prior Functions for Deep Reinforcement Learning(https://arxiv.org/abs/1806.03335)
+- Deep Exploration via Bootstrapped DQN
+  - URL: https://arxiv.org/abs/1602.04621
+- Randomized Prior Functions for Deep Reinforcement Learning
+  - URL: https://arxiv.org/abs/1806.03335
 """
 import copy
 import numpy as np

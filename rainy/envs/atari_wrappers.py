@@ -148,8 +148,8 @@ class WarpFrame(gym.ObservationWrapper):
     def __init__(self, env, width=84, height=84, grayscale=True, dict_space_key=None):
         """
         Warp frames to 84x84 as done in the Nature paper and later work.
-        If the environment uses dictionary observations, `dict_space_key` can be specified
-        which indicates which observation should be warped.
+        If the environment uses dictionary observations, `dict_space_key` can be
+        specified which indicates which observation should be warped.
         """
         super().__init__(env)
         self._width = width
@@ -236,11 +236,12 @@ class FrameStack(gym.Wrapper):
 
 class LazyFrames:
     def __init__(self, frames):
-        """This object ensures that common frames between the observations are only stored once.
-        It exists purely to optimize memory usage which can be huge for DQN's 1M frames replay
-        buffers.
+        """This object ensures that common frames between the observations are only
+        stored once. It exists purely to optimize memory usage which can be huge for
+        DQN's 1M frames replay buffers.
 
-        This object should only be converted to numpy array before being passed to the model.
+        This object should only be converted to numpy array before being passed
+        to the model.
 
         You'd not believe how complex the previous solution was."""
         self._frames = frames
@@ -284,8 +285,8 @@ class FlickerFrame(gym.ObservationWrapper):
 
 
 class StickyActionEnv(gym.Wrapper):
-    """Repeat the same action stochastically
-    From https://github.com/openai/random-network-distillation/blob/master/atari_wrappers.py
+    """Repeat the same action stochastically. From:
+    https://github.com/openai/random-network-distillation/blob/master/atari_wrappers.py
     """
 
     def __init__(self, env: gym.Env, p: float = 0.25) -> None:

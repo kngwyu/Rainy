@@ -1,5 +1,5 @@
-"""
-From https://github.com/openai/baselines/blob/master/baselines/common/running_mean_std.py
+"""From OpenAI baselines:
+https://github.com/openai/baselines/blob/master/baselines/common/running_mean_std.py
 """
 import numpy as np
 import torch

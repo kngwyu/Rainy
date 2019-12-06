@@ -1,6 +1,6 @@
 import torch
 from torch import Tensor
-from typing import DefaultDict, Dict, Generic, NamedTuple, Iterator, List, Optional
+from typing import DefaultDict, Generic, NamedTuple, Iterator, List, Optional
 from ..envs import ParallelEnv, State
 from ..net import DummyRnn, Policy, RnnBlock, RnnState
 from ..utils import Device

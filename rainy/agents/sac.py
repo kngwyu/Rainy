@@ -6,7 +6,7 @@ import numpy as np
 from torch import nn, Tensor
 import torch
 from torch.nn import functional as F
-from typing import Sequence, Tuple
+from typing import Tuple
 from .base import OneStepAgent
 from ..config import Config
 from ..net import Policy, SeparatedSACNet
