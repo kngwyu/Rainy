@@ -171,7 +171,7 @@ gym.envs.register(
     reward_threshold=800,
 )
 
-# More difficult
+# Difficult
 gym.envs.register(
     id="CartPoleSwingUp-v1",
     entry_point="rainy.envs.swingup:CartPoleSwingUp",
@@ -190,9 +190,24 @@ gym.envs.register(
     reward_threshold=900,
 )
 
-# Arbitary start
+# Easy
 gym.envs.register(
     id="CartPoleSwingUp-v3",
+    entry_point="rainy.envs.swingup:CartPoleSwingUp",
+    max_episode_steps=1000,
+    kwargs=dict(
+        start_position="bottom",
+        allow_noop=False,
+        height_threshold=0.0,
+        theta_dot_threshold=1.5,
+        x_reward_threshold=1.5,
+    ),
+    reward_threshold=800,
+)
+
+# Arbitary start
+gym.envs.register(
+    id="CartPoleSwingUp-v4",
     entry_point="rainy.envs.swingup:CartPoleSwingUp",
     max_episode_steps=1000,
     kwargs=dict(start_position="arbitary", allow_noop=False),

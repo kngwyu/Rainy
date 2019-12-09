@@ -23,8 +23,9 @@ def config(
     c.ppo_minibatch_size = 64
     c.use_gae = True
     c.ppo_clip = 0.2
-    c.eval_freq = 1000
-    c.eval_times = 4
+    c.eval_freq = 5000
+    c.eval_times = 1
+    c.episode_log_freq = 100
     if use_rnn:
         c.set_net_fn(
             "actor-critic", rainy.net.actor_critic.fc_shared(rnn=rainy.net.GruBlock)
