@@ -117,7 +117,7 @@ class Config:
         self.eval_times = 1
         self.__env = lambda: ClassicControl()
         self.__eval_env: Optional[EnvExt] = None
-        self.__paralle_env = lambda env_gen, num_w: DummyParallelEnv(env_gen, num_w)
+        self.__parallel_env = lambda env_gen, num_w: DummyParallelEnv(env_gen, num_w)
 
     @property
     def batch_size(self) -> int:
