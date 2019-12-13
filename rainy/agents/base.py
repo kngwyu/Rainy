@@ -90,12 +90,12 @@ class Agent(ABC):
         if self.config.seed is not None:
             env.seed(self.config.seed)
         state = env.reset()
+        if render:
+            env.render()
         while True:
-            if render:
-                env.render()
             state = env.extract(state)
             action = select_action(state)
-            state, reward, done, info = env.step(action)
+            state, reward, done, info = env.step_and_render(action, render)
             steps += 1
             total_reward += reward
             res = self._result(done, info, total_reward, steps)

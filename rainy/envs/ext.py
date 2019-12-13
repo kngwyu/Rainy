@@ -78,6 +78,14 @@ class EnvExt(gym.Env, Generic[Action, State]):
         """
         return self._env.step(action)
 
+    def step_and_render(
+        self, action: Action, render: bool = False
+    ) -> Tuple[State, float, bool, Any]:
+        res = self._env.step(action)
+        if render:
+            self.render()
+        return res
+
     def step_and_reset(self, action: Action) -> Tuple[State, float, bool, Any]:
         state, reward, done, info = self.step(action)
         if done:
