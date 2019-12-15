@@ -42,7 +42,7 @@ class RolloutStorage(Generic[State]):
         rnn_state: RnnState = DummyRnn.DUMMY_STATE,
         policy: Optional[Policy] = None,
         value: Optional[Tensor] = None,
-        **additional_values
+        **additional_values,
     ) -> None:
         assert self.states, "[RolloutStorage.push] Call set_initial_state first"
         self.states.append(state)

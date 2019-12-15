@@ -115,7 +115,7 @@ class LstmBlock(RnnBlock[LstmState]):
         input_dim: int,
         output_dim: int,
         initializer: Initializer = Initializer(bias_init=lstm_bias()),
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(input_dim, output_dim)
         self.lstm = nn.LSTM(input_dim, output_dim, **kwargs)
@@ -171,7 +171,7 @@ class GruBlock(RnnBlock[GruState]):
         input_dim: int,
         output_dim: int,
         initializer: Initializer = Initializer(),
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(input_dim, output_dim)
         self.gru = nn.GRU(input_dim, output_dim, **kwargs)

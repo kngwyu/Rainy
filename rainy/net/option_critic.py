@@ -68,7 +68,7 @@ def conv_shared(
     policy: Type[PolicyDist] = CategoricalDist,
     hidden_channels: Tuple[int, int, int] = (32, 64, 32),
     output_dim: int = 256,
-    **kwargs
+    **kwargs,
 ) -> NetFn:
     def _net(
         state_dim: Tuple[int, int, int], action_dim: int, device: Device

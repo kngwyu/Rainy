@@ -206,7 +206,7 @@ def ac_conv(
     hidden_channels: Tuple[int, int, int] = (32, 64, 32),
     output_dim: int = 256,
     rnn: Type[RnnBlock] = DummyRnn,
-    **kwargs
+    **kwargs,
 ) -> NetFn:
     """Convolutuion network used for atari experiments
        in A3C paper(https://arxiv.org/abs/1602.01783)
@@ -262,7 +262,7 @@ def impala_conv(
     policy: Type[PolicyDist] = CategoricalDist,
     channels: List[int] = [16, 32, 32],
     rnn: Type[RnnBlock] = DummyRnn,
-    **kwargs
+    **kwargs,
 ) -> NetFn:
     """Convolutuion network used in IMPALA
     """

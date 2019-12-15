@@ -144,7 +144,7 @@ def rpf_fc_separated(
     n_ensembles: int,
     prior_scale: float = 1.0,
     init: Initializer = Initializer(weight_init=xavier_uniform()),
-    **kwargs
+    **kwargs,
 ) -> NetFn:
     def _net(
         state_dim: Sequence[int], action_dim: int, device: Device
