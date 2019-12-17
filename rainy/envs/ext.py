@@ -1,7 +1,7 @@
 import gym
 from gym import spaces
 import numpy as np
-from typing import Any, Generic, Sequence, Tuple
+from typing import Any, Generic, Sequence, Optional, Tuple
 from ..prelude import Action, Array, State
 
 
@@ -44,9 +44,15 @@ class EnvSpec:
 
 
 class EnvExt(gym.Env, Generic[Action, State]):
-    def __init__(self, env: gym.Env) -> None:
+    def __init__(self, env: gym.Env, obs_shape: Optional[spaces.Space] = None) -> None:
         self._env = env
-        self.spec = EnvSpec(self._env.observation_space.shape, self._env.action_space)
+        if obs_shape is None:
+            obs_shape = env.observation_space.shape
+            if obs_shape is None:
+                raise NotImplementedError(
+                    f"Failed detect state dimension from {env.obs_shape}!"
+                )
+        self.spec = EnvSpec(obs_shape, self._env.action_space)
 
     def close(self):
         """
