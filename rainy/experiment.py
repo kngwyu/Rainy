@@ -126,7 +126,7 @@ class Experiment:
         return res
 
     def _load_agent(self, logdir: Path) -> bool:
-        if p.exists():
+        if logdir.exists():
             self.ag.load(self._save_file_name, logdir)
             return True
         return False
