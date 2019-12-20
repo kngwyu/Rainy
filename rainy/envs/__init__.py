@@ -162,54 +162,38 @@ def pybullet_parallel(
     return __wrap
 
 
-# Same as bsuite
-gym.envs.register(
-    id="CartPoleSwingUp-v0",
-    entry_point="rainy.envs.swingup:CartPoleSwingUp",
-    max_episode_steps=1000,
-    kwargs=dict(start_position="bottom", allow_noop=True),
-    reward_threshold=800,
-)
-
-# Difficult
-gym.envs.register(
-    id="CartPoleSwingUp-v1",
-    entry_point="rainy.envs.swingup:CartPoleSwingUp",
-    max_episode_steps=1000,
-    kwargs=dict(start_position="bottom", allow_noop=True, height_threshold=0.9),
-    reward_threshold=800,
-)
-
-
-# No movecost
-gym.envs.register(
-    id="CartPoleSwingUp-v2",
-    entry_point="rainy.envs.swingup:CartPoleSwingUp",
-    max_episode_steps=1000,
-    kwargs=dict(start_position="bottom", allow_noop=False),
-    reward_threshold=900,
-)
-
-# Easy
-gym.envs.register(
-    id="CartPoleSwingUp-v3",
-    entry_point="rainy.envs.swingup:CartPoleSwingUp",
-    max_episode_steps=1000,
-    kwargs=dict(
+SWINGUP_PARAMS = [
+    # Same as bsuite
+    dict(start_position="bottom", allow_noop=True),
+    # Difficult
+    dict(start_position="bottom", allow_noop=True, height_threshold=0.9),
+    # No movecost
+    dict(start_position="bottom", allow_noop=False),
+    # Easy
+    dict(
         start_position="bottom",
         allow_noop=False,
         height_threshold=0.0,
         theta_dot_threshold=1.5,
         x_reward_threshold=1.5,
     ),
-    reward_threshold=800,
-)
+    # Arbitary start
+    dict(start_position="arbitary", allow_noop=False),
+]
 
-# Arbitary start
-gym.envs.register(
-    id="CartPoleSwingUp-v4",
-    entry_point="rainy.envs.swingup:CartPoleSwingUp",
-    max_episode_steps=1000,
-    kwargs=dict(start_position="arbitary", allow_noop=False),
-    reward_threshold=900,
-)
+
+for i, param in enumerate(SWINGUP_PARAMS):
+    gym.envs.register(
+        id=f"CartPoleSwingUp-v{i}",
+        entry_point="rainy.envs.cartpole_ext:CartPoleSwingUp",
+        max_episode_steps=1000,
+        kwargs=param,
+        reward_threshold=800,
+    )
+    gym.envs.register(
+        id=f"CartPoleSwingUpContinuous-v{i}",
+        entry_point="rainy.envs.cartpole_ext:CartPoleSwingUpContinuous",
+        max_episode_steps=1000,
+        kwargs=param,
+        reward_threshold=800,
+    )
