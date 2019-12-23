@@ -149,7 +149,9 @@ class EnvExt(gym.Env, Generic[Action, State]):
         Extended method.
         Save agent's action history to file.
         """
-        pass
+        import warnings
+
+        warnings.warn("This environment does not support save_history!")
 
     def __repr__(self) -> str:
         return "EnvExt({})".format(self._env)

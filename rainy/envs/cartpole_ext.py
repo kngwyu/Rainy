@@ -133,7 +133,7 @@ class CartPoleSwingUpContinuous(CartPoleEnv, _SwingUpMixIn):
         move_cost=0.1,
         max_force=1.0,
         min_force=-1.0,
-        force_mag=10.0
+        force_mag=10.0,
     ):
         super().__init__()
         self.x_threshold = x_threshold

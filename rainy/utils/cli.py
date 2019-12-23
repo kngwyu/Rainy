@@ -80,23 +80,6 @@ def train(
         )
 
 
-@rainy_cli.command(help="Run the random agent and show its result")
-@click.option("--save", is_flag=True, help="Save actions")
-@click.option("--render", is_flag=True, help="Render the agent")
-@click.option(
-    "--replay",
-    is_flag=True,
-    help="Show replay(works only with special environments, e.g., rogue-gym)",
-)
-@click.pass_context
-def random(ctx: click.Context, save: bool, render: bool, replay: bool) -> None:
-    experiment = ctx.obj["experiment"]
-    if save:
-        experiment.random(render=render, replay=replay, action_file=action_file)
-    else:
-        experiment.random(render=render, replay=replay)
-
-
 @rainy_cli.command(help="Given a save file and restart training")
 @click.pass_context
 @click.argument("logdir", type=str)
@@ -124,16 +107,39 @@ def retrain(
 
 @rainy_cli.command(help="Load a specified save file and evaluate the agent")
 @click.argument("logdir", type=str)
+@click.option("--save", is_flag=True, help="Save actions")
 @click.option("--render", is_flag=True, help="Render the agent")
+@click.option("--pause", is_flag=True, help="Pause before replay. Used for screencast")
 @click.option(
     "--replay",
     is_flag=True,
     help="Show replay(works only with special environments, e.g., rogue-gym)",
 )
 @click.pass_context
-def eval(ctx: click.Context, logdir: str, render: bool, replay: bool,) -> None:
+def eval(
+    ctx: click.Context, logdir: str, save: bool, render: bool, pause: bool, replay: bool
+) -> None:
     experiment = ctx.obj["experiment"]
-    experiment.evaluate(logdir, render=render, replay=replay)
+    experiment.config.save_eval_actions |= save
+    experiment.evaluate(logdir, render, replay, pause)
+
+
+@rainy_cli.command(help="Run the random agent and show its result")
+@click.option("--save", is_flag=True, help="Save actions")
+@click.option("--render", is_flag=True, help="Render the agent")
+@click.option("--pause", is_flag=True, help="Pause before replay. Used for screencast")
+@click.option(
+    "--replay",
+    is_flag=True,
+    help="Show replay(works only with special environments, e.g., rogue-gym)",
+)
+@click.pass_context
+def random(
+    ctx: click.Context, save: bool, render: bool, pause: bool, replay: bool
+) -> None:
+    experiment = ctx.obj["experiment"]
+    experiment.config.save_eval_actions |= save
+    experiment.random(render, replay, pause)
 
 
 def _add_options(options: List[click.Command]) -> click.Group:

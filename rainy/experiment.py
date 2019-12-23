@@ -112,16 +112,20 @@ class Experiment:
         self,
         render: bool = False,
         replay: bool = False,
+        pause: bool = False,
         action_file: Optional[str] = None,
     ) -> None:
         n = self.config.eval_times
         self.ag.set_mode(train=False)
         if action_file is not None:
-            res = [self.ag.eval_and_save(action_file, render=render) for _ in range(n)]
+            res = [
+                self.ag.eval_and_save(action_file, render=render, pause=pause)
+                for _ in range(n)
+            ]
         elif hasattr(self.ag, "eval_parallel") and not render and not replay:
             res = self.ag.eval_parallel(n)  # type: ignore
         else:
-            res = [self.ag.eval_episode(render=render) for _ in range(n)]
+            res = [self.ag.eval_episode(render=render, pause=pause) for _ in range(n)]
         self.ag.set_mode(train=True)
         return res
 
@@ -149,15 +153,24 @@ class Experiment:
         self.train(save_id, eval_render)
 
     def evaluate(
-        self, logdir_: str, render: bool = False, replay: bool = False
+        self,
+        logdir_: str,
+        render: bool = False,
+        replay: bool = False,
+        pause: bool = False,
     ) -> None:
         logdir = Path(logdir_)
         if not self._load_agent(logdir):
             raise ValueError("File'{}' does not exists".format(self._save_file_name))
-        res = self._eval_impl(render, replay)
-        print("{}".format(res))
+
+        if self.config.save_eval_actions:
+            action_file = "eval-" + self._action_file.as_posix()
+        else:
+            action_file = None
+        res = self._eval_impl(render, replay, pause, action_file)
+        click.echo(res)
         if render:
-            input("--Press Enter to exit--")
+            click.pause("---Press any key to exit---")
         if replay:
             try:
                 self.config.eval_env.unwrapped.replay()
@@ -166,18 +179,17 @@ class Experiment:
         self.ag.close()
 
     def random(
-        self,
-        render: bool = False,
-        replay: bool = False,
-        action_file: Optional[str] = None,
+        self, render: bool = False, replay: bool = False, pause: bool = False,
     ) -> None:
 
         if self.config.save_eval_actions:
-            action_file = "random-" + self._action_file.as_posix
-            res = self.ag.random_and_save(action_file, render=render)
+            action_file = "random-" + self._action_file.as_posix()
+            res = self.ag.random_and_save(action_file, render=render, pause=pause)
         else:
-            res = self.ag.random_episode(render=render)
-        print("{}".format(res))
+            res = self.ag.random_episode(render=render, pause=pause)
+        click.echo(res)
+        if render:
+            click.pause("---Press any key to exit---")
         if replay:
             try:
                 self.config.eval_env.unwrapped.replay()
