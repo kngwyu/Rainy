@@ -95,7 +95,7 @@ class SeparatedTD3Net(SeparatedDDPGNet):
     def critic_params(self) -> Iterable[Tensor]:
         return chain(self.critic.parameters(), self.critic2.parameters())
 
-    def q_value(self, states: ArrayLike, action: ArrayLike) -> Tensor:
+    def q_values(self, states: ArrayLike, action: ArrayLike) -> Tuple[Tensor, Tensor]:
         s = self.device.tensor(states)
         a = self.device.tensor(action)
         sa = torch.cat((s, a), dim=1)

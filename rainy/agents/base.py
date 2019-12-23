@@ -82,7 +82,7 @@ class Agent(ABC):
         self.logger.close()
 
     def __eval_episode(
-        self, select_action: Callable[[Array], Action], render: bool
+        self, select_action: Callable[[Array], Action], render: bool, pause: bool
     ) -> Tuple[EpisodeResult, EnvExt]:
         total_reward = 0.0
         steps = 0
@@ -92,6 +92,10 @@ class Agent(ABC):
         state = env.reset()
         if render:
             env.render()
+            if pause:
+                import click
+
+                click.pause()
         while True:
             state = env.extract(state)
             action = select_action(state)
@@ -113,25 +117,31 @@ class Agent(ABC):
             return EpisodeResult(total_reward, episode_length)
         return None
 
-    def random_episode(self, render: bool = False) -> EpisodeResult:
+    def random_episode(
+        self, render: bool = False, pause: bool = False
+    ) -> EpisodeResult:
         def act(_state) -> Action:
             return self.config.eval_env.spec.random_action()
 
-        return self.__eval_episode(act, render)[0]
+        return self.__eval_episode(act, render, pause)[0]
 
-    def random_and_save(self, fname: str, render: bool = False) -> EpisodeResult:
+    def random_and_save(
+        self, fname: str, render: bool = False, pause: bool = False
+    ) -> EpisodeResult:
         def act(_state) -> Action:
             return self.config.eval_env.spec.random_action()
 
-        res, env = self.__eval_episode(act, render)
+        res, env = self.__eval_episode(act, render, pause)
         env.save_history(fname)
         return res
 
-    def eval_episode(self, render: bool = False) -> EpisodeResult:
-        return self.__eval_episode(self.eval_action, render)[0]
+    def eval_episode(self, render: bool = False, pause: bool = False) -> EpisodeResult:
+        return self.__eval_episode(self.eval_action, render, pause)[0]
 
-    def eval_and_save(self, fname: str, render: bool = False) -> EpisodeResult:
-        res, env = self.__eval_episode(self.eval_action, render)
+    def eval_and_save(
+        self, fname: str, render: bool = False, pause: bool = False
+    ) -> EpisodeResult:
+        res, env = self.__eval_episode(self.eval_action, render, pause)
         env.save_history(fname)
         return res
 

@@ -22,14 +22,15 @@ class Policy(ABC):
         """
         if self._action is None:
             self._action = self.sample()
-        return self._action.squeeze()
+        # If batch size == 1, flatten the action
+        return self._action.squeeze(dim=0)
 
     def baction(self) -> Tensor:
         """Sample "backwardable" actions.
         """
         if self._baction is None:
             self._baction = self.rsample()
-        return self._baction.squeeze()
+        return self._baction.squeeze(dim=0)
 
     def set_action(self, action: Tensor) -> None:
         self._action = action
