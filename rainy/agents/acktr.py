@@ -1,3 +1,9 @@
+"""
+This module has an implementation of ACKTR, which is described in
+- Scalable trust-region method for deep reinforcement learning using
+ Kronecker-factored approximation
+  - URL: https://arxiv.org/abs/1708.05144
+"""
 import torch
 from .a2c import A2CAgent
 from ..config import Config

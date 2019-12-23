@@ -1,3 +1,9 @@
+"""
+This module has an implementation of PPO, which is described in
+- Proximal Policy Optimization Algorithms
+  - URL: https://arxiv.org/abs/1707.06347
+"""
+
 import torch
 from torch import Tensor
 from .a2c import A2CAgent

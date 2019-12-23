@@ -1,3 +1,12 @@
+"""
+This module has an implementation of DQN and Double DQN.
+Corresponding papers:
+- Human-level control through deep reinforcement learning
+  - https://www.nature.com/articles/nature14236/
+- Deep Reinforcement Learning with Double Q-Learning
+  - https://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/viewPaper/12389
+"""
+
 from copy import deepcopy
 import numpy as np
 import torch

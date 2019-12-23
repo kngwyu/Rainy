@@ -1,3 +1,11 @@
+"""
+This module has an implementation of A2C, which is described in
+- OpenAI Baselines: ACKTR & A2C
+  - URL: https://openai.com/blog/baselines-acktr-a2c/
+
+A2C is a synchronous version of A3C, which is described in
+- http://proceedings.mlr.press/v48/mniha16.pdf
+"""
 import numpy as np
 import torch
 from torch import nn

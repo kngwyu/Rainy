@@ -1,5 +1,8 @@
-"""TD3(Twin Delayed Deep Deterministic Policy Gradient)
-Paper: https://arxiv.org/abs/1802.09477
+"""
+This module has an implementation of
+ TD3(Twin Delayed Deep Deterministic Policy Gradient), which is described in
+- Addressing Function Approximation Error in Actor-Critic Methods
+  - https://arxiv.org/abs/1802.09477
 """
 from copy import deepcopy
 import numpy as np

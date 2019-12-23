@@ -1,5 +1,11 @@
-"""SAC(Soft Actor Critic) agent
-Paper: https://arxiv.org/abs/1812.05905
+"""This module has an implementation of Soft Actor Critic.
+Corresponding papers:
+-
+- Soft Actor-Critic Algorithms and Applications
+  - https://arxiv.org/abs/1812.05905
+- Soft Actor-Critic: Off-Policy Maximum Entropy
+  Deep Reinforcement Learning with a Stochastic Actor
+  - https://arxiv.org/abs/1801.01290
 """
 from abc import ABC, abstractmethod
 import numpy as np

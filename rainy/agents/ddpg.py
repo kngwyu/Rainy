@@ -1,3 +1,8 @@
+"""
+This module has an simple implementation of DDPG, which is described in
+- Continuous control with deep reinforcement learning
+  - https://arxiv.org/abs/1509.02971
+"""
 from copy import deepcopy
 import numpy as np
 import torch

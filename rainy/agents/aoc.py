@@ -1,3 +1,12 @@
+"""
+This module has an implementation of AOC, an A2C-like variant of option-critic.
+Corresponding papers:
+- The Option-Critic Architecture
+  - https://arxiv.org/abs/1609.05140
+- When Waiting is not an Option : Learning Options with a Deliberation Cost
+  - https://arxiv.org/abs/1709.04571
+"""
+
 import numpy as np
 import torch
 from torch import ByteTensor, LongTensor, nn, Tensor
