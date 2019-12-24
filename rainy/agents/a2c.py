@@ -98,8 +98,9 @@ class A2CAgent(NStepParallelAgent[State]):
         with torch.no_grad():
             next_value = self.net.value(*self._network_in(states))
         if self.config.use_gae:
-            gamma, lambda_ = self.config.discount_factor, self.config.gae_lambda
-            self.storage.calc_gae_returns(next_value, gamma, lambda_)
+            self.storage.calc_gae_returns(
+                next_value, self.config.discount_factor, self.config.gae_lambda
+            )
         else:
             self.storage.calc_ac_returns(next_value, self.config.discount_factor)
         policy, value, _ = self.net(

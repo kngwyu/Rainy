@@ -123,6 +123,10 @@ class Config:
     def batch_size(self) -> int:
         return self.nworkers * self.nsteps
 
+    @property
+    def ppo_num_minibatches(self) -> int:
+        return (self.nsteps * self.nworkers) // self.ppo_minibatch_size
+
     def env(self) -> EnvExt:
         env = self.__env()
         if self.state_dim == (0,):

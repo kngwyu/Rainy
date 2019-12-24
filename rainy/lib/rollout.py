@@ -105,7 +105,7 @@ class RolloutStorage(Generic[State]):
                 - self.values[i]
             )
             self.advs[i] = td_error + gamma * lambda_ * self.masks[i] * self.advs[i + 1]
-            self.returns[i] = self.advs[i] + self.values[i]
+        self.returns[:-1] = self.advs[:-1] + self.batch_values
 
 
 class RolloutBatch(NamedTuple):

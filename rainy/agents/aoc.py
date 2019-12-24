@@ -50,7 +50,9 @@ class AOCRolloutStorage(RolloutStorage[State]):
         batched = torch.cat(self.options, dim=0)
         return batched[: -self.nworkers], batched[self.nworkers :]
 
-    def calc_returns(self, next_value: Tensor, gamma: float, delib_cost: float) -> None:
+    def calc_ac_returns(
+        self, next_value: Tensor, gamma: float, delib_cost: float
+    ) -> None:
         self.returns[-1] = next_value
         rewards = self.device.tensor(self.rewards)
         for i in reversed(range(self.nsteps)):
@@ -62,7 +64,36 @@ class AOCRolloutStorage(RolloutStorage[State]):
             opt_q, eps = self.values[i], self.epsilons[i]
             self.advs[i] = self.returns[i] - opt_q[self.worker_indices, opt]
             v = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(dim=-1)
-            self.beta_adv[i] = opt_q[self.worker_indices, opt].mul(v)
+            self.beta_adv[i] = opt_q[self.worker_indices, opt] * v
+
+    def calc_gae_returns(
+        self,
+        next_v: Tensor,
+        gamma: float,
+        lambda_: float,
+        delib_cost: float,
+    ) -> None:
+        self.returns[-1] = next_v
+        rewards = self.device.tensor(self.rewards)
+        self.advs.fill_(0.0)
+        value_i1 = next_v
+        for i in reversed(range(self.nsteps)):
+            opt, opt_q = self.options[i + 1], self.values[i]
+            value_i = opt_q[self.worker_indices, opt]
+
+            # GAE
+            gamma_i1 = gamma * self.masks[i + 1]
+            td_error = rewards[i] + gamma_i1 * value_i1 - value_i
+            gamma_lambda_i = gamma * lambda_ * self.masks[i]
+            delib_cost_i = delib_cost * self.masks[i] * self.is_new_options[i].float()
+            self.advs[i] = td_error + gamma_lambda_i * self.advs[i + 1] - delib_cost_i
+            self.returns[i] = self.advs[i] + value_i
+            value_i1 = value_i
+
+            # β-advantage
+            eps = self.epsilons[i]
+            v = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(dim=-1)
+            self.beta_adv[i] = opt_q[self.worker_indices, opt] * v
 
 
 class AOCAgent(NStepParallelAgent[State]):
@@ -155,7 +186,7 @@ class AOCAgent(NStepParallelAgent[State]):
         return next_states
 
     @torch.no_grad()
-    def _next_value(self, states: Array[State]) -> Tensor:
+    def _next_value(self, states: Array[State]) -> Tuple[Tensor, Tensor]:
         opt_q = self.net.opt_q(self.penv.extract(states))
         current_opt_q = opt_q[self.worker_indices, self.prev_options]
         eps = self.opt_explorer.epsilon
@@ -166,10 +197,18 @@ class AOCAgent(NStepParallelAgent[State]):
         for _ in range(self.config.nsteps):
             states = self._one_step(states)
 
-        next_value = self._next_value(states)
-        self.storage.calc_returns(
-            next_value, self.config.discount_factor, self.config.opt_delib_cost,
-        )
+        next_v = self._next_value(states)
+        if self.config.use_gae:
+            self.storage.calc_gae_returns(
+                next_v,
+                self.config.discount_factor,
+                self.config.gae_lambda,
+                self.config.opt_delib_cost,
+            )
+        else:
+            self.storage.calc_ac_returns(
+                next_v, self.config.discount_factor, self.config.opt_delib_cost
+            )
 
         prev_options, options = self.storage.batch_options()
         adv = self.storage.advs[:-1].flatten()
