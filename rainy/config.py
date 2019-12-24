@@ -41,7 +41,7 @@ class Config:
         self.sync_freq = 1000
         self.__explore: Dict[Optional[str], Callable[[], Explorer]] = {
             None: lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000)),
-            "eval": lambda: EpsGreedy(0.01, DummyCooler(0.01)),
+            "eval": lambda: EpsGreedy(0.01),
         }
 
         # For BootDQN

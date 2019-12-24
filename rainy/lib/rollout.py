@@ -2,7 +2,7 @@ import torch
 from torch import Tensor
 from typing import DefaultDict, Generic, NamedTuple, Iterator, List, Optional
 from ..envs import ParallelEnv, State
-from ..net import DummyRnn, Policy, RnnBlock, RnnState
+from ..net import DummyRnn, Policy, RnnState
 from ..utils import Device
 from ..utils.misc import normalize_
 from ..utils.sample import FeedForwardBatchSampler, RecurrentBatchSampler
@@ -125,7 +125,6 @@ class RolloutSampler:
         storage: RolloutStorage,
         penv: ParallelEnv,
         minibatch_size: int,
-        rnn: RnnBlock = DummyRnn(),
         adv_normalize_eps: Optional[float] = None,
     ) -> None:
         """Create a batch sampler from storage for feed forward network.
@@ -146,7 +145,8 @@ class RolloutSampler:
         self.actions = storage.batch_actions()
         self.masks = storage.batch_masks()
         self.returns = storage.returns[:-1].flatten()
-        self.values = storage.batch_values.flatten()
+        # Option critic's value has (N, W, O) shape
+        self.values = storage.batch_values.flatten(0, 1)
         self.old_log_probs = storage.batch_log_probs()
         self.rnn_init = storage.rnn_states[0]
         self.advantages = storage.advs[:-1].flatten()

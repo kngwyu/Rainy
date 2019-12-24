@@ -6,5 +6,6 @@ from .bootdqn import BootDQNAgent, EpisodicBootDQNAgent
 from .ddpg import DDPGAgent
 from .dqn import DQNAgent, DoubleDQNAgent, EpisodicDQNAgent
 from .ppo import PPOAgent
+from .ppoc import PPOCAgent
 from .sac import SACAgent
 from .td3 import TD3Agent

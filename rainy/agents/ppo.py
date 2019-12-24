@@ -66,7 +66,6 @@ class PPOAgent(A2CAgent):
             self.storage,
             self.penv,
             self.config.ppo_minibatch_size,
-            rnn=self.net.recurrent_body,
             adv_normalize_eps=self.config.adv_normalize_eps,
         )
         for _ in range(self.config.ppo_epochs):
