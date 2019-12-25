@@ -41,7 +41,7 @@ def config(
     c.eval_env = Atari(envname)
     c.eval_deterministic = False
     c.episode_log_freq = 100
-    c.eval_freq = 10000
+    c.eval_freq = c.max_steps // 10
     c.save_freq = None
     return c
 
