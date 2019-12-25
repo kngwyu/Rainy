@@ -115,7 +115,7 @@ class _ProcWorker(mp.Process):
     STEP = 3
 
     def __init__(self, env: EnvExt, pipe: Connection) -> None:
-        super(_ProcWorker, self).__init__()
+        super().__init__()
         self.env = env
         self.pipe = pipe
 
@@ -132,6 +132,8 @@ class _ProcWorker(mp.Process):
                 self.env.close()
                 self.pipe.close()
                 break
+            else:
+                raise NotImplementedError("Not-supported operation: {}".format(op))
 
 
 class DummyParallelEnv(ParallelEnv):
