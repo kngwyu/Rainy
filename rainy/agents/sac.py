@@ -13,10 +13,11 @@ from torch import nn, Tensor
 import torch
 from torch.nn import functional as F
 from typing import Tuple
-from .base import OneStepAgent
+from .base import DQNLikeAgent
 from ..config import Config
 from ..net import Policy, SeparatedSACNet
 from ..prelude import Action, Array, State
+from ..replay import DQNReplayFeed
 
 
 class EntropyTuner(ABC):
@@ -47,7 +48,7 @@ class TrainableEntropyTuner(EntropyTuner):
         return self.log_alpha.detach().exp().item()
 
 
-class SACAgent(OneStepAgent):
+class SACAgent(DQNLikeAgent):
     SAVED_MEMBERS = "net", "target_net", "actor_opt", "critic_opt", "replay"
 
     def __init__(self, config: Config) -> None:
@@ -79,22 +80,14 @@ class SACAgent(OneStepAgent):
         policy = self.net.policy(state)
         return policy.eval_action(self.config.eval_deterministic)
 
-    def step(self, state: State) -> Tuple[State, float, bool, dict]:
-        train_started = self.total_steps > self.config.train_start
-        if train_started:
+    def action(self, state: State) -> Tuple[State, float, bool, dict]:
+        if self.train_started:
             with torch.no_grad():
                 policy = self.net.policy(state)
                 action = policy.action().cpu().numpy()
         else:
             action = self.env.spec.random_action()
-        action = self.env.spec.clip_action(action)
-        next_state, reward, done, info = self.env.step(action)
-        self.replay.append(
-            state, action, reward * self.config.reward_scale, next_state, done
-        )
-        if train_started:
-            self._train()
-        return next_state, reward, done, info
+        return self.env.spec.clip_action(action)
 
     def _logpi_and_q(self, states: Tensor, policy: Policy) -> Tuple[Tensor, Tensor]:
         actions = policy.baction()
@@ -107,9 +100,8 @@ class SACAgent(OneStepAgent):
         q1, q2 = self.target_net.q_values(next_states, policy.action())
         return torch.min(q1, q2).squeeze_() - alpha * policy.log_prob()
 
-    def _train(self) -> None:
-        obs = self.replay.sample(self.config.replay_batch_size)
-        obs = [ob.to_array(self.env.extract) for ob in obs]
+    def train(self, replay_feed: DQNReplayFeed) -> None:
+        obs = [ob.to_array(self.env.extract) for ob in replay_feed]
         states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
         q1, q2, policy = self.net(states, actions)
 

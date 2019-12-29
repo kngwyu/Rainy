@@ -10,14 +10,14 @@ import numpy as np
 import torch
 from torch import nn
 from typing import Optional, Tuple
-from .base import NStepParallelAgent
+from .base import A2CLikeAgent
 from ..config import Config
 from ..lib.rollout import RolloutStorage
 from ..net import ActorCriticNet, Policy, RnnState
 from ..prelude import Action, Array, State
 
 
-class A2CAgent(NStepParallelAgent[State]):
+class A2CAgent(A2CLikeAgent[State]):
     SAVED_MEMBERS = "net", "lr_cooler"
 
     def __init__(self, config: Config) -> None:
@@ -70,7 +70,7 @@ class A2CAgent(NStepParallelAgent[State]):
             self.storage.masks[-1],
         )
 
-    def _one_step(self, states: Array[State]) -> Array[State]:
+    def one_step(self, states: Array[State]) -> Array[State]:
         with torch.no_grad():
             policy, value, rnns = self.net(*self._network_in(states))
         next_states, rewards, done, info = self.penv.step(
@@ -92,11 +92,9 @@ class A2CAgent(NStepParallelAgent[State]):
         self.optimizer.step()
         self.lr_cooler.lr_decay(self.optimizer)
 
-    def nstep(self, states: Array[State]) -> Array[State]:
-        for _ in range(self.config.nsteps):
-            states = self._one_step(states)
+    def train(self, last_states: Array[State]) -> None:
         with torch.no_grad():
-            next_value = self.net.value(*self._network_in(states))
+            next_value = self.net.value(*self._network_in(last_states))
         if self.config.use_gae:
             self.storage.calc_gae_returns(
                 next_value, self.config.discount_factor, self.config.gae_lambda
@@ -128,4 +126,3 @@ class A2CAgent(NStepParallelAgent[State]):
             entropy_loss=entropy_loss.item(),
         )
         self.storage.reset()
-        return states

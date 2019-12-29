@@ -38,6 +38,7 @@ class Config:
         self.parallel_seeds: List[int] = []
 
         # For DQN-like algorithms
+        self.update_freq = 1
         self.sync_freq = 1000
         self.__explore: Dict[Optional[str], Callable[[], Explorer]] = {
             None: lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000)),

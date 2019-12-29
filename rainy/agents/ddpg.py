@@ -9,12 +9,13 @@ import torch
 from torch import Tensor
 from torch.nn import functional as F
 from typing import Tuple
-from .base import OneStepAgent
+from .base import DQNLikeAgent
 from ..config import Config
 from ..prelude import Action, Array, State
+from ..replay import DQNReplayFeed
 
 
-class DDPGAgent(OneStepAgent):
+class DDPGAgent(DQNLikeAgent):
     SAVED_MEMBERS = "net", "target_net", "actor_opt", "critic_opt", "explorer", "replay"
 
     def __init__(self, config: Config) -> None:
@@ -36,29 +37,22 @@ class DDPGAgent(OneStepAgent):
         action = self.eval_explorer.add_noise(self.net.action(state))
         return action.cpu().numpy()  # type: ignore
 
-    def step(self, state: State) -> Tuple[State, float, bool, dict]:
-        train_started = self.total_steps > self.config.train_start
-        if train_started:
+    def action(self, state: State) -> Tuple[State, float, bool, dict]:
+        if self.train_started:
             with torch.no_grad():
                 action = self.net.action(state)
             action = self.explorer.add_noise(action).cpu().numpy()
         else:
             action = self.env.spec.random_action()
-        action = self.env.spec.clip_action(action)
-        next_state, reward, done, info = self.env.step(action)
-        self.replay.append(state, action, reward, next_state, done)
-        if train_started:
-            self._train()
-        return next_state, reward, done, info
+        return self.env.spec.clip_action(action)
 
     @torch.no_grad()
     def _q_next(self, next_states: Array) -> Tensor:
         actions = self.target_net.action(next_states)
         return self.target_net.q_value(next_states, actions)
 
-    def _train(self) -> None:
-        obs = self.replay.sample(self.config.replay_batch_size)
-        obs = [ob.to_array(self.env.extract) for ob in obs]
+    def train(self, replay_feed: DQNReplayFeed) -> None:
+        obs = [ob.to_array(self.env.extract) for ob in replay_feed]
         states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
         mask = self.config.device.tensor(1.0 - done)
         q_next = self._q_next(next_states)

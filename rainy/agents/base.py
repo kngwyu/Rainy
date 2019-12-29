@@ -21,6 +21,7 @@ from ..lib import mpi
 from ..net import DummyRnn, RnnState
 from ..envs import EnvExt
 from ..prelude import Action, Array, ArrayLike, State
+from ..replay import ReplayFeed
 
 
 class EpisodeResult(NamedTuple):
@@ -206,14 +207,37 @@ class Agent(ABC):
         opt.step()
 
 
-class OneStepAgent(Agent, Generic[State]):
+class DQNLikeAgent(Agent, Generic[State, Action, ReplayFeed]):
+    """Agent with 1 step rollout + replay buffer
+    """
+
     @abstractmethod
-    def step(self, state: State) -> Tuple[State, float, bool, dict]:
+    def action(self, state: State) -> Action:
         pass
+
+    @abstractmethod
+    def train(self, replay_feed: ReplayFeed) -> None:
+        pass
+
+    def on_terminal(self) -> None:
+        pass
+
+    def step(self, state: State) -> Tuple[State, float, bool, dict]:
+        action = self.action(state)
+        next_state, reward, done, info = self.env.step(action)
+        self.replay.append(
+            state, action, reward * self.config.reward_scale, next_state, done
+        )
+        return next_state, reward, done, info
+
+    @property
+    def train_started(self) -> bool:
+        return self.config.train_start <= self.total_steps
 
     @property
     def update_steps(self) -> int:
-        return max(0, self.total_steps - self.config.train_start)
+        total = max(0, self.total_steps - self.config.train_start)
+        return total // self.config.update_freq
 
     def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
         if self.config.seed is not None:
@@ -223,6 +247,10 @@ class OneStepAgent(Agent, Generic[State]):
         episode_length = 0
         while True:
             state, reward, done, info = self.step(state)
+            if done:
+                self.on_terminal()
+            if self.train_started and self.total_steps % self.config.update_freq == 0:
+                self.train(self.replay.sample(self.config.replay_batch_size))
             self.total_steps += 1
             total_reward += reward
             episode_length += 1
@@ -236,7 +264,10 @@ class OneStepAgent(Agent, Generic[State]):
                 break
 
 
-class NStepParallelAgent(Agent, Generic[State]):
+class A2CLikeAgent(Agent, Generic[State]):
+    """Agent with parallel env + nstep rollout
+    """
+
     def __init__(self, config: Config) -> None:
         super().__init__(config)
         self.rewards = np.zeros(config.nworkers, dtype=np.float32)
@@ -286,7 +317,11 @@ class NStepParallelAgent(Agent, Generic[State]):
         pass
 
     @abstractmethod
-    def nstep(self, states: Array[State]) -> Array[State]:
+    def one_step(self, states: Array[State]) -> Array[State]:
+        pass
+
+    @abstractmethod
+    def train(self, last_states: Array[State]) -> None:
         pass
 
     @abstractmethod
@@ -324,7 +359,9 @@ class NStepParallelAgent(Agent, Generic[State]):
         states = self.penv.reset()
         self._reset(states)
         while True:
-            states = self.nstep(states)
+            for _ in range(self.config.nsteps):
+                states = self.one_step(states)
+            self.train(states)
             self.total_steps += self.step_width
             if self.episode_results:
                 yield self.episode_results

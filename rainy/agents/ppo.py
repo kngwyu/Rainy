@@ -48,12 +48,9 @@ class PPOAgent(A2CAgent):
         clipped_loss = (value_clipped - returns).pow(2)
         return torch.max(unclipped_loss, clipped_loss).mean()
 
-    def nstep(self, states: Array[State]) -> Array[State]:
-        for _ in range(self.config.nsteps):
-            states = self._one_step(states)
-
+    def train(self, last_states: Array[State]) -> None:
         with torch.no_grad():
-            next_value = self.net.value(*self._network_in(states))
+            next_value = self.net.value(*self._network_in(last_states))
 
         if self.config.use_gae:
             self.storage.calc_gae_returns(
@@ -98,4 +95,3 @@ class PPOAgent(A2CAgent):
 
         p, v, e = (x / self.num_updates for x in (p, v, e))
         self.network_log(policy_loss=p, value_loss=v, entropy_loss=e)
-        return states

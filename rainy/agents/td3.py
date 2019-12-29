@@ -9,16 +9,17 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch.nn import functional as F
-from .base import OneStepAgent
+from .base import DQNLikeAgent
 from .ddpg import DDPGAgent
 from ..config import Config
 from ..prelude import Array
+from ..replay import DQNReplayFeed
 from ..utils.misc import clamp_actions_
 
 
 class TD3Agent(DDPGAgent):
     def __init__(self, config: Config) -> None:
-        OneStepAgent.__init__(self, config)
+        DQNLikeAgent.__init__(self, config)
         self.net = config.net("td3")
         self.target_net = deepcopy(self.net)
         self.actor_opt = config.optimizer(self.net.actor_params(), key="actor")
@@ -38,9 +39,8 @@ class TD3Agent(DDPGAgent):
         q1, q2 = self.target_net.q_values(next_states, actions)
         return torch.min(q1, q2)
 
-    def _train(self) -> None:
-        obs = self.replay.sample(self.config.replay_batch_size)
-        obs = [ob.to_array(self.env.extract) for ob in obs]
+    def train(self, replay_feed: DQNReplayFeed) -> None:
+        obs = [ob.to_array(self.env.extract) for ob in replay_feed]
         states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
         mask = self.config.device.tensor(1.0 - done)
         q_next = self._q_next(next_states).squeeze_()

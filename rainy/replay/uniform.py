@@ -7,8 +7,10 @@ from ..prelude import Array, GenericNamedMeta, State
 
 
 class UniformReplayBuffer(ReplayBuffer, Generic[ReplayFeed]):
-    def __init__(self, feed: Type[ReplayFeed], capacity: int = 1000) -> None:
-        super().__init__(feed)
+    def __init__(
+        self, feed: Type[ReplayFeed], capacity: int = 1000, allow_overlap: bool = False
+    ) -> None:
+        super().__init__(feed, allow_overlap=allow_overlap)
         self.buf = ArrayDeque(capacity=capacity)
         self.cap = capacity
 

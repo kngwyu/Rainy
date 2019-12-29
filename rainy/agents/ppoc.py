@@ -94,11 +94,8 @@ class PPOCAgent(AOCAgent):
         clipped_loss = (value_clipped - returns).pow(2)
         return torch.max(unclipped_loss, clipped_loss).mean()
 
-    def nstep(self, states: Array[State]) -> Array[State]:
-        for _ in range(self.config.nsteps):
-            states = self._one_step(states)
-
-        next_v = self._next_value(states)
+    def train(self, last_states: Array[State]) -> None:
+        next_v = self._next_value(last_states)
         if self.config.use_gae:
             self.storage.calc_gae_returns(
                 next_v,
@@ -161,4 +158,3 @@ class PPOCAgent(AOCAgent):
             policy_loss=p, value_loss=v, beta_loss=b, entropy=e,
         )
         self.storage.reset()
-        return states

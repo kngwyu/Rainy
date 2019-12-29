@@ -11,7 +11,7 @@ import numpy as np
 import torch
 from torch import ByteTensor, LongTensor, nn, Tensor
 from typing import List, Optional, Tuple
-from .base import NStepParallelAgent
+from .base import A2CLikeAgent
 from ..config import Config
 from ..lib.explore import EpsGreedy
 from ..lib.rollout import RolloutStorage
@@ -92,7 +92,7 @@ class AOCRolloutStorage(RolloutStorage[State]):
             self.beta_adv[i] = opt_q[self.worker_indices, opt] * v
 
 
-class AOCAgent(NStepParallelAgent[State]):
+class AOCAgent(A2CLikeAgent[State]):
     """AOC: Adavantage Option Critic
     It's a synchronous batched version of A2OC: Asynchronou Adavantage Option Critic
     """
@@ -177,7 +177,7 @@ class AOCAgent(NStepParallelAgent[State]):
         return self.storage.is_new_options[-1]  # type: ignore
 
     @torch.no_grad()
-    def _one_step(self, states: Array[State]) -> Array[State]:
+    def one_step(self, states: Array[State]) -> Array[State]:
         opt_policy, opt_q, beta = self.net(self.penv.extract(states))
         options, is_new_options = self.sample_options(opt_q, beta, self.prev_options)
         policy = opt_policy[self.worker_indices, options]
@@ -198,11 +198,8 @@ class AOCAgent(NStepParallelAgent[State]):
         next_opt_q = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(-1)
         return torch.where(self.prev_is_new_options, next_opt_q, current_opt_q)
 
-    def nstep(self, states: Array[State]) -> Array[State]:
-        for _ in range(self.config.nsteps):
-            states = self._one_step(states)
-
-        next_v = self._next_value(states)
+    def train(self, last_states: Array[State]) -> None:
+        next_v = self._next_value(last_states)
         if self.config.use_gae:
             self.storage.calc_gae_returns(
                 next_v,
@@ -249,4 +246,3 @@ class AOCAgent(NStepParallelAgent[State]):
             entropy=entropy.item(),
         )
         self.storage.reset()
-        return states
