@@ -10,7 +10,6 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch.nn import functional as F
-from typing import Tuple
 from .base import DQNLikeAgent
 from ..config import Config
 from ..prelude import Action, Array, State
@@ -41,9 +40,6 @@ class BootDQNAgent(DQNLikeAgent):
     def eval_action(self, state: Array) -> Action:
         return self.eval_policy.select_action(state, self.net).item()  # type: ignore
 
-    def on_terminal(self) -> None:
-        self.active_head = np.random.randint(self.config.num_ensembles)
-
     def action(self, state: State) -> Action:
         if self.train_started:
             with torch.no_grad():
@@ -52,13 +48,20 @@ class BootDQNAgent(DQNLikeAgent):
         else:
             return self.env.spec.random_action()
 
-    def step(self, state: State) -> Tuple[State, float, bool, dict]:
-        action = self.action(state)
-        next_state, reward, done, info = self.env.step(action)
+    def store_transition(
+        self,
+        state: State,
+        action: Action,
+        next_state: State,
+        reward: float,
+        done: bool,
+    ) -> None:
         randn = np.random.uniform(0, 1, self.config.num_ensembles)
         mask = randn < self.config.replay_prob
-        self.replay.append(state, action, reward, next_state, done, mask)
-        return next_state, reward, done, info
+        reward *= self.config.reward_scale
+        self.replay.append(state, action, next_state, reward, done, mask)
+        if done:
+            self.active_head = np.random.randint(self.config.num_ensembles)
 
     @torch.no_grad()
     def _q_next(self, next_states: Array) -> Tensor:
@@ -67,14 +70,14 @@ class BootDQNAgent(DQNLikeAgent):
     def train(self, replay_feed: BootDQNReplayFeed) -> None:
         gamma = self.config.discount_factor
         obs = [ob.to_array(self.env.extract) for ob in replay_feed]
-        states, actions, rewards, next_states, done, mask = map(np.asarray, zip(*obs))
+        states, actions, next_states, rewards, done, mask = map(np.asarray, zip(*obs))
         q_next = self._q_next(next_states)
-        r = self.tensor(rewards).view(-1, 1)
-        q_target = r + q_next * self.tensor(1.0 - done).mul_(gamma).view(-1, 1)
+        r = self._tensor(rewards).view(-1, 1)
+        q_target = r + q_next * self._tensor(1.0 - done).mul_(gamma).view(-1, 1)
         q_current = self.net.q_s_a(states, actions)
         loss = F.mse_loss(q_current, q_target, reduction="none")
-        masked_loss = loss.masked_select(self.tensor(mask, dtype=torch.bool)).mean()
+        masked_loss = loss.masked_select(self._tensor(mask, dtype=torch.bool)).mean()
         self._backward(masked_loss, self.optimizer, self.net.parameters())
         self.network_log(q_value=q_current.mean().item(), value_loss=masked_loss.item())
-        if (self.update_steps + 1) % self.config.sync_freq == 0:
+        if self.update_steps > 0 and self.update_steps % self.config.sync_freq == 0:
             self.target_net.load_state_dict(self.net.state_dict())

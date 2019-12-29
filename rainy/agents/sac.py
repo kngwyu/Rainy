@@ -102,7 +102,7 @@ class SACAgent(DQNLikeAgent):
 
     def train(self, replay_feed: DQNReplayFeed) -> None:
         obs = [ob.to_array(self.env.extract) for ob in replay_feed]
-        states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
+        states, actions, next_states, rewards, done = map(np.asarray, zip(*obs))
         q1, q2, policy = self.net(states, actions)
 
         # Backward policy loss
@@ -123,5 +123,5 @@ class SACAgent(DQNLikeAgent):
         self._backward(critic_loss, self.critic_opt, self.net.critic_params())
 
         #  Update target network
-        if (self.update_steps + 1) % self.config.sync_freq == 0:
+        if self.update_steps > 0 and self.update_steps % self.config.sync_freq == 0:
             self.target_net.soft_update(self.net, self.config.soft_update_coef)

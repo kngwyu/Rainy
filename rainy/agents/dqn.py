@@ -14,13 +14,14 @@ from torch import Tensor
 from torch.nn import functional as F
 from .base import DQNLikeAgent
 from ..config import Config
+from ..envs import ParallelEnv
 from ..prelude import Action, Array, State
 from ..replay import DQNReplayFeed
 
 
 class DQNAgent(DQNLikeAgent):
-
     SAVED_MEMBERS = "net", "policy", "total_steps", "target_net"
+    SUPPORT_PARALLEL_ENV = True
 
     def __init__(self, config: Config) -> None:
         super().__init__(config)
@@ -49,20 +50,27 @@ class DQNAgent(DQNLikeAgent):
         else:
             return self.env.spec.random_action()
 
+    def batch_actions(self, states: Array[State], penv: ParallelEnv) -> Array[Action]:
+        if self.train_started:
+            states = penv.extract(states)
+            return self.policy.select_action(states, self.net).squeeze().numpy()
+        else:
+            return self.env.spec.random_actions(states.shape[0])
+
     @torch.no_grad()
     def _q_next(self, next_states: Array) -> Tensor:
         return self.target_net(next_states).max(axis=-1)[0]
 
     def train(self, replay_feed: DQNReplayFeed) -> None:
         obs = [ob.to_array(self.env.extract) for ob in replay_feed]
-        states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
-        q_next = self._q_next(next_states).mul_(self.tensor(1.0 - done))
-        q_target = self.tensor(rewards).add_(q_next.mul_(self.config.discount_factor))
+        states, actions, next_states, rewards, done = map(np.asarray, zip(*obs))
+        q_next = self._q_next(next_states).mul_(self._tensor(1.0 - done))
+        q_target = self._tensor(rewards).add_(q_next.mul_(self.config.discount_factor))
         q_current = self.net(states)[self.batch_indices, actions]
         loss = F.mse_loss(q_current, q_target)
         self._backward(loss, self.optimizer, self.net.parameters())
         self.network_log(q_value=q_current.mean().item(), value_loss=loss.item())
-        if (self.update_steps + 1) % self.config.sync_freq == 0:
+        if self.update_steps > 0 and self.update_steps % self.config.sync_freq == 0:
             self.target_net.load_state_dict(self.net.state_dict())
 
 

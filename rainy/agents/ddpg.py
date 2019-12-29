@@ -53,7 +53,7 @@ class DDPGAgent(DQNLikeAgent):
 
     def train(self, replay_feed: DQNReplayFeed) -> None:
         obs = [ob.to_array(self.env.extract) for ob in replay_feed]
-        states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
+        states, actions, next_states, rewards, done = map(np.asarray, zip(*obs))
         mask = self.config.device.tensor(1.0 - done)
         q_next = self._q_next(next_states)
         q_target = (

@@ -34,18 +34,18 @@ class UniformReplayBuffer(ReplayBuffer, Generic[ReplayFeed]):
 class DQNReplayFeed(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
     state: State
     action: int
-    reward: float
     next_state: State
+    reward: float
     done: bool
 
     def to_array(
         self, wrap: Callable[[State], Array]
-    ) -> Tuple[Array[float], int, float, Array[float], bool]:
+    ) -> Tuple[Array[float], int, Array[float], float, bool]:
         return (
             wrap(self.state),
             self.action,
-            self.reward,
             wrap(self.next_state),
+            self.reward,
             self.done,
         )
 
@@ -53,19 +53,19 @@ class DQNReplayFeed(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
 class BootDQNReplayFeed(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
     state: State
     action: int
-    reward: float
     next_state: State
+    reward: float
     done: bool
     ensemble_mask: Array[bool]
 
     def to_array(
         self, wrap: Callable[[State], Array]
-    ) -> Tuple[Array[float], int, float, Array[float], bool, Array[bool]]:
+    ) -> Tuple[Array[float], int, Array[float], float, bool, Array[bool]]:
         return (
             wrap(self.state),
             self.action,
-            self.reward,
             wrap(self.next_state),
+            self.reward,
             self.done,
             self.ensemble_mask,
         )
