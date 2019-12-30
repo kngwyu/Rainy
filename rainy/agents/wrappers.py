@@ -1,8 +1,6 @@
 import numpy as np
-from typing import (
-    Iterable,
-    List,
-)
+from pathlib import Path
+from typing import Iterable, List, Optional
 from ..prelude import Action, Array, State
 from .base import Agent, DQNLikeAgent, EpisodeResult
 
@@ -71,3 +69,9 @@ class DQNLikeParallel(Agent):
     def close(self) -> None:
         self.agent.close()
         self.penv.close()
+
+    def save(self, filename: str, directory: Optional[Path] = None) -> None:
+        self.agent.save(filename, directory=directory)
+
+    def load(self, filename: str, directory: Optional[Path] = None) -> bool:
+        self.agent.load(filename, directory=directory)
