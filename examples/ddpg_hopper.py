@@ -1,3 +1,4 @@
+import click
 import os
 from rainy import Config
 from rainy.agents import DDPGAgent
@@ -7,14 +8,13 @@ import rainy.utils.cli as cli
 from torch.optim import Adam
 
 
-def config(envname: str = "Hopper") -> Config:
+def config(envname: str = "Hopper", nworkers: int = 1) -> Config:
     c = Config()
     c.set_env(lambda: PyBullet(envname))
     c.max_steps = int(1e6)
     c.set_optimizer(lambda params: Adam(params, lr=1e-3), key="actor")
     c.set_optimizer(lambda params: Adam(params, lr=1e-3), key="critic")
     c.replay_size = int(1e6)
-    c.replay_batch_size = 100
     c.train_start = int(1e4)
     c.set_explorer(lambda: explore.GaussianNoise())
     c.set_explorer(lambda: explore.Greedy(), key="eval")
@@ -22,8 +22,11 @@ def config(envname: str = "Hopper") -> Config:
     c.eval_deterministic = True
     c.grad_clip = None
     c.eval_freq = c.max_steps // 10
+    c.nworkers = nworkers
+    c.replay_batch_size = 100 * nworkers
     return c
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, DDPGAgent, script_path=os.path.realpath(__file__))
+    options = [click.Option(["--nworkers"], type=int, default=1)]
+    cli.run_cli(config, DDPGAgent, os.path.realpath(__file__), options)

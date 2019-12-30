@@ -8,15 +8,16 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch.nn import functional as F
-from typing import Tuple
 from .base import DQNLikeAgent
 from ..config import Config
+from ..envs import ParallelEnv
 from ..prelude import Action, Array, State
 from ..replay import DQNReplayFeed
 
 
 class DDPGAgent(DQNLikeAgent):
     SAVED_MEMBERS = "net", "target_net", "actor_opt", "critic_opt", "explorer", "replay"
+    SUPPORT_PARALLEL_ENV = True
 
     def __init__(self, config: Config) -> None:
         super().__init__(config)
@@ -37,13 +38,23 @@ class DDPGAgent(DQNLikeAgent):
         action = self.eval_explorer.add_noise(self.net.action(state))
         return action.cpu().numpy()  # type: ignore
 
-    def action(self, state: State) -> Tuple[State, float, bool, dict]:
+    def action(self, state: State) -> Action:
         if self.train_started:
             with torch.no_grad():
                 action = self.net.action(state)
             action = self.explorer.add_noise(action).cpu().numpy()
         else:
             action = self.env.spec.random_action()
+        return self.env.spec.clip_action(action)
+
+    def batch_actions(self, states: Array[State], penv: ParallelEnv) -> Array[Action]:
+        if self.train_started:
+            states = penv.extract(states)
+            with torch.no_grad():
+                action = self.net.action(states)
+            action = self.explorer.add_noise(action).cpu().numpy()
+        else:
+            action = self.env.spec.random_actions(states.shape[0])
         return self.env.spec.clip_action(action)
 
     @torch.no_grad()
@@ -54,13 +65,9 @@ class DDPGAgent(DQNLikeAgent):
     def train(self, replay_feed: DQNReplayFeed) -> None:
         obs = [ob.to_array(self.env.extract) for ob in replay_feed]
         states, actions, next_states, rewards, done = map(np.asarray, zip(*obs))
-        mask = self.config.device.tensor(1.0 - done)
         q_next = self._q_next(next_states)
-        q_target = (
-            q_next.squeeze_()
-            .mul_(mask * self.config.discount_factor)
-            .add_(self.config.device.tensor(rewards))
-        )
+        q_next = self._q_next(next_states).squeeze_().mul_(self.tensor(1.0 - done))
+        q_target = self.tensor(rewards).add_(q_next.mul_(self.config.discount_factor))
         action, q_current = self.net(states, actions)
 
         #  Backward critic loss

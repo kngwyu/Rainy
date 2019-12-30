@@ -42,18 +42,14 @@ class TD3Agent(DDPGAgent):
     def train(self, replay_feed: DQNReplayFeed) -> None:
         obs = [ob.to_array(self.env.extract) for ob in replay_feed]
         states, actions, next_states, rewards, done = map(np.asarray, zip(*obs))
-        mask = self.config.device.tensor(1.0 - done)
-        q_next = self._q_next(next_states).squeeze_()
-        q_target = q_next.mul_(mask * self.config.discount_factor).add_(
-            self.config.device.tensor(rewards)
-        )
+        q_next = self._q_next(next_states).squeeze_().mul_(self.tensor(1.0 - done))
+        q_target = self.tensor(rewards).add_(q_next.mul_(self.config.discount_factor))
         q1, q2 = self.net.q_values(states, actions)
 
         #  Backward critic loss
-        critic_loss = F.mse_loss(q1.squeeze_(), q_target) + F.mse_loss(
-            q2.squeeze_(), q_target
-        )
-        self._backward(critic_loss, self.critic_opt, self.net.critic_params())
+        q1_loss = F.mse_loss(q1.squeeze_(), q_target)
+        q2_loss = F.mse_loss(q2.squeeze_(), q_target)
+        self._backward(q1_loss + q2_loss, self.critic_opt, self.net.critic_params())
 
         #  Delayed policy update
         if (self.update_steps + 1) % self.config.policy_update_freq != 0:

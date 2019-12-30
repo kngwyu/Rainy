@@ -53,7 +53,7 @@ class DQNAgent(DQNLikeAgent):
     def batch_actions(self, states: Array[State], penv: ParallelEnv) -> Array[Action]:
         if self.train_started:
             states = penv.extract(states)
-            return self.policy.select_action(states, self.net).squeeze().numpy()
+            return self.policy.select_action(states, self.net).squeeze_().numpy()
         else:
             return self.env.spec.random_actions(states.shape[0])
 
@@ -64,10 +64,10 @@ class DQNAgent(DQNLikeAgent):
     def train(self, replay_feed: DQNReplayFeed) -> None:
         obs = [ob.to_array(self.env.extract) for ob in replay_feed]
         states, actions, next_states, rewards, done = map(np.asarray, zip(*obs))
-        q_next = self._q_next(next_states).mul_(self._tensor(1.0 - done))
-        q_target = self._tensor(rewards).add_(q_next.mul_(self.config.discount_factor))
-        q_current = self.net(states)[self.batch_indices, actions]
-        loss = F.mse_loss(q_current, q_target)
+        q_next = self._q_next(next_states).squeeze_().mul_(self.tensor(1.0 - done))
+        q_target = self.tensor(rewards).add_(q_next.mul_(self.config.discount_factor))
+        q_prediction = self.net(states)[self.batch_indices, actions]
+        loss = F.mse_loss(q_prediction, q_target)
         self._backward(loss, self.optimizer, self.net.parameters())
         self.network_log(q_value=q_current.mean().item(), value_loss=loss.item())
         if self.update_steps > 0 and self.update_steps % self.config.sync_freq == 0:

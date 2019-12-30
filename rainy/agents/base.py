@@ -42,6 +42,7 @@ class Agent(ABC):
 
     def __init__(self, config: Config) -> None:
         self.config = config
+        self.tensor = config.device.tensor
         self.logger = config.logger
         self.env = config.env()
         self.total_steps = 0
@@ -183,11 +184,6 @@ class Agent(ABC):
             else:
                 setattr(self, member_str, saved_item)
         return True
-
-    def _tensor(self, arr: ArrayLike, dtype: torch.dtype = torch.float32) -> Tensor:
-        """A shorthand method for calling `device.tensor`.
-        """
-        return self.config.device.tensor(arr, dtype)
 
     def _backward(
         self,

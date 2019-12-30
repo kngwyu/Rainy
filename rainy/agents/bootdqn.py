@@ -68,15 +68,15 @@ class BootDQNAgent(DQNLikeAgent):
         return self.net(next_states).max(axis=-1)[0]
 
     def train(self, replay_feed: BootDQNReplayFeed) -> None:
-        gamma = self.config.discount_factor
         obs = [ob.to_array(self.env.extract) for ob in replay_feed]
         states, actions, next_states, rewards, done, mask = map(np.asarray, zip(*obs))
         q_next = self._q_next(next_states)
         r = self._tensor(rewards).view(-1, 1)
-        q_target = r + q_next * self._tensor(1.0 - done).mul_(gamma).view(-1, 1)
+        discount = self.tensor(1.0 - done).mul_(gamma)
+        q_target = r + q_next.mul_(discount).view(-1, 1)
         q_current = self.net.q_s_a(states, actions)
         loss = F.mse_loss(q_current, q_target, reduction="none")
-        masked_loss = loss.masked_select(self._tensor(mask, dtype=torch.bool)).mean()
+        masked_loss = loss.masked_select(self.tensor(mask, dtype=torch.bool)).mean()
         self._backward(masked_loss, self.optimizer, self.net.parameters())
         self.network_log(q_value=q_current.mean().item(), value_loss=masked_loss.item())
         if self.update_steps > 0 and self.update_steps % self.config.sync_freq == 0:
