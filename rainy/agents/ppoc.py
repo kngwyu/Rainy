@@ -6,14 +6,14 @@ PPOC(Proximal Policy Option Critic), which is described in
 """
 
 import torch
-from torch import Tensor
-from typing import NamedTuple, Optional
+from torch import ByteTensor, LongTensor, Tensor
+from typing import NamedTuple, Optional, Tuple
 from .aoc import AOCRolloutStorage, AOCAgent
 from ..lib.rollout import RolloutSampler
 from ..lib import mpi
 from ..config import Config
 from ..envs import ParallelEnv, State
-from ..net import Policy
+from ..net.policy import BernoulliPolicy, CategoricalPolicy, Policy
 from ..prelude import Array, Index
 
 
@@ -22,7 +22,6 @@ class RolloutBatch(NamedTuple):
     actions: Tensor
     masks: Tensor
     returns: Tensor
-    opt_q_values: Tensor
     old_log_probs: Tensor
     advantages: Tensor
     beta_advantages: Tensor
@@ -51,7 +50,6 @@ class PPOCSampler(RolloutSampler):
             self.actions[i],
             self.masks[i],
             self.returns[i],
-            self.values[i],
             self.old_log_probs[i],
             self.advantages[i],
             self.beta_advantages[i],
@@ -65,6 +63,8 @@ class PPOCAgent(AOCAgent):
 
     def __init__(self, config: Config) -> None:
         super().__init__(config)
+        if not self.net.has_mu:
+            raise ValueError("PPOCAgent needs option_policy μ!!!")
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
         self.num_updates = self.config.ppo_epochs * self.config.ppo_num_minibatches
@@ -80,19 +80,47 @@ class PPOCAgent(AOCAgent):
         surr2 = prob_ratio.clamp(1.0 - self.clip_eps, 1.0 + self.clip_eps) * advantages
         return -torch.min(surr1, surr2).mean()
 
-    def _value_loss(
-        self, opt_q: Tensor, options: Tensor, old_opt_q: Tensor, returns: Tensor
-    ) -> Tensor:
+    def _value_loss(self, opt_q: Tensor, options: Tensor, returns: Tensor) -> Tensor:
         value = opt_q[self.batch_indices, options]
-        old_value = old_opt_q[self.batch_indices, options]
-        unclipped_loss = (value - returns).pow(2)
-        if not self.config.ppo_value_clip:
-            return unclipped_loss.mean()
-        value_clipped = old_value + (value - old_value).clamp(
-            -self.clip_eps, self.clip_eps
+        return (value - returns).pow(2).mean()
+
+    @torch.no_grad()
+    def _eval_policy(self, states: Array, indices: Tensor) -> Policy:
+        opt_policy, _, beta, mu = self.net(states)
+        options, _ = self.sample_options(
+            mu, beta, self.eval_prev_options, self.eval_opt_explorer
         )
-        clipped_loss = (value_clipped - returns).pow(2)
-        return torch.max(unclipped_loss, clipped_loss).mean()
+        self.eval_prev_options = options
+        return opt_policy[indices, options]
+
+    def sample_options(
+        self,
+        mu: CategoricalPolicy,
+        beta: BernoulliPolicy,
+        prev_options: LongTensor,
+        deterministic: bool = False,
+    ) -> Tuple[LongTensor, ByteTensor]:
+        current_beta = beta[self.worker_indices, prev_options]
+        do_options_end = current_beta.action()
+        # If do_options[i] == 1 or the episode ends, use new option.
+        use_new_options = do_options_end.add(1.0 - self.storage.masks[-1]) > 0.1
+        sampled_options = mu.sample()
+        options = torch.where(use_new_options, sampled_options, prev_options)
+        return options, use_new_options  # type: ignore
+
+    @torch.no_grad()
+    def one_step(self, states: Array[State]) -> Array[State]:
+        opt_policy, opt_q, beta, mu = self.net(self.penv.extract(states))
+        options, is_new_options = self.sample_options(mu, beta, self.prev_options)
+        policy = opt_policy[self.worker_indices, options]
+        actions = policy.action().squeeze().cpu().numpy()
+        next_states, rewards, done, info = self.penv.step(actions)
+        self.episode_length += 1
+        self.rewards += rewards
+        self.report_reward(done, info)
+        self.storage.push(next_states, rewards, done, policy=policy, value=opt_q)
+        self.storage.push_options(options, is_new_options, self.opt_explorer.epsilon)
+        return next_states
 
     def train(self, last_states: Array[State]) -> None:
         next_v = self._next_value(last_states)
@@ -115,20 +143,19 @@ class PPOCAgent(AOCAgent):
             adv_normalize_eps=self.config.adv_normalize_eps,
         )
 
-        p, v, b, e = 0.0, 0.0, 0.0, 0.0
+        p, v, b, pe, m, me = (0.0, ) * 6
         for _ in range(self.config.ppo_epochs):
             for batch in sampler:
-                opt_policy, opt_q, beta = self.net(batch.states)
+                opt_policy, opt_q, beta, mu = self.net(batch.states)
+                # Policy loss
                 policy = opt_policy[self.batch_indices, batch.prev_options]
                 policy.set_action(batch.actions)
                 policy_loss = self._policy_loss(
                     policy, batch.advantages, batch.old_log_probs
                 )
-                value_loss = self._value_loss(
-                    opt_q, batch.options, batch.opt_q_values, batch.returns
-                )
-                entropy_loss = policy.entropy().mean()
-
+                # Value loss
+                value_loss = self._value_loss(opt_q, batch.options, batch.returns)
+                # Beta loss
                 term_prob = beta[self.batch_indices, batch.prev_options].dist.probs
                 beta_adv = (
                     batch.beta_advantages
@@ -136,25 +163,36 @@ class PPOCAgent(AOCAgent):
                     + self.config.opt_beta_adv_merginal
                 )
                 beta_loss = term_prob.mul(batch.masks * beta_adv).mean()
+                # Mu loss
+                mu.set_action(batch.options)
+                mu_loss = -(mu.log_prob() * batch.beta_advantages).mean()
+                # Entropy loss
+                pe_loss = policy.entropy().mean()
+                me_loss = mu.entropy().mean()
                 self.optimizer.zero_grad()
                 (
-                    policy_loss * beta_loss
+                    policy_loss
+                    + beta_loss
+                    + mu_loss
                     + self.config.value_loss_weight * 0.5 * value_loss
-                    - self.config.entropy_weight * entropy_loss
+                    - self.config.entropy_weight * pe_loss
+                    - self.config.entropy_weight * me_loss
                 ).backward()
                 mpi.clip_and_step(
                     self.net.parameters(), self.config.grad_clip, self.optimizer
                 )
 
-                p, v, b, e = (
+                p, v, b, pe, m, me = (
                     p + policy_loss.item(),
                     b + beta_loss.item(),
                     v + value_loss.item(),
-                    e + entropy_loss.item(),
+                    m + mu_loss.item(),
+                    pe + pe_loss.item(),
+                    me + me_loss.item(),
                 )
 
-        p, v, b, e = (x / self.num_updates for x in (p, v, b, e))
+        p, v, b, pe, m, me = (x / self.num_updates for x in (p, v, b, pe, m, me))
         self.network_log(
-            policy_loss=p, value_loss=v, beta_loss=b, entropy=e,
+            policy_loss=p, value_loss=v, beta_loss=b, entropy=pe, mu=mu, mu_entropy=me,
         )
         self.storage.reset()

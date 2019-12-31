@@ -16,7 +16,7 @@ from ..config import Config
 from ..lib.explore import EpsGreedy
 from ..lib.rollout import RolloutStorage
 from ..net import OptionCriticNet
-from ..net.policy import Policy, BernoulliPolicy
+from ..net.policy import BernoulliPolicy, Policy
 from ..prelude import Action, Array, State
 from ..utils import Device
 
@@ -214,10 +214,8 @@ class AOCAgent(A2CLikeAgent[State]):
 
         prev_options, options = self.storage.batch_options()
         adv = self.storage.advs[:-1].flatten()
-        beta_adv = (
-            self.storage.beta_adv.flatten()
-            + self.config.opt_delib_cost
-            + self.config.opt_beta_adv_merginal
+        beta_adv = self.storage.beta_adv.flatten().add_(
+            self.config.opt_delib_cost + self.config.opt_beta_adv_merginal
         )
         ret = self.storage.returns[:-1].flatten()
         masks = self.storage.batch_masks()
@@ -228,7 +226,6 @@ class AOCAgent(A2CLikeAgent[State]):
 
         policy_loss = -(policy.log_prob() * adv).mean()
         term_prob = beta[self.batch_indices, prev_options].dist.probs
-        print(term_prob.mean())
         beta_loss = term_prob.mul(masks).mul(beta_adv).mean()
         value_loss = (opt_q[self.batch_indices, options] - ret).pow(2).mean()
         entropy = policy.entropy().mean()

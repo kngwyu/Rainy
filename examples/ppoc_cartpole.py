@@ -19,7 +19,8 @@ def config(
     c.opt_delib_cost = opt_delib_cost
     c.opt_beta_adv_merginal = opt_beta_adv_merginal
     c.set_net_fn(
-        "option-critic", rainy.net.option_critic.fc_shared(num_options=num_options)
+        "option-critic",
+        rainy.net.option_critic.fc_shared(num_options=num_options, has_mu=True),
     )
     # PPO params
     c.nworkers = 12

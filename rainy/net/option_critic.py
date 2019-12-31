@@ -3,7 +3,14 @@ from torch import nn, Tensor
 from typing import Sequence, Tuple, Type
 from .actor_critic import policy_init
 from .block import DQNConv, FcBody, LinearHead, NetworkBlock
-from .policy import BernoulliDist, BernoulliPolicy, CategoricalDist, Policy, PolicyDist
+from .policy import (
+    BernoulliDist,
+    BernoulliPolicy,
+    CategoricalDist,
+    CategoricalPolicy,
+    Policy,
+    PolicyDist,
+)
 from .prelude import NetFn
 from ..prelude import ArrayLike
 from ..utils import Device
@@ -13,6 +20,7 @@ class OptionCriticNet(nn.Module, ABC):
     """Network for option critic
     """
 
+    has_mu: bool
     num_options: int
     state_dim: Sequence[int]
 
@@ -39,6 +47,7 @@ class SharedBodyOCNet(OptionCriticNet):
         device: Device = Device(),
     ) -> None:
         super().__init__()
+        self.has_mu = False
         self.body = body
         self.actor_head = actor_head
         self.optq_head = optq_head
@@ -63,11 +72,43 @@ class SharedBodyOCNet(OptionCriticNet):
         return self.policy_dist(policy), opt_q, beta
 
 
+class SharedBodyOCNetWithMu(SharedBodyOCNet):
+    """An Option Critic Net with option policy
+    """
+
+    def __init__(
+        self,
+        body: NetworkBlock,
+        actor_head: NetworkBlock,
+        optq_head: NetworkBlock,
+        beta_head: NetworkBlock,
+        policy_dist: PolicyDist,
+        mu_head: NetworkBlock,
+        device: Device = Device(),
+    ) -> None:
+        super().__init__(body, actor_head, optq_head, beta_head,policy_dist, device)
+        self.has_mu = True
+        self.mu_head = mu_head
+        self.mu_dist = CategoricalDist(optq_head.output_dim)
+        self.to(device.unwrapped)
+
+    def forward(
+        self, states: ArrayLike
+    ) -> Tuple[Policy, Tensor, BernoulliPolicy, CategoricalPolicy]:
+        feature = self.body(self.device.tensor(states))
+        policy = self.actor_head(feature).view(-1, self.num_options, self.action_dim)
+        opt_q = self.optq_head(feature)
+        beta = self.beta_dist(self.beta_head(feature))
+        mu = self.mu_dist(self.mu_head(feature))
+        return self.policy_dist(policy), opt_q, beta, mu
+
+
 def conv_shared(
     num_options: int = 8,
     policy: Type[PolicyDist] = CategoricalDist,
     hidden_channels: Tuple[int, int, int] = (32, 64, 32),
     output_dim: int = 256,
+    has_mu: bool = False,
     **kwargs,
 ) -> NetFn:
     def _net(
@@ -80,13 +121,22 @@ def conv_shared(
         optq_head = LinearHead(body.output_dim, num_options)
         beta_head = LinearHead(body.output_dim, num_options)
         dist = policy(action_dim, device)
-        return SharedBodyOCNet(body, ac_head, optq_head, beta_head, dist, device)
+        if has_mu:
+            mu_head = LinearHead(body.output_dim, num_options, policy_init())
+            return SharedBodyOCNetWithMu(
+                body, ac_head, optq_head, beta_head, dist, mu_head, device
+            )
+        else:
+            return SharedBodyOCNet(body, ac_head, optq_head, beta_head, dist, device)
 
     return _net  # type: ignore
 
 
 def fc_shared(
-    num_options: int = 8, policy: Type[PolicyDist] = CategoricalDist, **kwargs
+    num_options: int = 8,
+    policy: Type[PolicyDist] = CategoricalDist,
+    has_mu: bool = False,
+    **kwargs,
 ) -> NetFn:
     def _net(
         state_dim: Sequence[int], action_dim: int, device: Device
@@ -96,6 +146,12 @@ def fc_shared(
         optq_head = LinearHead(body.output_dim, num_options)
         beta_head = LinearHead(body.output_dim, num_options)
         dist = policy(action_dim, device)
-        return SharedBodyOCNet(body, ac_head, optq_head, beta_head, dist, device)
+        if has_mu:
+            mu_head = LinearHead(body.output_dim, num_options, policy_init())
+            return SharedBodyOCNetWithMu(
+                body, ac_head, optq_head, beta_head, dist, mu_head, device
+            )
+        else:
+            return SharedBodyOCNet(body, ac_head, optq_head, beta_head, dist, device)
 
     return _net  # type: ignore
