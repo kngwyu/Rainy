@@ -1,3 +1,9 @@
+"""
+This module has an implementation of PPO, which is described in
+- Proximal Policy Optimization Algorithms
+  - URL: https://arxiv.org/abs/1707.06347
+"""
+
 import torch
 from torch import Tensor
 from .a2c import A2CAgent
@@ -5,7 +11,7 @@ from ..lib.rollout import RolloutSampler
 from ..lib import mpi
 from ..config import Config
 from ..envs import State
-from ..net import ActorCriticNet, Policy
+from ..net import Policy
 from ..prelude import Array
 
 
@@ -14,15 +20,9 @@ class PPOAgent(A2CAgent):
 
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.net: ActorCriticNet = config.net("actor-critic")  # type: ignore
-        self.optimizer = config.optimizer(self.net.parameters())
-        self.lr_cooler = config.lr_cooler(self.optimizer.param_groups[0]["lr"])
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
-        nbatchs = (
-            self.config.nsteps * self.config.nworkers
-        ) // self.config.ppo_minibatch_size
-        self.num_updates = self.config.ppo_epochs * nbatchs
+        self.num_updates = self.config.ppo_epochs * self.config.ppo_num_minibatches
         mpi.setup_models(self.net)
         self.optimizer = mpi.setup_optimizer(self.optimizer)
 
@@ -48,12 +48,9 @@ class PPOAgent(A2CAgent):
         clipped_loss = (value_clipped - returns).pow(2)
         return torch.max(unclipped_loss, clipped_loss).mean()
 
-    def nstep(self, states: Array[State]) -> Array[State]:
-        for _ in range(self.config.nsteps):
-            states = self._one_step(states)
-
+    def train(self, last_states: Array[State]) -> None:
         with torch.no_grad():
-            next_value = self.net.value(*self._network_in(states))
+            next_value = self.net.value(*self._network_in(last_states))
 
         if self.config.use_gae:
             self.storage.calc_gae_returns(
@@ -66,7 +63,6 @@ class PPOAgent(A2CAgent):
             self.storage,
             self.penv,
             self.config.ppo_minibatch_size,
-            rnn=self.net.recurrent_body,
             adv_normalize_eps=self.config.adv_normalize_eps,
         )
         for _ in range(self.config.ppo_epochs):
@@ -99,4 +95,3 @@ class PPOAgent(A2CAgent):
 
         p, v, e = (x / self.num_updates for x in (p, v, e))
         self.network_log(policy_loss=p, value_loss=v, entropy_loss=e)
-        return states

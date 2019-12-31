@@ -38,10 +38,11 @@ class Config:
         self.parallel_seeds: List[int] = []
 
         # For DQN-like algorithms
+        self.update_freq = 1
         self.sync_freq = 1000
         self.__explore: Dict[Optional[str], Callable[[], Explorer]] = {
             None: lambda: EpsGreedy(1.0, LinearCooler(1.0, 0.1, 10000)),
-            "eval": lambda: EpsGreedy(0.01, DummyCooler(0.01)),
+            "eval": lambda: EpsGreedy(0.01),
         }
 
         # For BootDQN
@@ -122,6 +123,10 @@ class Config:
     @property
     def batch_size(self) -> int:
         return self.nworkers * self.nsteps
+
+    @property
+    def ppo_num_minibatches(self) -> int:
+        return (self.nsteps * self.nworkers) // self.ppo_minibatch_size
 
     def env(self) -> EnvExt:
         env = self.__env()

@@ -1,5 +1,11 @@
-"""SAC(Soft Actor Critic) agent
-Paper: https://arxiv.org/abs/1812.05905
+"""This module has an implementation of Soft Actor Critic.
+Corresponding papers:
+-
+- Soft Actor-Critic Algorithms and Applications
+  - https://arxiv.org/abs/1812.05905
+- Soft Actor-Critic: Off-Policy Maximum Entropy
+  Deep Reinforcement Learning with a Stochastic Actor
+  - https://arxiv.org/abs/1801.01290
 """
 from abc import ABC, abstractmethod
 import numpy as np
@@ -7,10 +13,12 @@ from torch import nn, Tensor
 import torch
 from torch.nn import functional as F
 from typing import Tuple
-from .base import OneStepAgent
+from .base import DQNLikeAgent
 from ..config import Config
+from ..envs import ParallelEnv
 from ..net import Policy, SeparatedSACNet
 from ..prelude import Action, Array, State
+from ..replay import DQNReplayFeed
 
 
 class EntropyTuner(ABC):
@@ -41,8 +49,9 @@ class TrainableEntropyTuner(EntropyTuner):
         return self.log_alpha.detach().exp().item()
 
 
-class SACAgent(OneStepAgent):
+class SACAgent(DQNLikeAgent):
     SAVED_MEMBERS = "net", "target_net", "actor_opt", "critic_opt", "replay"
+    SUPPORT_PARALLEL_ENV = True
 
     def __init__(self, config: Config) -> None:
         super().__init__(config)
@@ -73,22 +82,24 @@ class SACAgent(OneStepAgent):
         policy = self.net.policy(state)
         return policy.eval_action(self.config.eval_deterministic)
 
-    def step(self, state: State) -> Tuple[State, float, bool, dict]:
-        train_started = self.total_steps > self.config.train_start
-        if train_started:
+    def action(self, state: State) -> Action:
+        if self.train_started:
             with torch.no_grad():
                 policy = self.net.policy(state)
                 action = policy.action().cpu().numpy()
         else:
             action = self.env.spec.random_action()
-        action = self.env.spec.clip_action(action)
-        next_state, reward, done, info = self.env.step(action)
-        self.replay.append(
-            state, action, reward * self.config.reward_scale, next_state, done
-        )
-        if train_started:
-            self._train()
-        return next_state, reward, done, info
+        return self.env.spec.clip_action(action)
+
+    def batch_actions(self, states: Array[State], penv: ParallelEnv) -> Array[Action]:
+        if self.train_started:
+            states = penv.extract(states)
+            with torch.no_grad():
+                policy = self.net.policy(states)
+                action = policy.action().cpu().numpy()
+        else:
+            action = self.env.spec.random_actions(states.shape[0])
+        return self.env.spec.clip_action(action)
 
     def _logpi_and_q(self, states: Tensor, policy: Policy) -> Tuple[Tensor, Tensor]:
         actions = policy.baction()
@@ -101,10 +112,9 @@ class SACAgent(OneStepAgent):
         q1, q2 = self.target_net.q_values(next_states, policy.action())
         return torch.min(q1, q2).squeeze_() - alpha * policy.log_prob()
 
-    def _train(self) -> None:
-        obs = self.replay.sample(self.config.replay_batch_size)
-        obs = [ob.to_array(self.env.extract) for ob in obs]
-        states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
+    def train(self, replay_feed: DQNReplayFeed) -> None:
+        obs = [ob.to_array(self.env.extract) for ob in replay_feed]
+        states, actions, next_states, rewards, done = map(np.asarray, zip(*obs))
         q1, q2, policy = self.net(states, actions)
 
         # Backward policy loss
@@ -114,16 +124,12 @@ class SACAgent(OneStepAgent):
         self._backward(policy_loss, self.actor_opt, self.net.actor_params())
 
         #  Backward critic loss
-        mask = self.config.device.tensor(1.0 - done)
-        q_next = self._q_next(next_states, alpha)
-        q_target = q_next.mul_(mask * self.config.discount_factor).add_(
-            self.config.device.tensor(rewards)
-        )
-        critic_loss = F.mse_loss(q1.squeeze_(), q_target) + F.mse_loss(
-            q2.squeeze_(), q_target
-        )
-        self._backward(critic_loss, self.critic_opt, self.net.critic_params())
+        q_next = self._q_next(next_states, alpha).mul_(self.tensor(1.0 - done))
+        q_target = self.tensor(rewards).add_(q_next.mul_(self.config.discount_factor))
+        q1_loss = F.mse_loss(q1.squeeze_(), q_target)
+        q2_loss = F.mse_loss(q2.squeeze_(), q_target)
+        self._backward(q1_loss + q2_loss, self.critic_opt, self.net.critic_params())
 
         #  Update target network
-        if (self.update_steps + 1) % self.config.sync_freq == 0:
+        if self.update_steps % self.config.sync_freq == 0:
             self.target_net.soft_update(self.net, self.config.soft_update_coef)

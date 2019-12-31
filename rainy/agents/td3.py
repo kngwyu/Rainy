@@ -1,21 +1,25 @@
-"""TD3(Twin Delayed Deep Deterministic Policy Gradient)
-Paper: https://arxiv.org/abs/1802.09477
+"""
+This module has an implementation of
+ TD3(Twin Delayed Deep Deterministic Policy Gradient), which is described in
+- Addressing Function Approximation Error in Actor-Critic Methods
+  - https://arxiv.org/abs/1802.09477
 """
 from copy import deepcopy
 import numpy as np
 import torch
 from torch import Tensor
 from torch.nn import functional as F
-from .base import OneStepAgent
+from .base import DQNLikeAgent
 from .ddpg import DDPGAgent
 from ..config import Config
 from ..prelude import Array
+from ..replay import DQNReplayFeed
 from ..utils.misc import clamp_actions_
 
 
 class TD3Agent(DDPGAgent):
     def __init__(self, config: Config) -> None:
-        OneStepAgent.__init__(self, config)
+        DQNLikeAgent.__init__(self, config)
         self.net = config.net("td3")
         self.target_net = deepcopy(self.net)
         self.actor_opt = config.optimizer(self.net.actor_params(), key="actor")
@@ -35,22 +39,17 @@ class TD3Agent(DDPGAgent):
         q1, q2 = self.target_net.q_values(next_states, actions)
         return torch.min(q1, q2)
 
-    def _train(self) -> None:
-        obs = self.replay.sample(self.config.replay_batch_size)
-        obs = [ob.to_array(self.env.extract) for ob in obs]
-        states, actions, rewards, next_states, done = map(np.asarray, zip(*obs))
-        mask = self.config.device.tensor(1.0 - done)
-        q_next = self._q_next(next_states).squeeze_()
-        q_target = q_next.mul_(mask * self.config.discount_factor).add_(
-            self.config.device.tensor(rewards)
-        )
+    def train(self, replay_feed: DQNReplayFeed) -> None:
+        obs = [ob.to_array(self.env.extract) for ob in replay_feed]
+        states, actions, next_states, rewards, done = map(np.asarray, zip(*obs))
+        q_next = self._q_next(next_states).squeeze_().mul_(self.tensor(1.0 - done))
+        q_target = self.tensor(rewards).add_(q_next.mul_(self.config.discount_factor))
         q1, q2 = self.net.q_values(states, actions)
 
         #  Backward critic loss
-        critic_loss = F.mse_loss(q1.squeeze_(), q_target) + F.mse_loss(
-            q2.squeeze_(), q_target
-        )
-        self._backward(critic_loss, self.critic_opt, self.net.critic_params())
+        q1_loss = F.mse_loss(q1.squeeze_(), q_target)
+        q2_loss = F.mse_loss(q2.squeeze_(), q_target)
+        self._backward(q1_loss + q2_loss, self.critic_opt, self.net.critic_params())
 
         #  Delayed policy update
         if (self.update_steps + 1) % self.config.policy_update_freq != 0:

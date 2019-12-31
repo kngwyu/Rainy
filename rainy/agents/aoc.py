@@ -1,8 +1,17 @@
+"""
+This module has an implementation of AOC, an A2C-like variant of option-critic.
+Corresponding papers:
+- The Option-Critic Architecture
+  - https://arxiv.org/abs/1609.05140
+- When Waiting is not an Option : Learning Options with a Deliberation Cost
+  - https://arxiv.org/abs/1709.04571
+"""
+
 import numpy as np
 import torch
 from torch import ByteTensor, LongTensor, nn, Tensor
 from typing import List, Optional, Tuple
-from .base import NStepParallelAgent
+from .base import A2CLikeAgent
 from ..config import Config
 from ..lib.explore import EpsGreedy
 from ..lib.rollout import RolloutStorage
@@ -41,7 +50,9 @@ class AOCRolloutStorage(RolloutStorage[State]):
         batched = torch.cat(self.options, dim=0)
         return batched[: -self.nworkers], batched[self.nworkers :]
 
-    def calc_returns(self, next_value: Tensor, gamma: float, delib_cost: float) -> None:
+    def calc_ac_returns(
+        self, next_value: Tensor, gamma: float, delib_cost: float
+    ) -> None:
         self.returns[-1] = next_value
         rewards = self.device.tensor(self.rewards)
         for i in reversed(range(self.nsteps)):
@@ -53,10 +64,35 @@ class AOCRolloutStorage(RolloutStorage[State]):
             opt_q, eps = self.values[i], self.epsilons[i]
             self.advs[i] = self.returns[i] - opt_q[self.worker_indices, opt]
             v = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(dim=-1)
-            self.beta_adv[i] = opt_q[self.worker_indices, opt].mul(v)
+            self.beta_adv[i] = opt_q[self.worker_indices, opt] * v
+
+    def calc_gae_returns(
+        self, next_v: Tensor, gamma: float, lambda_: float, delib_cost: float,
+    ) -> None:
+        self.returns[-1] = next_v
+        rewards = self.device.tensor(self.rewards)
+        self.advs.fill_(0.0)
+        value_i1 = next_v
+        for i in reversed(range(self.nsteps)):
+            opt, opt_q = self.options[i + 1], self.values[i]
+            value_i = opt_q[self.worker_indices, opt]
+
+            # GAE
+            gamma_i1 = gamma * self.masks[i + 1]
+            td_error = rewards[i] + gamma_i1 * value_i1 - value_i
+            gamma_lambda_i = gamma * lambda_ * self.masks[i]
+            delib_cost_i = delib_cost * self.masks[i] * self.is_new_options[i].float()
+            self.advs[i] = td_error + gamma_lambda_i * self.advs[i + 1] - delib_cost_i
+            self.returns[i] = self.advs[i] + value_i
+            value_i1 = value_i
+
+            # β-advantage
+            eps = self.epsilons[i]
+            v = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(dim=-1)
+            self.beta_adv[i] = opt_q[self.worker_indices, opt] * v
 
 
-class AOCAgent(NStepParallelAgent[State]):
+class AOCAgent(A2CLikeAgent[State]):
     """AOC: Adavantage Option Critic
     It's a synchronous batched version of A2OC: Asynchronou Adavantage Option Critic
     """
@@ -73,8 +109,11 @@ class AOCAgent(NStepParallelAgent[State]):
         self.storage: AOCRolloutStorage[State] = AOCRolloutStorage(
             config.nsteps, config.nworkers, config.device, self.noptions
         )
-        self.opt_explorer: EpsGreedy = config.explorer()  # type: ignore
-        if not isinstance(self.opt_explorer, EpsGreedy):
+        self.opt_explorer: EpsGreedy = config.explorer()
+        self.eval_opt_explorer: EpsGreedy = config.explorer(key="eval")
+        if not isinstance(self.opt_explorer, EpsGreedy) or not isinstance(
+            self.eval_opt_explorer, EpsGreedy
+        ):
             return ValueError("Currently only Epsilon Greedy is supported as Explorer")
         self.eval_prev_options: LongTensor = config.device.zeros(
             config.nworkers, dtype=torch.long
@@ -87,22 +126,28 @@ class AOCAgent(NStepParallelAgent[State]):
         self.eval_prev_options.fill_(0)
 
     def sample_options(
-        self, opt_q: Tensor, beta: BernoulliPolicy, prev_options: LongTensor,
+        self,
+        opt_q: Tensor,
+        beta: BernoulliPolicy,
+        prev_options: LongTensor,
+        explorer: Optional[EpsGreedy] = None,
     ) -> Tuple[LongTensor, ByteTensor]:
+        if explorer is None:
+            explorer = self.opt_explorer
         current_beta = beta[self.worker_indices, prev_options]
         do_options_end = current_beta.action()
         # If do_options[i] == 1 or the episode ends, use new option.
         use_new_options = do_options_end.add(1.0 - self.storage.masks[-1]) > 0.1
-        epsgreedy_options = self.opt_explorer.select_from_value(opt_q).to(
-            prev_options.device
-        )
+        epsgreedy_options = explorer.select_from_value(opt_q, same_device=True)
         options = torch.where(use_new_options, epsgreedy_options, prev_options)
         return options, use_new_options  # type: ignore
 
     @torch.no_grad()
     def _eval_policy(self, states: Array, indices: Tensor) -> Policy:
         opt_policy, opt_q, beta = self.net(states)
-        options, _ = self.sample_options(opt_q, beta, self.eval_prev_options)
+        options, _ = self.sample_options(
+            opt_q, beta, self.eval_prev_options, self.eval_opt_explorer
+        )
         self.eval_prev_options = options
         return opt_policy[indices, options]
 
@@ -132,7 +177,7 @@ class AOCAgent(NStepParallelAgent[State]):
         return self.storage.is_new_options[-1]  # type: ignore
 
     @torch.no_grad()
-    def _one_step(self, states: Array[State]) -> Array[State]:
+    def one_step(self, states: Array[State]) -> Array[State]:
         opt_policy, opt_q, beta = self.net(self.penv.extract(states))
         options, is_new_options = self.sample_options(opt_q, beta, self.prev_options)
         policy = opt_policy[self.worker_indices, options]
@@ -146,21 +191,26 @@ class AOCAgent(NStepParallelAgent[State]):
         return next_states
 
     @torch.no_grad()
-    def _next_value(self, states: Array[State]) -> Tensor:
+    def _next_value(self, states: Array[State]) -> Tuple[Tensor, Tensor]:
         opt_q = self.net.opt_q(self.penv.extract(states))
         current_opt_q = opt_q[self.worker_indices, self.prev_options]
         eps = self.opt_explorer.epsilon
         next_opt_q = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(-1)
         return torch.where(self.prev_is_new_options, next_opt_q, current_opt_q)
 
-    def nstep(self, states: Array[State]) -> Array[State]:
-        for _ in range(self.config.nsteps):
-            states = self._one_step(states)
-
-        next_value = self._next_value(states)
-        self.storage.calc_returns(
-            next_value, self.config.discount_factor, self.config.opt_delib_cost,
-        )
+    def train(self, last_states: Array[State]) -> None:
+        next_v = self._next_value(last_states)
+        if self.config.use_gae:
+            self.storage.calc_gae_returns(
+                next_v,
+                self.config.discount_factor,
+                self.config.gae_lambda,
+                self.config.opt_delib_cost,
+            )
+        else:
+            self.storage.calc_ac_returns(
+                next_v, self.config.discount_factor, self.config.opt_delib_cost
+            )
 
         prev_options, options = self.storage.batch_options()
         adv = self.storage.advs[:-1].flatten()
@@ -170,8 +220,7 @@ class AOCAgent(NStepParallelAgent[State]):
 
         opt_policy, opt_q, beta = self.net(self.storage.batch_states(self.penv))
         policy = opt_policy[self.batch_indices, prev_options]
-        batch_actions = self.storage.batch_actions()
-        policy.set_action(batch_actions)
+        policy.set_action(self.storage.batch_actions())
 
         policy_loss = -(policy.log_prob() * adv).mean()
         term_prob = beta[self.batch_indices, prev_options].dist.probs
@@ -197,4 +246,3 @@ class AOCAgent(NStepParallelAgent[State]):
             entropy=entropy.item(),
         )
         self.storage.reset()
-        return states

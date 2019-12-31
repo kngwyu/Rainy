@@ -54,7 +54,7 @@ class Explorer(ABC):
         return self.select_from_value(qfunc.q_value(state).detach())
 
     @abstractmethod
-    def select_from_value(self, value: Tensor) -> LongTensor:
+    def select_from_value(self, value: Tensor, same_device: bool = False) -> LongTensor:
         pass
 
     @abstractmethod
@@ -66,7 +66,7 @@ class Greedy(Explorer):
     """deterministic greedy policy
     """
 
-    def select_from_value(self, value: Tensor) -> LongTensor:
+    def select_from_value(self, value: Tensor, same_device: bool = False) -> LongTensor:
         return value.argmax(-1)  # type: ignore
 
     def add_noise(self, action: Tensor) -> Tensor:
@@ -77,18 +77,24 @@ class EpsGreedy(Explorer):
     """ε-greedy policy
     """
 
-    def __init__(self, epsilon: float, cooler: Cooler) -> None:
+    def __init__(self, epsilon: float, cooler: Optional[Cooler] = None) -> None:
         self.epsilon = epsilon
+        if cooler is None:
+            cooler = DummyCooler(epsilon)
         self.cooler = cooler
 
-    def select_from_value(self, value: Tensor) -> LongTensor:
+    def select_from_value(self, value: Tensor, same_device: bool = False) -> LongTensor:
         old_eps = self.epsilon
         self.epsilon = self.cooler()
         action_dim = value.size(-1)
         greedy = value.argmax(-1).cpu()
         random = torch.randint_like(greedy, 0, action_dim)
         random_pos = torch.empty(greedy.shape).uniform_() < old_eps
-        return torch.where(random_pos, random, greedy)
+        selected = torch.where(random_pos, random, greedy)
+        if same_device:
+            return selected.to(value.device)
+        else:
+            return selected
 
     def add_noise(self, action: Tensor) -> Tensor:
         raise NotImplementedError("We can't use EpsGreedy with continuous action")
@@ -107,5 +113,5 @@ class GaussianNoise(Explorer):
             noise.clamp_(-self.clip, self.clip)
         return noise + action
 
-    def select_from_value(self, value: Tensor) -> LongTensor:
+    def select_from_value(self, value: Tensor, same_device: bool = False) -> LongTensor:
         raise NotImplementedError()

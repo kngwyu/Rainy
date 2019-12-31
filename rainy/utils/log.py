@@ -66,7 +66,7 @@ class ExperimentLogger:
     """
 
     FINGERPRINT = "fingerprint.txt"
-    LOG_CAPACITY = int(1e6)
+    LOG_CAPACITY = int(1e5)
 
     def __init__(self, show_summary: bool = True) -> None:
         self.logdir = Path("Results/Temp")

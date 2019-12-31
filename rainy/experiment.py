@@ -2,7 +2,7 @@ import click
 from pathlib import Path
 from typing import List, Optional
 import warnings
-from .agents import Agent, EpisodeResult
+from .agents import Agent, DQNLikeAgent, DQNLikeParallel, EpisodeResult
 from .lib.mpi import IS_MPI_ROOT
 
 
@@ -16,7 +16,10 @@ class Experiment:
         save_file_name: Optional[str] = None,
         action_file_name: Optional[str] = None,
     ) -> None:
-        self.ag = ag
+        if isinstance(ag, DQNLikeAgent) and ag.config.nworkers > 1:
+            self.ag = DQNLikeParallel(ag)
+        else:
+            self.ag = ag
         self.logger = ag.logger
         self.config = ag.config
         self.logger.summary_setting(

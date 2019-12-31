@@ -42,6 +42,8 @@ def test_nstep(make_ag: callable) -> None:
     ag = make_ag(c)
     states = ag.penv.reset()
     ag._reset(states)
-    states = ag.nstep(states)
+    for _ in range(c.nsteps):
+        states = ag.one_step(states)
+    ag.train(states)
     assert ag.penv.extract(states).shape == (6, 256)
     ag.close()

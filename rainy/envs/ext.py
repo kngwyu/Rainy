@@ -34,6 +34,9 @@ class EnvSpec:
     def random_action(self) -> Action:
         return self.action_space.sample()
 
+    def random_actions(self, n: int) -> Array[Action]:
+        return np.array([self.action_space.sample() for _ in range(n)])
+
     def is_discrete(self) -> bool:
         return isinstance(self.action_space, spaces.Discrete)
 
