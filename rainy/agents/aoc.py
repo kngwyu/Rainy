@@ -64,7 +64,7 @@ class AOCRolloutStorage(RolloutStorage[State]):
             opt_q, eps = self.values[i], self.epsilons[i]
             self.advs[i] = self.returns[i] - opt_q[self.worker_indices, opt]
             v = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(dim=-1)
-            self.beta_adv[i] = opt_q[self.worker_indices, opt] * v
+            self.beta_adv[i] = opt_q[self.worker_indices, opt] - v
 
     def calc_gae_returns(
         self, next_v: Tensor, gamma: float, lambda_: float, delib_cost: float,
@@ -89,7 +89,7 @@ class AOCRolloutStorage(RolloutStorage[State]):
             # β-advantage
             eps = self.epsilons[i]
             v = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(dim=-1)
-            self.beta_adv[i] = opt_q[self.worker_indices, opt] * v
+            self.beta_adv[i] = opt_q[self.worker_indices, opt] - v
 
 
 class AOCAgent(A2CLikeAgent[State]):
@@ -214,7 +214,11 @@ class AOCAgent(A2CLikeAgent[State]):
 
         prev_options, options = self.storage.batch_options()
         adv = self.storage.advs[:-1].flatten()
-        beta_adv = self.storage.beta_adv.flatten()
+        beta_adv = (
+            self.storage.beta_adv.flatten()
+            + self.config.opt_delib_cost
+            + self.config.opt_beta_adv_merginal
+        )
         ret = self.storage.returns[:-1].flatten()
         masks = self.storage.batch_masks()
 
@@ -224,7 +228,7 @@ class AOCAgent(A2CLikeAgent[State]):
 
         policy_loss = -(policy.log_prob() * adv).mean()
         term_prob = beta[self.batch_indices, prev_options].dist.probs
-        beta_adv += self.config.opt_delib_cost + self.config.opt_beta_adv_merginal
+        print(term_prob.mean())
         beta_loss = term_prob.mul(masks).mul(beta_adv).mean()
         value_loss = (opt_q[self.batch_indices, options] - ret).pow(2).mean()
         entropy = policy.entropy().mean()
