@@ -1,4 +1,4 @@
-from numpy import ndarray
+import numpy as np
 import gym
 from typing import Callable, Optional
 from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
@@ -13,7 +13,7 @@ from .parallel_wrappers import (
     NormalizeReward,
     ParallelEnvWrapper,
 )
-from ..prelude import Self, State
+from ..prelude import Array, Self, State
 
 
 class AtariConfig:
@@ -80,7 +80,7 @@ class Atari(EnvExt):
         self.spec.use_reward_monitor = True
 
     @staticmethod
-    def extract(obs: State) -> ndarray:
+    def extract(obs: State) -> Array:
         if type(obs) is LazyFrames:
             return obs.__array__()  # type: ignore
         else:
@@ -128,20 +128,24 @@ class PyBullet(EnvExt):
         if add_timestep:
             env = AddTimeStep(env)
         super().__init__(RewardMonitor(env))
-        self.viewer = None
+        self._viewer = None
         self.spec.use_reward_monitor = True
 
-    def render(self, mode: str = "human") -> Optional[ndarray]:
+    def render(self, mode: str = "human") -> Optional[Array]:
         if mode == "human":
             arr = self._env.render("rgb_array")
-            if self.viewer is None:
-                from gym.envs.classic_control.rendering import SimpleImageViewer
+            if self._viewer is None:
+                from gym.envs.classic_control import rendering
 
-                self.viewer = SimpleImageViewer()
-            self.viewer.imshow(arr)  # type: ignore
+                self._viewer = rendering.SimpleImageViewer()
+            self._viewer.imshow(arr.astype(np.uint8))  # type: ignore
             return None
         else:
             return self._env.render(mode)
+
+    def close(self) -> None:
+        if self._viewer is not None:
+            self._viewer.close()
 
 
 def pybullet_parallel(

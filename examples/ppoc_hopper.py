@@ -19,7 +19,7 @@ def config(
     c.use_reward_monitor = True
     c.set_parallel_env(pybullet_parallel(normalize_obs=True, normalize_reward=True))
     c.set_optimizer(lambda params: Adam(params, lr=3.0e-4, eps=1.0e-4))
-    c.max_steps = int(2e6)
+    c.max_steps = int(1e6)
     c.grad_clip = 0.5
     # Option settings
     c.opt_delib_cost = opt_delib_cost
@@ -36,7 +36,7 @@ def config(
     c.ppo_minibatch_size = (4 * 512) // 8
     c.ppo_clip = 0.2
     c.use_gae = True
-    c.eval_freq = 10000
+    c.eval_freq = c.max_steps // 10
     c.entropy_weight = 0.01
     c.value_loss_weight = 1.0
     return c
