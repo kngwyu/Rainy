@@ -86,7 +86,7 @@ class SharedBodyOCNetWithMu(SharedBodyOCNet):
         mu_head: NetworkBlock,
         device: Device = Device(),
     ) -> None:
-        super().__init__(body, actor_head, optq_head, beta_head,policy_dist, device)
+        super().__init__(body, actor_head, optq_head, beta_head, policy_dist, device)
         self.has_mu = True
         self.mu_head = mu_head
         self.mu_dist = CategoricalDist(optq_head.output_dim)

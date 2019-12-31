@@ -143,7 +143,7 @@ class PPOCAgent(AOCAgent):
             adv_normalize_eps=self.config.adv_normalize_eps,
         )
 
-        p, v, b, pe, m, me = (0.0, ) * 6
+        p, v, b, pe, m, me = (0.0,) * 6
         for _ in range(self.config.ppo_epochs):
             for batch in sampler:
                 opt_policy, opt_q, beta, mu = self.net(batch.states)
