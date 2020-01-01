@@ -39,6 +39,7 @@ def config(
     c.eval_freq = c.max_steps // 10
     c.entropy_weight = 0.01
     c.value_loss_weight = 1.0
+    c.eval_deterministic = True
     return c
 
 
