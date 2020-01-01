@@ -23,6 +23,7 @@ class RolloutBatch(NamedTuple):
     masks: Tensor
     returns: Tensor
     old_log_probs: Tensor
+    old_log_probs_mu: Tensor
     advantages: Tensor
     beta_advantages: Tensor
     prev_options: Tensor
@@ -43,6 +44,10 @@ class PPOCSampler(RolloutSampler):
         )
         self.prev_options, self.options = storage.batch_options()
         self.beta_advantages = storage.beta_adv.flatten()
+        mu_logits = torch.cat([p.dist.logits for p in storage.option_mus])
+        mu = CategoricalPolicy(logits=mu_logits)
+        mu.set_action(self.options)
+        self.old_log_probs_mu = mu.log_prob()
 
     def _make_batch(self, i: Index) -> RolloutBatch:
         return RolloutBatch(
@@ -51,6 +56,7 @@ class PPOCSampler(RolloutSampler):
             self.masks[i],
             self.returns[i],
             self.old_log_probs[i],
+            self.old_log_probs_mu[i],
             self.advantages[i],
             self.beta_advantages[i],
             self.prev_options[i],
@@ -65,6 +71,7 @@ class PPOCAgent(AOCAgent):
         super().__init__(config)
         if not self.net.has_mu:
             raise ValueError("PPOCAgent needs option_policy μ!!!")
+        self.storage._use_mu()
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
         self.num_updates = self.config.ppo_epochs * self.config.ppo_num_minibatches
@@ -119,7 +126,7 @@ class PPOCAgent(AOCAgent):
             value=opt_q,
             options=options,
             is_new_options=is_new_options,
-            epsilon=self.opt_explorer.epsilon,
+            mu=mu,
         )
         return actions, net_outputs
 
@@ -166,7 +173,9 @@ class PPOCAgent(AOCAgent):
                 beta_loss = term_prob.mul(batch.masks * beta_adv).mean()
                 # Mu loss
                 mu.set_action(batch.options)
-                mu_loss = -(mu.log_prob() * batch.beta_advantages).mean()
+                mu_loss = self._policy_loss(
+                    mu, batch.beta_advantages, batch.old_log_probs_mu
+                )
                 # Entropy loss
                 pe_loss = policy.entropy().mean()
                 me_loss = mu.entropy().mean()

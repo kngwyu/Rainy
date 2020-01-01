@@ -16,45 +16,65 @@ from ..config import Config
 from ..lib.explore import EpsGreedy
 from ..lib.rollout import RolloutStorage
 from ..net import OptionCriticNet
-from ..net.policy import BernoulliPolicy, Policy
+from ..net.policy import BernoulliPolicy, CategoricalPolicy, Policy
 from ..prelude import Action, Array, State
 from ..utils import Device
 
 
 class AOCRolloutStorage(RolloutStorage[State]):
     def __init__(
-        self, nsteps: int, nworkers: int, device: Device, num_options: int
+        self, nsteps: int, nworkers: int, device: Device, num_options: int,
     ) -> None:
         super().__init__(nsteps, nworkers, device)
         self.options = [self.device.zeros(self.nworkers, dtype=torch.long)]
         self.is_new_options = [self.device.ones(self.nworkers, dtype=torch.uint8)]
         self.epsilons: List[float] = []
+        self.option_mus: List[CategoricalPolicy] = []
         self.beta_adv = torch.zeros_like(self.batch_values)
         self.noptions = num_options
         self.worker_indices = self.device.indices(self.nworkers)
+        self._beta_adv = self._beta_adv_eps
+
+    def _use_mu(self) -> None:
+        self._beta_adv = self._beta_adv_mu
 
     def reset(self) -> None:
         super().reset()
         self.options = [self.options[-1]]
         self.is_new_options = [self.is_new_options[-1]]
         self.epsilons.clear()
+        self.option_mus.clear()
 
     def push(
         self,
         *args,
         options: LongTensor,
         is_new_options: Tensor,
-        epsilon: float,
+        epsilon: Optional[float] = None,
+        mu: Optional[CategoricalPolicy] = None,
         **kwargs,
     ) -> None:
         super().push(*args, **kwargs)
         self.options.append(options)
         self.is_new_options.append(is_new_options)
-        self.epsilons.append(epsilon)
+        if epsilon is not None:
+            self.epsilons.append(epsilon)
+        if mu is not None:
+            self.option_mus.append(mu)
 
     def batch_options(self) -> Tuple[Tensor, Tensor]:
         batched = torch.cat(self.options, dim=0)
         return batched[: -self.nworkers], batched[self.nworkers :]
+
+    def _beta_adv_eps(self, i: int, opt_q: Tensor, options: LongTensor) -> Tensor:
+        eps = self.epsilons[i]
+        v = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(dim=-1)
+        return opt_q[self.worker_indices, options] - v
+
+    def _beta_adv_mu(self, i: int, opt_q: Tensor, options: LongTensor) -> Tensor:
+        probs = self.option_mus[i].dist.probs
+        v = (opt_q * probs).sum(dim=-1)
+        return opt_q[self.worker_indices, options] - v
 
     def calc_ac_returns(
         self, next_value: Tensor, gamma: float, delib_cost: float
@@ -67,10 +87,9 @@ class AOCRolloutStorage(RolloutStorage[State]):
                 ret - self.is_new_options[i].float() * self.masks[i] * delib_cost
             )
             opt = self.options[i + 1]
-            opt_q, eps = self.values[i], self.epsilons[i]
+            opt_q = self.values[i]
             self.advs[i] = self.returns[i] - opt_q[self.worker_indices, opt]
-            v = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(dim=-1)
-            self.beta_adv[i] = opt_q[self.worker_indices, opt] - v
+            self.beta_adv[i] = self._beta_adv(i, opt_q, opt)
 
     def calc_gae_returns(
         self, next_v: Tensor, gamma: float, lambda_: float, delib_cost: float,
@@ -93,9 +112,7 @@ class AOCRolloutStorage(RolloutStorage[State]):
             value_i1 = value_i
 
             # β-advantage
-            eps = self.epsilons[i]
-            v = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(dim=-1)
-            self.beta_adv[i] = opt_q[self.worker_indices, opt] - v
+            self.beta_adv[i] = self._beta_adv(i, opt_q, opt)
 
 
 class AOCAgent(A2CLikeAgent[State]):
