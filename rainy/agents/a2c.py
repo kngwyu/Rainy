@@ -70,19 +70,11 @@ class A2CAgent(A2CLikeAgent[State]):
             self.storage.masks[-1],
         )
 
-    def one_step(self, states: Array[State]) -> Array[State]:
-        with torch.no_grad():
-            policy, value, rnns = self.net(*self._network_in(states))
-        next_states, rewards, done, info = self.penv.step(
-            policy.action().squeeze().cpu().numpy()
-        )
-        self.episode_length += 1
-        self.rewards += rewards
-        self.report_reward(done, info)
-        self.storage.push(
-            next_states, rewards, done, rnn_state=rnns, policy=policy, value=value
-        )
-        return next_states
+    @torch.no_grad()
+    def actions(self, states: Array[State]) -> Tuple[Array[Action], dict]:
+        policy, value, rnns = self.net(*self._network_in(states))
+        actions = policy.action().squeeze().cpu().numpy()
+        return actions, dict(rnn_states=rnns, policy=policy, value=value)
 
     def _pre_backward(self, _policy: Policy, _value: torch.Tensor) -> None:
         pass

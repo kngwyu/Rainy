@@ -3,11 +3,17 @@ import gym
 from typing import Callable, Optional
 from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
 from .deepsea import DeepSea as DeepSeaGymEnv
-from .ext import EnvExt, EnvSpec
+from .ext import EnvExt, EnvSpec  # noqa
 from .monitor import RewardMonitor
 from .obs_wrappers import AddTimeStep, TransposeObs
-from .parallel import DummyParallelEnv, EnvGen, MultiProcEnv, ParallelEnv
-from .parallel_wrappers import (
+from .parallel import (  # noqa
+    DummyParallelEnv,
+    EnvGen,
+    MultiProcEnv,
+    ParallelEnv,
+    PEnvTransition,
+)
+from .parallel_wrappers import (  # noqa
     FrameStackParallel,
     NormalizeObs,
     NormalizeReward,

@@ -12,9 +12,9 @@ from .aoc import AOCRolloutStorage, AOCAgent
 from ..lib.rollout import RolloutSampler
 from ..lib import mpi
 from ..config import Config
-from ..envs import ParallelEnv, State
+from ..envs import ParallelEnv
 from ..net.policy import BernoulliPolicy, CategoricalPolicy, Policy
-from ..prelude import Array, Index
+from ..prelude import Action, Array, Index, State
 
 
 class RolloutBatch(NamedTuple):
@@ -87,13 +87,13 @@ class PPOCAgent(AOCAgent):
     @torch.no_grad()
     def _eval_policy(self, states: Array, indices: Tensor) -> Policy:
         opt_policy, _, beta, mu = self.net(states)
-        options, _ = self.sample_options(
+        options, _ = self._sample_options(
             mu, beta, self.eval_prev_options, deterministic=True
         )
         self.eval_prev_options = options
         return opt_policy[indices, options]
 
-    def sample_options(
+    def _sample_options(
         self,
         mu: CategoricalPolicy,
         beta: BernoulliPolicy,
@@ -109,18 +109,19 @@ class PPOCAgent(AOCAgent):
         return options, use_new_options  # type: ignore
 
     @torch.no_grad()
-    def one_step(self, states: Array[State]) -> Array[State]:
+    def actions(self, states: Array[State]) -> Tuple[Array[Action], dict]:
         opt_policy, opt_q, beta, mu = self.net(self.penv.extract(states))
-        options, is_new_options = self.sample_options(mu, beta, self.prev_options)
+        options, is_new_options = self._sample_options(mu, beta, self.prev_options)
         policy = opt_policy[self.worker_indices, options]
         actions = policy.action().squeeze().cpu().numpy()
-        next_states, rewards, done, info = self.penv.step(actions)
-        self.episode_length += 1
-        self.rewards += rewards
-        self.report_reward(done, info)
-        self.storage.push(next_states, rewards, done, policy=policy, value=opt_q)
-        self.storage.push_options(options, is_new_options, self.opt_explorer.epsilon)
-        return next_states
+        net_outputs = dict(
+            policy=policy,
+            value=opt_q,
+            options=options,
+            is_new_options=is_new_options,
+            epsilon=self.opt_explorer.epsilon,
+        )
+        return actions, net_outputs
 
     def train(self, last_states: Array[State]) -> None:
         next_v = self._next_value(last_states)

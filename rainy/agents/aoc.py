@@ -39,11 +39,17 @@ class AOCRolloutStorage(RolloutStorage[State]):
         self.is_new_options = [self.is_new_options[-1]]
         self.epsilons.clear()
 
-    def push_options(
-        self, option: LongTensor, is_new_option: Tensor, epsilon: float
+    def push(
+        self,
+        *args,
+        options: LongTensor,
+        is_new_options: Tensor,
+        epsilon: float,
+        **kwargs,
     ) -> None:
-        self.options.append(option)
-        self.is_new_options.append(is_new_option)
+        super().push(*args, **kwargs)
+        self.options.append(options)
+        self.is_new_options.append(is_new_options)
         self.epsilons.append(epsilon)
 
     def batch_options(self) -> Tuple[Tensor, Tensor]:
@@ -125,7 +131,7 @@ class AOCAgent(A2CLikeAgent[State]):
     def eval_reset(self) -> None:
         self.eval_prev_options.fill_(0)
 
-    def sample_options(
+    def _sample_options(
         self,
         opt_q: Tensor,
         beta: BernoulliPolicy,
@@ -145,7 +151,7 @@ class AOCAgent(A2CLikeAgent[State]):
     @torch.no_grad()
     def _eval_policy(self, states: Array, indices: Tensor) -> Policy:
         opt_policy, opt_q, beta = self.net(states)
-        options, _ = self.sample_options(
+        options, _ = self._sample_options(
             opt_q, beta, self.eval_prev_options, self.eval_opt_explorer
         )
         self.eval_prev_options = options
@@ -177,18 +183,19 @@ class AOCAgent(A2CLikeAgent[State]):
         return self.storage.is_new_options[-1]  # type: ignore
 
     @torch.no_grad()
-    def one_step(self, states: Array[State]) -> Array[State]:
+    def actions(self, states: Array[State]) -> Tuple[Array[Action], dict]:
         opt_policy, opt_q, beta = self.net(self.penv.extract(states))
-        options, is_new_options = self.sample_options(opt_q, beta, self.prev_options)
+        options, is_new_options = self._sample_options(opt_q, beta, self.prev_options)
         policy = opt_policy[self.worker_indices, options]
         actions = policy.action().squeeze().cpu().numpy()
-        next_states, rewards, done, info = self.penv.step(actions)
-        self.episode_length += 1
-        self.rewards += rewards
-        self.report_reward(done, info)
-        self.storage.push(next_states, rewards, done, policy=policy, value=opt_q)
-        self.storage.push_options(options, is_new_options, self.opt_explorer.epsilon)
-        return next_states
+        net_outputs = dict(
+            policy=policy,
+            value=opt_q,
+            options=options,
+            is_new_options=is_new_options,
+            epsilon=self.opt_explorer.epsilon,
+        )
+        return actions, net_outputs
 
     @torch.no_grad()
     def _next_value(self, states: Array[State]) -> Tuple[Tensor, Tensor]:

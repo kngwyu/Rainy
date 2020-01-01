@@ -21,7 +21,7 @@ from ..config import Config
 from ..lib import mpi
 from ..net import DummyRnn, RnnState
 from ..envs import EnvExt, ParallelEnv
-from ..prelude import Action, Array, ArrayLike, State
+from ..prelude import Action, Array, State
 from ..replay import ReplayFeed
 
 
@@ -316,7 +316,7 @@ class A2CLikeAgent(Agent, Generic[State]):
         pass
 
     @abstractmethod
-    def one_step(self, states: Array[State]) -> Array[State]:
+    def actions(self, states: Array[State]) -> Tuple[Array[Action], dict]:
         pass
 
     @abstractmethod
@@ -334,7 +334,7 @@ class A2CLikeAgent(Agent, Generic[State]):
     def rnn_init(self) -> RnnState:
         return DummyRnn.DUMMY_STATE
 
-    def report_reward(self, done: Array[bool], info: Array[dict]) -> None:
+    def _report_reward(self, done: Array[bool], info: Array[dict]) -> None:
         if self.penv.use_reward_monitor:
             for i in filter(lambda i: "episode" in i, info):
                 self.episode_results.append(
@@ -348,6 +348,15 @@ class A2CLikeAgent(Agent, Generic[State]):
                 self.rewards[i] = 0.0
                 self.episode_length[i] = 0
 
+    def _one_step(self, states: Array[State]) -> Array[State]:
+        actions, net_outputs = self.actions(states)
+        states, rewards, terminals, infos = self.penv.step(actions)
+        self.episode_length += 1
+        self.rewards += rewards
+        self._report_reward(terminals, infos)
+        self.storage.push(states, rewards, terminals, **net_outputs)
+        return states
+
     def close(self) -> None:
         self.env.close()
         self.penv.close()
@@ -359,7 +368,7 @@ class A2CLikeAgent(Agent, Generic[State]):
         self._reset(states)
         while True:
             for _ in range(self.config.nsteps):
-                states = self.one_step(states)
+                states = self._one_step(states)
             self.train(states)
             self.total_steps += self.step_width
             if len(self.episode_results) > 0:
