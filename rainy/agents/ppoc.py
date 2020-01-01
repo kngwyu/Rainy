@@ -88,7 +88,7 @@ class PPOCAgent(AOCAgent):
     def _eval_policy(self, states: Array, indices: Tensor) -> Policy:
         opt_policy, _, beta, mu = self.net(states)
         options, _ = self.sample_options(
-            mu, beta, self.eval_prev_options, self.eval_opt_explorer
+            mu, beta, self.eval_prev_options, deterministic=True
         )
         self.eval_prev_options = options
         return opt_policy[indices, options]
@@ -104,7 +104,7 @@ class PPOCAgent(AOCAgent):
         do_options_end = current_beta.action()
         # If do_options[i] == 1 or the episode ends, use new option.
         use_new_options = do_options_end.add(1.0 - self.storage.masks[-1]) > 0.1
-        sampled_options = mu.sample()
+        sampled_options = mu.eval_action(deterministic=deterministic, to_numpy=False)
         options = torch.where(use_new_options, sampled_options, prev_options)
         return options, use_new_options  # type: ignore
 

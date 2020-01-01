@@ -33,7 +33,7 @@ def config(
     c.episode_log_freq = 100
     c.opt_delib_cost = opt_delib_cost
     c.opt_beta_adv_merginal = opt_beta_adv_merginal
-    c.eval_freq = None
+    c.eval_freq = c.max_steps // 10
     c.save_freq = None
     return c
 
