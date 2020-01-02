@@ -88,6 +88,7 @@ class Config:
         # For option critic
         self.opt_beta_adv_merginal = 0.0
         self.opt_delib_cost = 0.02
+        self.opt_avg_baseline = False  # Use value[state, :].mean() as baseline1
 
         # For PPOC
         self.proximal_update_for_mu = False

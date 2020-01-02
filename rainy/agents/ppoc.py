@@ -71,7 +71,6 @@ class PPOCAgent(AOCAgent):
         super().__init__(config)
         if not self.net.has_mu:
             raise ValueError("PPOCAgent needs option_policy μ!!!")
-        self.storage._use_mu()
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
         self.num_updates = self.config.ppo_epochs * self.config.ppo_num_minibatches
