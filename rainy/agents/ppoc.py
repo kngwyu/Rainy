@@ -79,9 +79,9 @@ class PPOCAgent(AOCAgent):
         self.optimizer = mpi.setup_optimizer(self.optimizer)
         self.batch_indices = config.device.indices(config.ppo_minibatch_size)
         if config.proximal_update_for_mu:
-            self._mu_policy_loss = self._normal_policy_loss
-        else:
             self._mu_policy_loss = self._proximal_policy_loss
+        else:
+            self._mu_policy_loss = self._normal_policy_loss
 
     def _normal_policy_loss(self, policy: Policy, advantages: Tensor, *args,) -> Tensor:
         return -(policy.log_prob() * advantages).mean()

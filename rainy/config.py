@@ -184,8 +184,8 @@ class Config:
     def set_replay_buffer(self, replay: Callable[[int], ReplayBuffer]) -> None:
         self.__replay = replay
 
-    def parallel_env(self) -> ParallelEnv:
-        penv = self.__parallel_env(self.__env, self.nworkers)
+    def parallel_env(self, n: Optional[int] = None) -> ParallelEnv:
+        penv = self.__parallel_env(self.__env, n or self.nworkers)
         self.action_dim = penv.action_dim
         self.state_dim = penv.state_dim
         return penv

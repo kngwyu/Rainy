@@ -37,6 +37,7 @@ class Experiment:
         action_file = action_file_name or self.ACTION_FILE_DEFAULT
         self._action_file = Path(action_file)
         self._save_file_name = save_file_name or self.SAVE_FILE_DEFAULT
+        self._has_eval_parallel = hasattr(self.ag, "eval_parallel")
         self.episode_offset = 0
 
     def log_episode(self, episodes: int, results: List[EpisodeResult]) -> None:
@@ -125,7 +126,7 @@ class Experiment:
                 self.ag.eval_and_save(action_file, render=render, pause=pause)
                 for _ in range(n)
             ]
-        elif hasattr(self.ag, "eval_parallel") and not render and not replay:
+        elif self._has_eval_parallel and not (render or replay) and n > 1:
             res = self.ag.eval_parallel(n)  # type: ignore
         else:
             res = [self.ag.eval_episode(render=render, pause=pause) for _ in range(n)]
