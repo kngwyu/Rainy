@@ -364,6 +364,8 @@ class A2CLikeAgent(Agent, Generic[State]):
         self.env.close()
         self.penv.close()
         self.logger.close()
+        if self.eval_penv is not None:
+            self.eval_penv.close()
 
     def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
         self.config.set_parallel_seeds(self.penv)

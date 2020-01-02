@@ -100,13 +100,13 @@ class PPOCAgent(AOCAgent):
         return (value - returns).pow(2).mean()
 
     @torch.no_grad()
-    def _eval_policy(self, states: Array, indices: Tensor) -> Policy:
+    def _eval_policy(self, states: Array) -> Policy:
         opt_policy, _, beta, mu = self.net(states)
         options, _ = self._sample_options(
             mu, beta, self.eval_prev_options, deterministic=True
         )
         self.eval_prev_options = options
-        return opt_policy[indices, options]
+        return opt_policy[self.worker_indices, options]
 
     def _sample_options(
         self,

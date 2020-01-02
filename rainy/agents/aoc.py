@@ -167,25 +167,25 @@ class AOCAgent(A2CLikeAgent[State]):
         return options, use_new_options  # type: ignore
 
     @torch.no_grad()
-    def _eval_policy(self, states: Array, indices: Tensor) -> Policy:
+    def _eval_policy(self, states: Array) -> Policy:
         opt_policy, opt_q, beta = self.net(states)
         options, _ = self._sample_options(
             opt_q, beta, self.eval_prev_options, self.eval_opt_explorer
         )
-        self.eval_prev_options[: len(options)] = options
-        return opt_policy[indices, options]
+        self.eval_prev_options = options
+        return opt_policy[self.worker_indices, options]
 
     def eval_action(self, state: Array) -> Action:
         if len(state.shape) == len(self.net.state_dim):
             # treat as batch_size == nworkers
             state = np.stack([state] * self.config.nworkers)
-        policy = self._eval_policy(state, self.eval_prev_options[0])
+        policy = self._eval_policy(state)
         return policy[0].eval_action(self.config.eval_deterministic)
 
     def eval_action_parallel(
         self, states: Array, mask: torch.Tensor, ent: Optional[Array[float]] = None
     ) -> Array[Action]:
-        policy = self._eval_policy(states, self.worker_indices)
+        policy = self._eval_policy(states)
         if ent is not None:
             ent += policy.entropy().cpu().numpy()
         return policy.eval_action(self.config.eval_deterministic)

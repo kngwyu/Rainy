@@ -13,6 +13,7 @@ def config(
     num_options: int = 2,
     opt_delib_cost: float = 0.0,
     opt_beta_adv_merginal: float = 0.01,
+    opt_avg_baseline: bool = False,
     proximal_update_for_mu: bool = False,
 ) -> Config:
     c = Config()
@@ -51,6 +52,7 @@ if __name__ == "__main__":
         click.Option(["--num-options"], type=int, default=2),
         click.Option(["--opt-delib-cost"], type=float, default=0.0),
         click.Option(["--opt-beta-adv-merginal"], type=float, default=0.01),
+        click.Option(["--opt-avg-baseline"], is_flag=True),
         click.Option(["--proximal-update-for-mu"], is_flag=True),
     ]
     cli.run_cli(config, PPOCAgent, os.path.realpath(__file__), options)
