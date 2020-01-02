@@ -77,6 +77,8 @@ class PPOCAgent(AOCAgent):
         mpi.setup_models(self.net)
         self.optimizer = mpi.setup_optimizer(self.optimizer)
         self.batch_indices = config.device.indices(config.ppo_minibatch_size)
+        if not config.opt_avg_baseline:
+            self.storage._use_mu_for_beta_adv()
         if config.proximal_update_for_mu:
             self._mu_policy_loss = self._proximal_policy_loss
         else:
