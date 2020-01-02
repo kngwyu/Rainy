@@ -300,7 +300,7 @@ class A2CLikeAgent(Agent, Generic[State]):
             states, rewards, done, info = self.penv.step(actions)
             self.episode_length += 1
             self.rewards += rewards
-            self.report_reward(done, info)
+            self._report_reward(done, info)
             if n <= len(self.episode_results):
                 break
 
