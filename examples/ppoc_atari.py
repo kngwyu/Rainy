@@ -57,4 +57,4 @@ if __name__ == "__main__":
         click.Option(["--opt-avg-baseline"], is_flag=True),
         click.Option(["--proximal-update-for-mu"], is_flag=True),
     ]
-    cli.run_cli(config, PPOCAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, PPOCAgent, os.path.realpath(__file__), options)
