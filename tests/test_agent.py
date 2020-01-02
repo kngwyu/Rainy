@@ -29,7 +29,7 @@ def test_eval_parallel(n: int, make_ag: callable) -> None:
 
 
 @pytest.mark.parametrize("make_ag", [A2CAgent, PPOAgent, AOCAgent])
-def test_nstep(make_ag: callable) -> None:
+def test_nstep_train(make_ag: callable) -> None:
     c = rainy.Config()
     c.logger.setup_logdir()
     c.nworkers = 6
@@ -40,10 +40,6 @@ def test_nstep(make_ag: callable) -> None:
     c.set_net_fn("option-critic", net.option_critic.fc_shared(units=[32, 32]))
     c.set_env(partial(DummyEnvDeterministic, flatten=True))
     ag = make_ag(c)
-    states = ag.penv.reset()
-    ag._reset(states)
-    for _ in range(c.nsteps):
-        states = ag.one_step(states)
-    ag.train(states)
-    assert ag.penv.extract(states).shape == (6, 256)
+    res = next(ag.train_episodes(1))
+    assert len(res) == c.nworkers
     ag.close()
