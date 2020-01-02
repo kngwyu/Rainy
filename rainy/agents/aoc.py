@@ -161,16 +161,14 @@ class AOCAgent(A2CLikeAgent[State]):
         options, _ = self._sample_options(
             opt_q, beta, self.eval_prev_options, self.eval_opt_explorer
         )
-        self.eval_prev_options = options
+        self.eval_prev_options[: len(options)] = options
         return opt_policy[indices, options]
 
     def eval_action(self, state: Array) -> Action:
         if len(state.shape) == len(self.net.state_dim):
             # treat as batch_size == nworkers
             state = np.stack([state] * self.config.nworkers)
-        policy = self._eval_policy(
-            state, self.config.device.tensor([0], dtype=torch.long)
-        )
+        policy = self._eval_policy(state, self.eval_prev_options[0])
         return policy[0].eval_action(self.config.eval_deterministic)
 
     def eval_action_parallel(

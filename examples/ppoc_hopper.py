@@ -41,6 +41,7 @@ def config(
     c.entropy_weight = 0.01
     c.value_loss_weight = 1.0
     c.eval_deterministic = True
+    c.eval_times = 4
     c.proximal_update_for_mu = proximal_update_for_mu
     return c
 
