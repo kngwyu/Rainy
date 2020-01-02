@@ -14,6 +14,7 @@ def config(
     num_options: int = 4,
     opt_delib_cost: float = 0.0,
     opt_beta_adv_merginal: float = 0.01,
+    proximal_update_for_mu: bool = False,
 ) -> Config:
     c = Config()
     c.set_env(lambda: Atari(envname, frame_stack=False))
@@ -52,5 +53,6 @@ if __name__ == "__main__":
         click.Option(["--num-options"], type=int, default=2),
         click.Option(["--opt-delib-cost"], type=float, default=0.025),
         click.Option(["--opt-beta-adv-merginal"], type=float, default=0.01),
+        click.Option(["--proximal-update-for-mu"], is_flag=True),
     ]
     cli.run_cli(config, PPOCAgent, script_path=os.path.realpath(__file__))

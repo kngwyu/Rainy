@@ -78,8 +78,15 @@ class PPOCAgent(AOCAgent):
         mpi.setup_models(self.net)
         self.optimizer = mpi.setup_optimizer(self.optimizer)
         self.batch_indices = config.device.indices(config.ppo_minibatch_size)
+        if config.proximal_update_for_mu:
+            self._mu_policy_loss = self._normal_policy_loss
+        else:
+            self._mu_policy_loss = self._proximal_policy_loss
 
-    def _policy_loss(
+    def _normal_policy_loss(self, policy: Policy, advantages: Tensor, *args,) -> Tensor:
+        return -(policy.log_prob() * advantages).mean()
+
+    def _proximal_policy_loss(
         self, policy: Policy, advantages: Tensor, old_log_probs: Tensor
     ) -> Tensor:
         prob_ratio = torch.exp(policy.log_prob() - old_log_probs)
@@ -158,7 +165,7 @@ class PPOCAgent(AOCAgent):
                 # Policy loss
                 policy = opt_policy[self.batch_indices, batch.prev_options]
                 policy.set_action(batch.actions)
-                policy_loss = self._policy_loss(
+                policy_loss = self._proximal_policy_loss(
                     policy, batch.advantages, batch.old_log_probs
                 )
                 # Value loss
@@ -173,7 +180,7 @@ class PPOCAgent(AOCAgent):
                 beta_loss = term_prob.mul(batch.masks * beta_adv).mean()
                 # Mu loss
                 mu.set_action(batch.options)
-                mu_loss = self._policy_loss(
+                mu_loss = self._mu_policy_loss(
                     mu, batch.beta_advantages, batch.old_log_probs_mu
                 )
                 # Entropy loss

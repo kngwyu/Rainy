@@ -89,6 +89,9 @@ class Config:
         self.opt_beta_adv_merginal = 0.0
         self.opt_delib_cost = 0.02
 
+        # For PPOC
+        self.proximal_update_for_mu = False
+
         # Logger and logging frequency
         self.logger = ExperimentLogger(mpi.IS_MPI_ROOT)
         self.eval_freq = 10000

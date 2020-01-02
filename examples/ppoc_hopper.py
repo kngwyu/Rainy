@@ -13,6 +13,7 @@ def config(
     num_options: int = 2,
     opt_delib_cost: float = 0.0,
     opt_beta_adv_merginal: float = 0.01,
+    proximal_update_for_mu: bool = False,
 ) -> Config:
     c = Config()
     c.set_env(lambda: PyBullet(envname))
@@ -40,6 +41,7 @@ def config(
     c.entropy_weight = 0.01
     c.value_loss_weight = 1.0
     c.eval_deterministic = True
+    c.proximal_update_for_mu = proximal_update_for_mu
     return c
 
 
@@ -48,5 +50,6 @@ if __name__ == "__main__":
         click.Option(["--num-options"], type=int, default=2),
         click.Option(["--opt-delib-cost"], type=float, default=0.0),
         click.Option(["--opt-beta-adv-merginal"], type=float, default=0.01),
+        click.Option(["--proximal-update-for-mu"], is_flag=True),
     ]
     cli.run_cli(config, PPOCAgent, os.path.realpath(__file__), options)
