@@ -56,7 +56,10 @@ class ParallelEnv(ABC, Generic[Action, State]):
         """
         pass
 
-    def copy_params(self, other: Self) -> None:
+    def copyto(self, other: Self) -> None:
+        pass
+
+    def set_mode(self, train: bool = False) -> None:
         pass
 
 
