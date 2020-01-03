@@ -211,6 +211,6 @@ class PPOCAgent(AOCAgent):
 
         p, v, b, pe, m, me = (x / self.num_updates for x in (p, v, b, pe, m, me))
         self.network_log(
-            policy_loss=p, value_loss=v, beta_loss=b, entropy=pe, mu=mu, mu_entropy=me,
+            policy_loss=p, value_loss=v, beta_loss=b, entropy=pe, mu=m, mu_entropy=me,
         )
         self.storage.reset()
