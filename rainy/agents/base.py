@@ -294,6 +294,7 @@ class A2CLikeAgent(Agent, Generic[State]):
             self.eval_penv = self.config.parallel_env(min(n, self.config.nworkers))
             self.config.set_parallel_seeds(self.penv)
 
+        self.penv.copy_params(self.eval_penv)
         states = self.eval_penv.reset()
         mask = self.config.device.ones(self.config.nworkers)
         while True:

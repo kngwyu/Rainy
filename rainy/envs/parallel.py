@@ -5,7 +5,7 @@ import numpy as np
 from numpy import ndarray
 from typing import Any, Callable, Generic, Iterable, NamedTuple, Sequence
 from .ext import EnvExt, EnvSpec
-from ..prelude import Action, Array, State
+from ..prelude import Action, Array, Self, State
 
 EnvGen = Callable[[], EnvExt]
 
@@ -54,6 +54,9 @@ class ParallelEnv(ABC, Generic[Action, State]):
         """
         Convert Sequence of states to ndarray.
         """
+        pass
+
+    def copy_params(self, other: Self) -> None:
         pass
 
 

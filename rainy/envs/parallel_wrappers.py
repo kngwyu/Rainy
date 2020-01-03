@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Any, Iterable, Tuple
 from .parallel import ParallelEnv
-from ..prelude import Action, Array, State
+from ..prelude import Action, Array, Self, State
 from ..utils import RunningMeanStd
 
 
@@ -93,6 +93,10 @@ class NormalizeObs(ParallelEnvWrapper[Action, Array[float]]):
         obs = self.penv.reset()
         return self._filter_obs(obs)
 
+    def copy_params(self, other: Self) -> None:
+        super().copy_params(other)
+        other._rms = self._rms
+
 
 class NormalizeReward(ParallelEnvWrapper[Action, State]):
     def __init__(
@@ -117,3 +121,7 @@ class NormalizeReward(ParallelEnvWrapper[Action, State]):
     def reset(self) -> Array[State]:
         self.ret = np.zeros(self.num_envs)
         return self.penv.reset()
+
+    def copy_params(self, other: Self) -> None:
+        super().copy_params(other)
+        other._rms = self._rms
