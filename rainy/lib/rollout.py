@@ -38,7 +38,7 @@ class RolloutStorage(Generic[State]):
         self,
         state: Array[State],
         reward: Array[float],
-        mask: Array[bool],
+        terminals: Array[bool],
         rnn_state: RnnState = DummyRnn.DUMMY_STATE,
         policy: Optional[Policy] = None,
         value: Optional[Tensor] = None,
@@ -47,7 +47,7 @@ class RolloutStorage(Generic[State]):
         assert self.states, "[RolloutStorage.push] Call set_initial_state first"
         self.states.append(state)
         self.rewards.append(reward)
-        self.masks.append(self.device.tensor(1.0 - mask))
+        self.masks.append(self.device.tensor(1.0 - terminals))
         self.rnn_states.append(rnn_state)
         if policy is not None:
             self.policies.append(policy)

@@ -52,12 +52,20 @@ def test_oc_storage() -> None:
         state, reward, done, _ = penv.step([None] * NWORKERS)
         value = torch.rand(NWORKERS, NOPTIONS)
         policy = policy_dist(torch.rand(NWORKERS, ACTION_DIM))
-        storage.push(state, reward, done, value=value, policy=policy)
         options = torch.randint(NOPTIONS, (NWORKERS,), device=storage.device.unwrapped)
         is_new_options = torch.randint(
             2, (NWORKERS,), device=storage.device.unwrapped
         ).byte()
-        storage.push_options(options, is_new_options, 0.5)
+        storage.push(
+            state,
+            reward,
+            done,
+            options=options,
+            is_new_options=is_new_options,
+            value=value,
+            policy=policy,
+            epsilon=0.5,
+        )
     next_value = torch.randn(NWORKERS, NOPTIONS).max(dim=-1)[0]
     storage.calc_ac_returns(next_value, 0.99, 0.01)
     assert tuple(storage.beta_adv.shape) == (NSTEP, NWORKERS)

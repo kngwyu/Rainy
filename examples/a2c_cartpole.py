@@ -21,6 +21,7 @@ def config(
     c.use_gae = use_gae
     c.eval_deterministic = True
     c.eval_freq = c.max_steps // 10
+    c.eval_times = 4
     c.entropy_weight = 0.001
     if rnn:
         c.set_net_fn(

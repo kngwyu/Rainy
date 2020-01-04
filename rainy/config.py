@@ -88,6 +88,10 @@ class Config:
         # For option critic
         self.opt_beta_adv_merginal = 0.0
         self.opt_delib_cost = 0.02
+        self.opt_avg_baseline = False  # Use value[state, :].mean() as baseline1
+
+        # For PPOC
+        self.proximal_update_for_mu = False
 
         # Logger and logging frequency
         self.logger = ExperimentLogger(mpi.IS_MPI_ROOT)
@@ -181,8 +185,8 @@ class Config:
     def set_replay_buffer(self, replay: Callable[[int], ReplayBuffer]) -> None:
         self.__replay = replay
 
-    def parallel_env(self) -> ParallelEnv:
-        penv = self.__parallel_env(self.__env, self.nworkers)
+    def parallel_env(self, n: Optional[int] = None) -> ParallelEnv:
+        penv = self.__parallel_env(self.__env, n or self.nworkers)
         self.action_dim = penv.action_dim
         self.state_dim = penv.state_dim
         return penv

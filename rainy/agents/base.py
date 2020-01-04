@@ -21,7 +21,7 @@ from ..config import Config
 from ..lib import mpi
 from ..net import DummyRnn, RnnState
 from ..envs import EnvExt, ParallelEnv
-from ..prelude import Action, Array, ArrayLike, State
+from ..prelude import Action, Array, State
 from ..replay import ReplayFeed
 
 
@@ -273,6 +273,7 @@ class A2CLikeAgent(Agent, Generic[State]):
         self.episode_length = np.zeros(config.nworkers, dtype=np.int)
         self.episode_results: List[EpisodeResult] = []
         self.penv = config.parallel_env()
+        self.eval_penv = None
         self.eval_rnns: RnnState = DummyRnn.DUMMY_STATE
         self.step_width = self.config.nsteps * self.config.nworkers * mpi.global_size()
 
@@ -287,20 +288,24 @@ class A2CLikeAgent(Agent, Generic[State]):
         self.rewards.fill(0.0)
         self.episode_length.fill(0)
         self.episode_results.clear()
-        if n is None:
-            n = self.config.nworkers
-        self.config.set_parallel_seeds(self.penv)
+        n = n or self.config.nworkers
 
-        states = self.penv.reset()
+        if self.eval_penv is None:
+            self.eval_penv = self.config.parallel_env(min(n, self.config.nworkers))
+            self.eval_penv.set_mode(train=False)
+            self.config.set_parallel_seeds(self.penv)
+
+        self.penv.copyto(self.eval_penv)
+        states = self.eval_penv.reset()
         mask = self.config.device.ones(self.config.nworkers)
         while True:
             actions = self.eval_action_parallel(
                 self.penv.extract(states), mask, entropy
             )
-            states, rewards, done, info = self.penv.step(actions)
+            states, rewards, done, info = self.eval_penv.step(actions)
             self.episode_length += 1
-            self.rewards += rewards
-            self.report_reward(done, info)
+            self.rewards[:n] += rewards
+            self._report_reward(done, info)
             if n <= len(self.episode_results):
                 break
 
@@ -316,7 +321,7 @@ class A2CLikeAgent(Agent, Generic[State]):
         pass
 
     @abstractmethod
-    def one_step(self, states: Array[State]) -> Array[State]:
+    def actions(self, states: Array[State]) -> Tuple[Array[Action], dict]:
         pass
 
     @abstractmethod
@@ -334,24 +339,35 @@ class A2CLikeAgent(Agent, Generic[State]):
     def rnn_init(self) -> RnnState:
         return DummyRnn.DUMMY_STATE
 
-    def report_reward(self, done: Array[bool], info: Array[dict]) -> None:
+    def _report_reward(self, done: Array[bool], info: Array[dict]) -> None:
         if self.penv.use_reward_monitor:
             for i in filter(lambda i: "episode" in i, info):
                 self.episode_results.append(
                     EpisodeResult(i["episode"]["r"], i["episode"]["l"])
                 )
         else:
-            for i in filter(lambda i: done[i], range(self.config.nworkers)):
+            for i in filter(lambda i: done[i], range(len(done))):
                 self.episode_results.append(
                     EpisodeResult(self.rewards[i], self.episode_length[i])
                 )
                 self.rewards[i] = 0.0
                 self.episode_length[i] = 0
 
+    def _one_step(self, states: Array[State]) -> Array[State]:
+        actions, net_outputs = self.actions(states)
+        states, rewards, terminals, infos = self.penv.step(actions)
+        self.episode_length += 1
+        self.rewards += rewards
+        self._report_reward(terminals, infos)
+        self.storage.push(states, rewards, terminals, **net_outputs)
+        return states
+
     def close(self) -> None:
         self.env.close()
         self.penv.close()
         self.logger.close()
+        if self.eval_penv is not None:
+            self.eval_penv.close()
 
     def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
         self.config.set_parallel_seeds(self.penv)
@@ -359,7 +375,7 @@ class A2CLikeAgent(Agent, Generic[State]):
         self._reset(states)
         while True:
             for _ in range(self.config.nsteps):
-                states = self.one_step(states)
+                states = self._one_step(states)
             self.train(states)
             self.total_steps += self.step_width
             if len(self.episode_results) > 0:

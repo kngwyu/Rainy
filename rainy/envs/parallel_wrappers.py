@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Any, Iterable, Tuple
 from .parallel import ParallelEnv
-from ..prelude import Action, Array, State
+from ..prelude import Action, Array, Self, State
 from ..utils import RunningMeanStd
 
 
@@ -73,7 +73,7 @@ class NormalizeObs(ParallelEnvWrapper[Action, Array[float]]):
         super().__init__(penv)
         self.obs_clip = obs_clip
         self._rms = RunningMeanStd(shape=self.state_dim)
-        self.training_mode = True
+        self._training_mode = True
 
     def step(
         self, actions: Iterable[Action]
@@ -82,8 +82,8 @@ class NormalizeObs(ParallelEnvWrapper[Action, Array[float]]):
         return self._filter_obs(state), reward, done, info
 
     def _filter_obs(self, obs: Array[Array[float]]) -> Array[Array[float]]:
-        if self.training_mode:
-            self._rms.update(obs)  # type: ignore
+        if self._training_mode:
+            self._rms.update(obs)
         obs = np.clip(
             (obs - self._rms.mean) / self._rms.std(), -self.obs_clip, self.obs_clip
         )
@@ -92,6 +92,14 @@ class NormalizeObs(ParallelEnvWrapper[Action, Array[float]]):
     def reset(self) -> Array[Array[float]]:
         obs = self.penv.reset()
         return self._filter_obs(obs)
+
+    def copyto(self, other: Self) -> None:
+        self.penv.copyto(other.penv)
+        self._rms.copyto(other._rms)
+
+    def set_mode(self, train: bool = False) -> None:
+        self.penv.set_mode(train)
+        self._training_mode = train
 
 
 class NormalizeReward(ParallelEnvWrapper[Action, State]):
@@ -102,18 +110,28 @@ class NormalizeReward(ParallelEnvWrapper[Action, State]):
         self.reward_clip = reward_clip
         self.gamma = gamma
         self._rms = RunningMeanStd(shape=())
-        self.ret = np.zeros(self.num_envs)
+        self._ret = np.zeros(self.num_envs)
+        self._training_mode = True
 
     def step(
         self, actions: Iterable[Action]
     ) -> Tuple[Array[State], Array[float], Array[bool], Array[Any]]:
         state, reward, done, info = self.penv.step(actions)
-        self.ret = self.ret * self.gamma + reward
-        self._rms.update(self.ret)
+        if self._training_mode:
+            ret = self._ret * self.gamma + reward
+            self._rms.update(ret)
+            self._ret = ret * (1.0 - done)
         reward = np.clip(reward / self._rms.std(), -self.reward_clip, self.reward_clip)
-        self.ret[done] = 0.0
         return state, reward, done, info
 
     def reset(self) -> Array[State]:
-        self.ret = np.zeros(self.num_envs)
+        self._ret.fill(0.0)
         return self.penv.reset()
+
+    def copyto(self, other: Self) -> None:
+        self.penv.copyto(other.penv)
+        self._rms.copyto(other._rms)
+
+    def set_mode(self, train: bool = False) -> None:
+        self.penv.set_mode(train)
+        self._training_mode = train

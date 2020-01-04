@@ -45,7 +45,7 @@ class Policy(ABC):
         """
         return self.dist.rsample()
 
-    def eval_action(self, deterministic: bool = False) -> Array:
+    def eval_action(self, deterministic: bool = False, to_numpy: bool = True) -> Array:
         """Sample actions for evaluation, which leave no action cache
         and returns numpy array.
         """
@@ -53,7 +53,10 @@ class Policy(ABC):
             act = self.best_action()
         else:
             act = self.sample()
-        return act.squeeze_().cpu().numpy()
+        if to_numpy:
+            return act.squeeze_().cpu().numpy()
+        else:
+            return act.squeeze_()
 
     @abstractmethod
     def __getitem__(self, idx: Index) -> Self:

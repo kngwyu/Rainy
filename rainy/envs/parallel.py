@@ -3,11 +3,18 @@ import multiprocessing as mp
 from multiprocessing.connection import Connection
 import numpy as np
 from numpy import ndarray
-from typing import Any, Callable, Generic, Iterable, Sequence, Tuple
+from typing import Any, Callable, Generic, Iterable, NamedTuple, Sequence
 from .ext import EnvExt, EnvSpec
-from ..prelude import Action, Array, State
+from ..prelude import Action, Array, Self, State
 
 EnvGen = Callable[[], EnvExt]
+
+
+class PEnvTransition(NamedTuple):
+    states: Array[State]
+    rewards: Array[float]
+    terminals: Array[bool]
+    infos: Array[dict]
 
 
 class ParallelEnv(ABC, Generic[Action, State]):
@@ -23,9 +30,7 @@ class ParallelEnv(ABC, Generic[Action, State]):
         pass
 
     @abstractmethod
-    def step(
-        self, actions: Iterable[Action]
-    ) -> Tuple[Array[State], Array[float], Array[bool], Array[Any]]:
+    def step(self, actions: Iterable[Action]) -> PEnvTransition:
         pass
 
     @abstractmethod
@@ -51,6 +56,12 @@ class ParallelEnv(ABC, Generic[Action, State]):
         """
         pass
 
+    def copyto(self, other: Self) -> None:
+        pass
+
+    def set_mode(self, train: bool = False) -> None:
+        pass
+
 
 class MultiProcEnv(ParallelEnv):
     def __init__(self, env_gen: EnvGen, nworkers: int) -> None:
@@ -70,13 +81,11 @@ class MultiProcEnv(ParallelEnv):
             env.reset()
         return np.array([env.recv() for env in self.envs])
 
-    def step(
-        self, actions: Iterable[Action]
-    ) -> Tuple[Array[State], Array[float], Array[bool], Array[Any]]:
+    def step(self, actions: Iterable[Action]) -> PEnvTransition:
         for env, action in zip(self.envs, actions):
             env.step(action)
         res = [env.recv() for env in self.envs]
-        return tuple(map(np.array, zip(*res)))  # type: ignore
+        return PEnvTransition(*map(np.array, zip(*res)))
 
     def seed(self, seeds: Iterable[int]) -> None:
         for env, seed in zip(self.envs, seeds):
@@ -149,11 +158,9 @@ class DummyParallelEnv(ParallelEnv):
     def reset(self) -> Array[State]:
         return np.array([e.reset() for e in self.envs])
 
-    def step(
-        self, actions: Iterable[Action]
-    ) -> Tuple[Array[State], Array[float], Array[bool], Array[Any]]:
+    def step(self, actions: Iterable[Action]) -> PEnvTransition:
         res = [e.step_and_reset(a) for (a, e) in zip(actions, self.envs)]
-        return tuple(map(np.array, zip(*res)))  # type: ignore
+        return PEnvTransition(*map(np.array, zip(*res)))
 
     def seed(self, seeds: Iterable[int]) -> None:
         for env, seed in zip(self.envs, seeds):
