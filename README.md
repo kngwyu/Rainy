@@ -24,6 +24,7 @@ Python >= 3.6.1
 |A2C           |:heavy_check_mark:    |:small_red_triangle:<sup>(1)</sup>|:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
 |ACKTR         |:heavy_check_mark:    |:x:<sup>(2)</sup>                 |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
 |AOC           |:heavy_check_mark:    |:x:                               |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
+|PPOC          |:heavy_check_mark:    |:x:                               |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
 
 <sup><sup>(1): Very unstable </sup></sup><br>
 <sup><sup>(2): Needs https://openreview.net/forum?id=HyMTkQZAb implemented </sup></sup><br>
@@ -70,6 +71,9 @@ Python >= 3.6.1
 - https://arxiv.org/abs/1609.05140 (DQN-like option critic)
 - https://arxiv.org/abs/1709.04571 (A3C-like option critic called A2OC)
 
+### PPOC (Proximal Option Critic)
+- https://arxiv.org/abs/1712.00004
+
 ## Implementaions I referenced
 Thank you!
 
@@ -84,6 +88,8 @@ https://github.com/chainer/chainerrl
 https://github.com/Thrandis/EKFAC-pytorch (for ACKTR)
 
 https://github.com/jeanharb/a2oc_delib (for AOC)
+
+https://github.com/mklissa/PPOC (for PPOC)
 
 https://github.com/sfujim/TD3 (for DDPG and TD3)
 
