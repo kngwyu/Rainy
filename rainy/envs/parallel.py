@@ -5,6 +5,7 @@ import numpy as np
 from numpy import ndarray
 from typing import Any, Callable, Generic, Iterable, NamedTuple, Sequence
 from .ext import EnvExt, EnvSpec
+from ..utils import mp_utils
 from ..prelude import Action, Array, Self, State
 
 EnvGen = Callable[[], EnvExt]
@@ -66,10 +67,10 @@ class ParallelEnv(ABC, Generic[Action, State]):
 class MultiProcEnv(ParallelEnv):
     def __init__(self, env_gen: EnvGen, nworkers: int) -> None:
         assert nworkers >= 2
-        envs_tmp = [env_gen() for _ in range(nworkers)]
-        self.to_array = envs_tmp[0].extract
-        self.spec = envs_tmp[0].spec
-        self.envs = [_ProcHandler(e) for e in envs_tmp]
+        envs = [env_gen() for _ in range(nworkers)]
+        self.to_array = envs[0].extract
+        self.spec = envs[0].spec
+        self.envs = [_ProcHandler(i, envs[i]) for i in range(nworkers)]
         self.num_envs = nworkers
 
     def close(self) -> None:
@@ -96,9 +97,9 @@ class MultiProcEnv(ParallelEnv):
 
 
 class _ProcHandler:
-    def __init__(self, env: EnvExt) -> None:
+    def __init__(self, envid: int, env: EnvExt) -> None:
         self.pipe, worker_pipe = mp.Pipe()
-        self.worker = _ProcWorker(env, worker_pipe)
+        self.worker = _ProcWorker(envid, env, worker_pipe)
         self.worker.start()
 
     def close(self) -> None:
@@ -123,26 +124,30 @@ class _ProcWorker(mp.Process):
     SEED = 2
     STEP = 3
 
-    def __init__(self, env: EnvExt, pipe: Connection) -> None:
+    def __init__(self, envid: int, env: EnvExt, pipe: Connection) -> None:
         super().__init__()
+        self.envid = envid
         self.env = env
         self.pipe = pipe
 
     def run(self):
-        while True:
-            op, arg = self.pipe.recv()
-            if op == self.STEP:
-                self.pipe.send(self.env.step_and_reset(arg))
-            elif op == self.RESET:
-                self.pipe.send(self.env.reset())
-            elif op == self.SEED:
-                self.env.seed(arg)
-            elif op == self.CLOSE:
-                self.env.close()
-                self.pipe.close()
-                break
-            else:
-                raise NotImplementedError("Not-supported operation: {}".format(op))
+        def _loop():
+            while True:
+                op, arg = self.pipe.recv()
+                if op == self.STEP:
+                    self.pipe.send(self.env.step_and_reset(arg))
+                elif op == self.RESET:
+                    self.pipe.send(self.env.reset())
+                elif op == self.SEED:
+                    self.env.seed(arg)
+                elif op == self.CLOSE:
+                    self.env.close()
+                    self.pipe.close()
+                    break
+                else:
+                    raise NotImplementedError("Not-supported operation: {}".format(op))
+
+        mp_utils.pretty_loop(self.envid, _loop)
 
 
 class DummyParallelEnv(ParallelEnv):
