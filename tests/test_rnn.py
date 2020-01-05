@@ -1,14 +1,18 @@
 import pytest
 from rainy.utils import Device
-from rainy.net.recurrent import GruBlock, LstmBlock, RnnBlock
+from rainy.net import DilatedRnnBlock, GruBlock, LstmBlock, RnnBlock
 import torch
 from typing import Callable
 
 
+def dilated_gru(input_dim: int, output_dim: int) -> DilatedRnnBlock:
+    return DilatedRnnBlock(GruBlock(input_dim, output_dim), 4)
+
+
 @pytest.mark.parametrize(
-    "rnn_gen", [GruBlock, LstmBlock],
+    "rnn_gen", [GruBlock, LstmBlock, dilated_gru],
 )
-def test_rnn(rnn_gen: Callable[[int, int, Device], RnnBlock]) -> None:
+def test_rnn(rnn_gen: Callable[[int, int], RnnBlock]) -> None:
     TIME_STEP = 10
     BATCH_SIZE = 5
     INPUT_DIM = 20
@@ -25,7 +29,6 @@ def test_rnn(rnn_gen: Callable[[int, int, Device], RnnBlock]) -> None:
         out, hidden = rnn(inputs, hidden)
         assert tuple(out.shape) == (BATCH_SIZE, OUTPUT_DIM)
     batch_inputs = torch.cat(cached_inputs)
-    print(batch_inputs.shape)
     hidden = rnn.initial_state(BATCH_SIZE, device)
     out, _ = rnn(batch_inputs, hidden)
     assert tuple(out.shape) == (TIME_STEP * BATCH_SIZE, OUTPUT_DIM)

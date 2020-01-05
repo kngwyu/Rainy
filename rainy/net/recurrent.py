@@ -216,7 +216,7 @@ class GruBlock(RnnBlock[GruState]):
         for start, end in _haszero_iter(masks, nsteps):
             processed, h = self.gru(x[start:end], h * masks[start].view(1, -1, 1))
             res.append(processed)
-        return torch.stack(res), GruState(h.squeeze_(0))
+        return torch.cat(res), GruState(h.squeeze_(0))
 
     def initial_state(self, batch_size: int, device: Device) -> GruState:
         return GruState(device.zeros((batch_size, self.output_dim)))
@@ -245,11 +245,18 @@ class DummyRnn(RnnBlock[DummyState]):
     def __init__(self, *args, **kwargs) -> None:
         nn.Module.__init__(self)
 
+    def forward_1step(
+        self, x: Tensor, hidden: DummyState, masks: Optional[Tensor]
+    ) -> Tuple[Tensor, DummyState]:
+        return x, hidden
+
+    def forward_nsteps(
+        self, x: Tensor, hidden: DummyState, masks: Optional[Tensor], nsteps: int,
+    ) -> Tuple[Tensor, DummyState]:
+        return x, hidden
+
     def forward(
-        self,
-        x: Tensor,
-        hidden: DummyState = DUMMY_STATE,
-        mask: Optional[Tensor] = None,
+        self, x: Tensor, hidden: DummyState, masks: Optional[Tensor] = None
     ) -> Tuple[Tensor, DummyState]:
         return x, hidden
 

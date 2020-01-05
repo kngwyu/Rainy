@@ -88,6 +88,9 @@ class TeState(recurrent.RnnState):
     def unsqueeze(self):
         return TeState(self.h.unsqueeze(0))
 
+    def size(self, index: int) -> int:
+        return self.h.size(index)
+
 
 @pytest.mark.parametrize(
     "penv, is_recurrent",

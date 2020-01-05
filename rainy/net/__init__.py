@@ -2,6 +2,7 @@ from .actor_critic import ActorCriticNet, SeparatedACNet, SharedACNet, policy_in
 from .block import ConvBody, DQNConv, FcBody, ResNetBody, LinearHead, NetworkBlock
 from .block import calc_cnn_hidden, make_cnns
 from .deterministic import DeterministicPolicyNet, DDPGNet, SeparatedDDPGNet, SoftUpdate
+from .dilated import DilatedRnnBlock
 from .init import InitFn, Initializer
 from .option_critic import OptionCriticNet, SharedBodyOCNet
 from .policy import Policy, PolicyDist
