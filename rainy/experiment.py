@@ -47,7 +47,7 @@ class Experiment:
                 episodes=episodes + i + self.episode_offset,
                 total_steps=self.ag.total_steps,
                 update_steps=self.ag.update_steps,
-                reward=res.reward,
+                reward=res.return_,
                 length=res.length,
             )
 
@@ -70,7 +70,7 @@ class Experiment:
                 "eval",
                 total_steps=self.ag.total_steps,
                 update_steps=self.ag.update_steps,
-                rewards=res.reward,
+                rewards=res.return_,
                 length=res.length,
             )
 
@@ -118,7 +118,7 @@ class Experiment:
         replay: bool = False,
         pause: bool = False,
         action_file: Optional[str] = None,
-    ) -> None:
+    ) -> List[EpisodeResult]:
         n = self.config.eval_times
         self.ag.set_mode(train=False)
         if action_file is not None:

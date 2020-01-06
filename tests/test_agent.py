@@ -23,7 +23,7 @@ def test_eval_parallel(n: int, make_ag: callable) -> None:
     res = ag.eval_parallel(n, entropy=entropy)
     assert len(res) == n
     for r in res:
-        assert r.reward == 20.0
+        assert r.return_ == 20.0
         assert r.length == 3
     ag.close()
 

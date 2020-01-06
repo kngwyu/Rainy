@@ -1,3 +1,5 @@
+"""Dilated RNN implementation: WIP & Currently unused
+"""
 import torch
 from torch import Tensor
 from typing import Optional, Tuple
