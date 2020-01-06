@@ -38,34 +38,7 @@ class LinearHead(NetworkBlock):
 
 class ConvBody(NetworkBlock):
     """Multiple CNN layers + FC
-    """
-
-    def __init__(
-        self,
-        cnns: Sequence[nn.Conv2d],
-        fc: nn.Linear,
-        input_dim: Tuple[int, int, int],
-        activator: nn.Module = nn.ReLU(inplace=True),
-        init: Initializer = Initializer(orthogonal(nonlinearity="relu")),
-    ) -> None:
-        super().__init__()
-        self.cnns = init.make_list(cnns)
-        self.fc: nn.Linear = init(fc)  # type: ignore
-        self.input_dim = input_dim
-        self.output_dim = self.fc.out_features
-        self.activator = activator
-
-    def forward(self, x: Tensor) -> Tensor:
-        for cnn in self.cnns:
-            x = self.activator(cnn(x))
-        x = x.view(x.size(0), -1)
-        x = self.activator(self.fc(x))
-        return x
-
-
-class DQNConv(ConvBody):
-    """Convolutuion Network used in https://www.nature.com/articles/nature14236,
-       but is parameterized for other usages.
+    By default, this is the same as CNN used in the DQN paper.
     """
 
     def __init__(
@@ -77,11 +50,45 @@ class DQNConv(ConvBody):
         activator: nn.Module = nn.ReLU(inplace=True),
         init: Initializer = Initializer(orthogonal(nonlinearity="relu")),
     ) -> None:
-        in_channel, width, height = input_dim
+        super().__init__()
         cnns, hidden = make_cnns(input_dim, kernel_and_strides, hidden_channels)
-        fc = nn.Linear(hidden, output_dim)
-        self._output_dim = output_dim
-        super().__init__(cnns, fc, input_dim, activator=activator, init=init)
+        self.cnns = init.make_list(cnns)
+        self.fc = init(nn.Linear(hidden, output_dim))
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.activator = activator
+
+    def forward(self, x: Tensor) -> Tensor:
+        for cnn in self.cnns:
+            x = self.activator(cnn(x))
+        x = x.view(x.size(0), -1)
+        x = self.activator(self.fc(x))
+        return x
+
+
+class ConvBodyWithoutFc(NetworkBlock):
+    """Just CNN layers
+    """
+
+    def __init__(
+        self,
+        input_dim: Tuple[int, int, int],
+        kernel_and_strides: Sequence[Tuple[int, int]] = [(8, 4), (4, 2), (3, 1)],
+        hidden_channels: Sequence[int] = (32, 64, 64),
+        activator: nn.Module = nn.ReLU(inplace=True),
+        init: Initializer = Initializer(orthogonal(nonlinearity="relu")),
+    ) -> None:
+        super().__init__()
+        cnns, hidden = make_cnns(input_dim, kernel_and_strides, hidden_channels)
+        self.cnns = init.make_list(cnns)
+        self.input_dim = input_dim
+        self.output_dim = hidden
+        self.activator = activator
+
+    def forward(self, x: Tensor) -> Tensor:
+        for cnn in self.cnns:
+            x = self.activator(cnn(x))
+        return x
 
 
 class ResBlock(nn.Sequential):

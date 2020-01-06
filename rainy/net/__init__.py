@@ -1,5 +1,5 @@
 from .actor_critic import ActorCriticNet, SeparatedACNet, SharedACNet, policy_init
-from .block import ConvBody, DQNConv, FcBody, ResNetBody, LinearHead, NetworkBlock
+from .block import ConvBody, FcBody, ResNetBody, LinearHead, NetworkBlock
 from .block import calc_cnn_hidden, make_cnns
 from .deterministic import DeterministicPolicyNet, DDPGNet, SeparatedDDPGNet, SoftUpdate
 from .dilated import DilatedRnnBlock

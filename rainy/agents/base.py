@@ -347,9 +347,9 @@ class A2CLikeAgent(Agent, Generic[State]):
                 )
         else:
             for i in filter(lambda i: done[i], range(len(done))):
-                self.episode_results.append(EpisodeResult(
-                    self.returns[i], self.episode_length[i]
-                ))
+                self.episode_results.append(
+                    EpisodeResult(self.returns[i], self.episode_length[i])
+                )
         self.returns[done] = 0.0
         self.episode_length[done] = 0
 

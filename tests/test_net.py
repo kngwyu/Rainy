@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from rainy.net import actor_critic, DQNConv, GruBlock, LstmBlock
+from rainy.net import actor_critic, ConvBody, GruBlock, LstmBlock
 from rainy.net.init import Initializer, kaiming_normal, kaiming_uniform
 from rainy.utils import Device
 from test_env import DummyEnv
@@ -96,7 +96,7 @@ def test_dqnconv(
         kwargs["init"] = init
     if channels is not None:
         kwargs["hidden_channels"] = channels
-    dqn_conv = DQNConv(input_dim, **kwargs)
+    dqn_conv = ConvBody(input_dim, **kwargs)
     assert dqn_conv.fc.in_features == np.prod(hidden)
     x = torch.ones((batch_size, *input_dim))
     x = dqn_conv(x)
