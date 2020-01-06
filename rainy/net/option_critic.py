@@ -55,7 +55,7 @@ class SharedBodyOCNet(OptionCriticNet):
         self.optq_head = optq_head
         self.beta_head = beta_head
         self.policy_dist = policy_dist
-        self.beta_dist = BernoulliDist(1)
+        self.beta_dist = BernoulliDist()
         self.num_options = optq_head.output_dim
         self.action_dim = actor_head.output_dim // self.num_options
         self.device = device

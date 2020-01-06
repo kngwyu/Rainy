@@ -208,6 +208,9 @@ class BernoulliDist(PolicyDist):
     """Bernoulli policy with no learnable parameter
     """
 
+    def __init__(self, action_dim: int = 1, *args, **kwargs) -> None:
+        super().__init__(action_dim)
+
     def forward(self, x: Tensor) -> Policy:
         return BernoulliPolicy(logits=x)
 

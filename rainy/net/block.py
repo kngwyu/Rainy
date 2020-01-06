@@ -67,7 +67,7 @@ class ConvBody(NetworkBlock):
 
 
 class ConvBodyWithoutFc(NetworkBlock):
-    """Just CNN layers
+    """Almost the same as ConvBody, but has no FC layer
     """
 
     def __init__(
