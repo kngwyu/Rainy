@@ -31,7 +31,7 @@ REQUIRED = [
     "numpy>=1.15.0",
     "opencv-python>=3.4",
     "pandas>=0.25",
-    "torch>=1.0",
+    "torch>=1.2",
 ]
 EXTRA = {
     "bullet": ["pybullet>=2.4"],

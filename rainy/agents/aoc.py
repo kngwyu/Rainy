@@ -9,7 +9,7 @@ Corresponding papers:
 
 import numpy as np
 import torch
-from torch import ByteTensor, LongTensor, nn, Tensor
+from torch import BoolTensor, LongTensor, nn, Tensor
 from typing import List, Optional, Tuple
 from .base import A2CLikeAgent
 from ..config import Config
@@ -27,7 +27,7 @@ class AOCRolloutStorage(RolloutStorage[State]):
     ) -> None:
         super().__init__(nsteps, nworkers, device)
         self.options = [self.device.zeros(self.nworkers, dtype=torch.long)]
-        self.is_new_options = [self.device.ones(self.nworkers, dtype=torch.uint8)]
+        self.is_new_options = [self.device.ones(self.nworkers, dtype=torch.bool)]
         self.epsilons: List[float] = []
         self.option_mus: List[CategoricalPolicy] = []
         self.beta_adv = torch.zeros_like(self.batch_values)
@@ -121,6 +121,7 @@ class AOCAgent(A2CLikeAgent[State]):
     It's a synchronous batched version of A2OC: Asynchronou Adavantage Option Critic
     """
 
+    EPS = 0.001
     SAVED_MEMBERS = "net", "opt_explorer"
 
     def __init__(self, config: Config) -> None:
@@ -155,13 +156,13 @@ class AOCAgent(A2CLikeAgent[State]):
         beta: BernoulliPolicy,
         prev_options: LongTensor,
         explorer: Optional[EpsGreedy] = None,
-    ) -> Tuple[LongTensor, ByteTensor]:
+    ) -> Tuple[LongTensor, BoolTensor]:
         if explorer is None:
             explorer = self.opt_explorer
         current_beta = beta[self.worker_indices, prev_options]
-        do_options_end = current_beta.action()
-        # If do_options[i] == 1 or the episode ends, use new option.
-        use_new_options = do_options_end.add(1.0 - self.storage.masks[-1]) > 0.1
+        do_options_end = current_beta.action().bool()
+        is_initial_states = (1.0 - self.storage.masks[-1]).bool()
+        use_new_options = do_options_end | is_initial_states
         epsgreedy_options = explorer.select_from_value(opt_q, same_device=True)
         options = torch.where(use_new_options, epsgreedy_options, prev_options)
         return options, use_new_options  # type: ignore
@@ -195,7 +196,7 @@ class AOCAgent(A2CLikeAgent[State]):
         return self.storage.options[-1]  # type: ignore
 
     @property
-    def prev_is_new_options(self) -> ByteTensor:
+    def prev_is_new_options(self) -> BoolTensor:
         return self.storage.is_new_options[-1]  # type: ignore
 
     @torch.no_grad()

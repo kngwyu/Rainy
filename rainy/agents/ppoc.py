@@ -6,7 +6,7 @@ PPOC(Proximal Policy Option Critic), which is described in
 """
 
 import torch
-from torch import ByteTensor, LongTensor, Tensor
+from torch import BoolTensor, LongTensor, Tensor
 from typing import NamedTuple, Optional, Tuple
 from .aoc import AOCRolloutStorage, AOCAgent
 from ..lib.rollout import RolloutSampler
@@ -114,11 +114,11 @@ class PPOCAgent(AOCAgent):
         beta: BernoulliPolicy,
         prev_options: LongTensor,
         deterministic: bool = False,
-    ) -> Tuple[LongTensor, ByteTensor]:
+    ) -> Tuple[LongTensor, BoolTensor]:
         current_beta = beta[self.worker_indices, prev_options]
-        do_options_end = current_beta.action()
-        # If do_options[i] == 1 or the episode ends, use new option.
-        use_new_options = do_options_end.add(1.0 - self.storage.masks[-1]) > 0.1
+        do_options_end = current_beta.action().bool()
+        is_initial_states = (1.0 - self.storage.masks[-1]).bool()
+        use_new_options = do_options_end | is_initial_states
         sampled_options = mu.eval_action(deterministic=deterministic, to_numpy=False)
         options = torch.where(use_new_options, sampled_options, prev_options)
         return options, use_new_options  # type: ignore
