@@ -26,11 +26,11 @@ from ..replay import ReplayFeed
 
 
 class EpisodeResult(NamedTuple):
-    reward: np.float32
+    return_: np.float32
     length: np.int32
 
     def __repr__(self) -> str:
-        return f"EpisodeResult(reward: {self.reward}, length: {self.length})"
+        return f"EpisodeResult(Return: {self.return_}, Length: {self.length})"
 
 
 class Agent(ABC):
@@ -83,7 +83,7 @@ class Agent(ABC):
     def __eval_episode(
         self, select_action: Callable[[Array], Action], render: bool, pause: bool
     ) -> Tuple[EpisodeResult, EnvExt]:
-        total_reward = 0.0
+        return_ = 0.0
         steps = 0
         env = self.config.eval_env
         if self.config.seed is not None:
@@ -98,20 +98,20 @@ class Agent(ABC):
             action = select_action(state)
             state, reward, done, info = env.step_and_render(action, render)
             steps += 1
-            total_reward += reward
-            res = self._result(done, info, total_reward, steps)
+            return_ += reward
+            res = self._result(done, info, return_, steps)
             if res is not None:
                 self.eval_reset()
                 return (res, env)
 
     def _result(
-        self, done: bool, info: dict, total_reward: float, episode_length: int,
+        self, done: bool, info: dict, return_: float, episode_length: int,
     ) -> Optional[EpisodeResult]:
         if self.env.use_reward_monitor:
             if "episode" in info:
                 return EpisodeResult(info["episode"]["r"], info["episode"]["l"])
         elif done:
-            return EpisodeResult(total_reward, episode_length)
+            return EpisodeResult(return_, episode_length)
         return None
 
     def random_episode(
@@ -238,7 +238,7 @@ class DQNLikeAgent(Agent, Generic[State, Action, ReplayFeed]):
         if self.config.seed is not None:
             self.env.seed(self.config.seed)
         state = self.env.reset()
-        total_reward = 0.0
+        return_ = 0.0
         episode_length = 0
         while True:
             action = self.action(state)
@@ -251,13 +251,13 @@ class DQNLikeAgent(Agent, Generic[State, Action, ReplayFeed]):
             state = next_state
             # Update stats
             self.total_steps += 1
-            total_reward += reward
+            return_ += reward
             episode_length += 1
-            res = self._result(done, info, total_reward, episode_length)
+            res = self._result(done, info, return_, episode_length)
             if res is not None:
                 yield [res]
                 state = self.env.reset()
-                total_reward = 0.0
+                return_ = 0.0
                 episode_length = 0
             if self.total_steps >= max_steps:
                 break
@@ -269,8 +269,8 @@ class A2CLikeAgent(Agent, Generic[State]):
 
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        self.rewards = np.zeros(config.nworkers, dtype=np.float32)
-        self.episode_length = np.zeros(config.nworkers, dtype=np.int)
+        self.returns = np.zeros(config.nworkers, dtype=np.float32)
+        self.episode_length = np.zeros(config.nworkers, dtype=np.int32)
         self.episode_results: List[EpisodeResult] = []
         self.penv = config.parallel_env()
         self.eval_penv = None
@@ -281,11 +281,11 @@ class A2CLikeAgent(Agent, Generic[State]):
         self, n: Optional[int] = None, entropy: Optional[Array[float]] = None,
     ) -> List[EpisodeResult]:
         reserved = (
-            copy.deepcopy(self.rewards),
+            copy.deepcopy(self.returns),
             copy.deepcopy(self.episode_length),
             copy.deepcopy(self.episode_results),
         )
-        self.rewards.fill(0.0)
+        self.returns.fill(0.0)
         self.episode_length.fill(0)
         self.episode_results.clear()
         n = n or self.config.nworkers
@@ -304,13 +304,13 @@ class A2CLikeAgent(Agent, Generic[State]):
             )
             states, rewards, done, info = self.eval_penv.step(actions)
             self.episode_length += 1
-            self.rewards[:n] += rewards
+            self.returns[:n] += rewards
             self._report_reward(done, info)
             if n <= len(self.episode_results):
                 break
 
         res = self.episode_results
-        self.rewards, self.episode_length, self.episode_results = reserved
+        self.returns, self.episode_length, self.episode_results = reserved
         self.eval_reset()
         return res
 
@@ -347,19 +347,19 @@ class A2CLikeAgent(Agent, Generic[State]):
                 )
         else:
             for i in filter(lambda i: done[i], range(len(done))):
-                self.episode_results.append(
-                    EpisodeResult(self.rewards[i], self.episode_length[i])
-                )
-                self.rewards[i] = 0.0
-                self.episode_length[i] = 0
+                self.episode_results.append(EpisodeResult(
+                    self.returns[i], self.episode_length[i]
+                ))
+        self.returns[done] = 0.0
+        self.episode_length[done] = 0
 
     def _one_step(self, states: Array[State]) -> Array[State]:
         actions, net_outputs = self.actions(states)
         states, rewards, terminals, infos = self.penv.step(actions)
-        self.episode_length += 1
-        self.rewards += rewards
-        self._report_reward(terminals, infos)
         self.storage.push(states, rewards, terminals, **net_outputs)
+        self.returns += rewards
+        self.episode_length += 1
+        self._report_reward(terminals, infos)
         return states
 
     def close(self) -> None:

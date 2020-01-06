@@ -14,9 +14,12 @@ class RolloutStorage(Generic[State]):
         self.states: List[Array[State]] = []
         self.rewards: List[Array[float]] = []
         self.masks: List[Tensor] = [device.zeros(nworkers)]
+        # Currently unused
+        self.episode_steps: List[Tensor] = [device.zeros(nworkers)]
         self.rnn_states: List[RnnState] = []
         self.policies: List[Policy] = []
         self.values: List[Tensor] = []
+        self.initial_steps: Tensor = device.zeros(nworkers)
         self.returns: Tensor = device.zeros((nsteps + 1, nworkers))
         self.advs: Tensor = device.zeros((nsteps + 1, nworkers))
         self.batch_values: Tensor = device.zeros((nsteps, nworkers))
@@ -48,6 +51,8 @@ class RolloutStorage(Generic[State]):
         self.states.append(state)
         self.rewards.append(reward)
         self.masks.append(self.device.tensor(1.0 - terminals))
+        ep_steps = (self.episode_steps[-1] + 1.0) * self.masks[-1]
+        self.episode_steps.append(ep_steps)
         self.rnn_states.append(rnn_state)
         if policy is not None:
             self.policies.append(policy)
@@ -58,6 +63,7 @@ class RolloutStorage(Generic[State]):
 
     def reset(self) -> None:
         self.masks = [self.masks[-1]]
+        self.episode_steps = [self.episode_steps[-1]]
         self.states = [self.states[-1]]
         self.rnn_states = [self.rnn_states[-1]]
         self.rewards.clear()
