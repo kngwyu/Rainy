@@ -129,6 +129,6 @@ def test_tcnet(state_dim: tuple):
     input2 = torch.randn(BATCH_SIZE, *state_dim)
     out = net(input1, input2)
     assert tuple(out.beta.dist.logits.shape) == (BATCH_SIZE, NUM_OPTIONS)
-    assert tuple(out.p.dist.logits.shape) == (BATCH_SIZE, NUM_OPTIONS)
-    assert tuple(out.p_mu.dist.logits.shape) == (BATCH_SIZE, NUM_OPTIONS)
+    assert tuple(out.p.shape) == (BATCH_SIZE, NUM_OPTIONS)
+    assert tuple(out.p_mu.shape) == (BATCH_SIZE, NUM_OPTIONS)
     assert tuple(out.baseline.shape) == (BATCH_SIZE, NUM_OPTIONS)

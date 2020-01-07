@@ -12,6 +12,7 @@ from .deterministic import DeterministicPolicyNet, DDPGNet, SeparatedDDPGNet, So
 from .dilated import DilatedRnnBlock
 from .init import InitFn, Initializer
 from .option_critic import OptionCriticNet, SharedBodyOCNet
+from .termination_critic import OptionActorCriticNet, TerminationCriticNet
 from .policy import Policy, PolicyDist
 from .recurrent import DummyRnn, GruBlock, LstmBlock, RnnBlock, RnnState
 from .sac import SACTarget, SeparatedSACNet

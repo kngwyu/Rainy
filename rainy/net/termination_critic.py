@@ -68,7 +68,7 @@ class SharedOACNet(OptionActorCriticNet):
         feature = self.body(self.device.tensor(states))
         policy = self.actor_head(feature).view(-1, self.num_options, self.action_dim)
         opt_q = self.optq_head(feature)
-        return self.policy_dist(policy), opt_q, beta
+        return self.policy_dist(policy), opt_q
 
 
 def oac_conv_shared(
@@ -90,7 +90,7 @@ def oac_conv_shared(
         ac_head = LinearHead(body.output_dim, action_dim * num_options, policy_init())
         optq_head = LinearHead(body.output_dim, num_options)
         dist = policy(action_dim, device)
-        return SharedOACNet(body, ac_head, optq_head, beta_head, dist, device)
+        return SharedOACNet(body, ac_head, optq_head, dist, device)
 
     return _net  # type: ignore
 
@@ -98,22 +98,20 @@ def oac_conv_shared(
 def oac_fc_shared(
     num_options: int = 4, policy: Type[PolicyDist] = CategoricalDist, **fc_args,
 ) -> NetFn:
-    def _net(
-        state_dim: Sequence[int], action_dim: int, device: Device
-    ) -> SharedOACNet:
+    def _net(state_dim: Sequence[int], action_dim: int, device: Device) -> SharedOACNet:
         body = FcBody(state_dim[0], **fc_args)
         ac_head = LinearHead(body.output_dim, action_dim * num_options, policy_init())
         optq_head = LinearHead(body.output_dim, num_options)
         dist = policy(action_dim, device)
-        return SharedOACNet(body, ac_head, optq_head, beta_head, dist, device)
+        return SharedOACNet(body, ac_head, optq_head, dist, device)
 
     return _net  # type: ignore
 
 
 class TCOutput(NamedTuple):
     beta: BernoulliPolicy
-    p: BernoulliPolicy
-    p_mu: BernoulliPolicy
+    p: Tensor
+    p_mu: Tensor
     baseline: Tensor
 
 
@@ -124,7 +122,15 @@ class TerminationCriticNet(nn.Module, ABC):
     state_dim: Sequence[int]
 
     @abstractmethod
-    def forward(xs: ArrayLike, xf: ArrayLike) -> TCOutput:
+    def beta(self, xs: ArrayLike, xf: ArrayLike) -> BernoulliPolicy:
+        pass
+
+    @abstractmethod
+    def forward(self, xs: ArrayLike, xf: ArrayLike) -> TCOutput:
+        pass
+
+    @abstractmethod
+    def p(self, xs: ArrayLike, xf: ArrayLike) -> Tensor:
         pass
 
 
@@ -139,7 +145,6 @@ class SharedTCNet(TerminationCriticNet):
         init: Initializer = Initializer(),
     ) -> None:
         super().__init__()
-        self.has_mu = False
         self.body_xs = body1
         self.body_xf = body2
         feature_in = body1.output_dim + body2.output_dim
@@ -148,15 +153,18 @@ class SharedTCNet(TerminationCriticNet):
             LinearHead(feature_dim, num_options, init=init), BernoulliDist(),
         )
         self.p_head = nn.Sequential(
-            LinearHead(feature_dim, num_options, init=init), BernoulliDist(),
+            LinearHead(feature_dim, num_options, init=init), nn.Sigmoid(),
         )
         self.p_mu_head = nn.Sequential(
-            LinearHead(feature_dim, num_options, init=init), BernoulliDist(),
+            LinearHead(feature_dim, num_options, init=init), nn.Sigmoid(),
         )
         self.baseline_head = LinearHead(feature_dim, num_options, init=init)
         self.device = device
         self.state_dim = body1.input_dim
         self.to(device.unwrapped)
+
+    def beta(self, xs: ArrayLike, xf: ArrayLike) -> BernoulliPolicy:
+        return self.beta_head(self._feature(xs, xf))
 
     def forward(self, xs: ArrayLike, xf: ArrayLike) -> TCOutput:
         feature = self._feature(xs, xf)
@@ -167,11 +175,15 @@ class SharedTCNet(TerminationCriticNet):
         return TCOutput(beta, p, p_mu_head, baseline)
 
     def _feature(self, xs: ArrayLike, xf: ArrayLike) -> TCOutput:
-        batch_size = xs.size(0)
-        xs_feature = self.body_xs(self.device.tensor(xs)).view(batch_size, -1)
-        xf_feature = self.body_xf(self.device.tensor(xf)).view(batch_size, -1)
+        xst, xft = self.device.tensor(xs), self.device.tensor(xf)
+        batch_size = xst.size(0)
+        xs_feature = self.body_xs(xst).view(batch_size, -1)
+        xf_feature = self.body_xf(xft).view(batch_size, -1)
         xs_xf = torch.cat((xs_feature, xf_feature), dim=1)
         return self.feature(xs_xf)
+
+    def p(self, xs: ArrayLike, xf: ArrayLike) -> BernoulliPolicy:
+        return self.p_head(self._feature(xs, xf))
 
 
 def tc_conv_shared(
@@ -208,9 +220,7 @@ def tc_fc_shared(
     head_init: Initializer = Initializer(),
     **fc_args,
 ) -> NetFn:
-    def _net(
-        state_dim: Sequence[int], _action_dim: int, device: Device
-    ) -> SharedTCNet:
+    def _net(state_dim: Sequence[int], _action_dim: int, device: Device) -> SharedTCNet:
         body1 = FcBody(state_dim[0], **fc_args)
         body2 = FcBody(state_dim[0], **fc_args)
         return SharedTCNet(

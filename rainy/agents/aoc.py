@@ -253,16 +253,13 @@ class AOCAgent(A2CLikeAgent[State]):
         beta_loss = term_prob.mul(masks).mul(beta_adv).mean()
         value_loss = (opt_q[self.batch_indices, options] - ret).pow(2).mean()
         entropy = policy.entropy().mean()
-
-        self.optimizer.zero_grad()
-        (
+        loss = (
             policy_loss
             + beta_loss
             + self.config.value_loss_weight * 0.5 * value_loss
             - self.config.entropy_weight * entropy
-        ).backward()
-        nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
-        self.optimizer.step()
+        )
+        self._backward(loss, self.optimizer, self.net.parameters())
 
         self.network_log(
             policy_loss=policy_loss.item(),
