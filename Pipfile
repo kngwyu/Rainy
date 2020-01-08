@@ -16,3 +16,4 @@ markers = "python_version < '3.8.0'"
 
 [dev-packages]
 pytest = "==5.2.4"
+torchsnooper = "==0.8"
