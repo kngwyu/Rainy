@@ -12,8 +12,8 @@ import numpy as np
 from torch import nn, Tensor
 import torch
 from torch.nn import functional as F
-from typing import Tuple
-from .base import DQNLikeAgent
+from typing import Optional, Tuple
+from .base import DQNLikeAgent, Netout
 from ..config import Config
 from ..envs import ParallelEnv
 from ..net import Policy, SeparatedSACNet
@@ -78,8 +78,10 @@ class SACAgent(DQNLikeAgent):
         self.net.train(mode=train)
 
     @torch.no_grad()
-    def eval_action(self, state: Array) -> Action:
+    def eval_action(self, state: Array, net_outputs: Optional[Netout] = None) -> Action:
         policy = self.net.policy(state)
+        if net_outputs is not None:
+            net_outputs["policy"] = policy
         return policy.eval_action(self.config.eval_deterministic)
 
     def action(self, state: State) -> Action:

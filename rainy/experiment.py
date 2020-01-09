@@ -39,6 +39,7 @@ class Experiment:
         self._save_file_name = save_file_name or self.SAVE_FILE_DEFAULT
         self._has_eval_parallel = hasattr(self.ag, "eval_parallel")
         self.episode_offset = 0
+        self.config.initialize_hooks()
 
     def log_episode(self, episodes: int, results: List[EpisodeResult]) -> None:
         for i, res in enumerate(results):

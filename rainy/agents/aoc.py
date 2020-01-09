@@ -9,9 +9,9 @@ Corresponding papers:
 
 import numpy as np
 import torch
-from torch import BoolTensor, LongTensor, nn, Tensor
+from torch import BoolTensor, LongTensor, Tensor
 from typing import List, Optional, Tuple
-from .base import A2CLikeAgent
+from .base import A2CLikeAgent, Netout
 from ..config import Config
 from ..lib.explore import EpsGreedy
 from ..lib.rollout import RolloutStorage
@@ -176,7 +176,7 @@ class AOCAgent(A2CLikeAgent[State]):
         self.eval_prev_options = options
         return opt_policy[self.worker_indices, options]
 
-    def eval_action(self, state: Array) -> Action:
+    def eval_action(self, state: Array, net_outputs: Optional[Netout] = None) -> Action:
         if len(state.shape) == len(self.net.state_dim):
             # treat as batch_size == nworkers
             state = np.stack([state] * self.config.nworkers)

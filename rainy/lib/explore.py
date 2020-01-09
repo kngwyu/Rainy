@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import torch
 from torch import LongTensor, Tensor
 from torch.optim import Optimizer
-from typing import Optional
+from typing import Dict, Optional
 from ..net.value import DiscreteQFunction
 from ..prelude import Array
 
@@ -50,8 +50,16 @@ class DummyCooler(Cooler):
 
 
 class Explorer(ABC):
-    def select_action(self, state: Array, qfunc: DiscreteQFunction) -> LongTensor:
-        return self.select_from_value(qfunc.q_value(state).detach())
+    def select_action(
+        self,
+        state: Array,
+        q_func: DiscreteQFunction,
+        record: Optional[Dict[str, Tensor]] = None,
+    ) -> LongTensor:
+        q_value = q_func.q_value(state).detach()
+        if record is not None:
+            record["q_value"] = q_value
+        return self.select_from_value(q_value)
 
     @abstractmethod
     def select_from_value(self, value: Tensor, same_device: bool = False) -> LongTensor:

@@ -9,7 +9,7 @@ import torch
 from torch import BoolTensor, LongTensor, Tensor
 from torch.nn import functional as F
 from typing import Optional, Tuple
-from .base import A2CLikeAgent
+from .base import A2CLikeAgent, Netout
 from ..config import Config
 from ..envs import ParallelEnv
 from ..lib.explore import EpsGreedy
@@ -166,7 +166,7 @@ class ACTCAgent(A2CLikeAgent[State]):
         self.eval_prev_options = options
         return opt_policy[self.worker_indices, options]
 
-    def eval_action(self, state: Array) -> Action:
+    def eval_action(self, state: Array, net_outputs: Optional[Netout] = None) -> Action:
         if len(state.shape) == len(self.ac_net.state_dim):
             # treat as batch_size == nworkers
             state = np.stack([state] * self.config.nworkers)

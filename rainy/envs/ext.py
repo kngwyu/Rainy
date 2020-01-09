@@ -99,11 +99,11 @@ class EnvExt(gym.Env, Generic[Action, State]):
         """
         return self._env.reset()
 
-    def render(self, mode: str = "human") -> None:
+    def render(self, mode: str = "human") -> Optional[Array]:
         """
         Inherited from gym.Env.
         """
-        self._env.render(mode=mode)
+        return self._env.render(mode=mode)
 
     def seed(self, seed: int) -> None:
         """

@@ -12,7 +12,8 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch.nn import functional as F
-from .base import DQNLikeAgent
+from typing import Optional
+from .base import DQNLikeAgent, Netout
 from ..config import Config
 from ..envs import ParallelEnv
 from ..prelude import Action, Array, State
@@ -41,8 +42,8 @@ class DQNAgent(DQNLikeAgent):
         self.net.train(mode=train)
 
     @torch.no_grad()
-    def eval_action(self, state: Array) -> Action:
-        return self.eval_policy.select_action(state, self.net).item()  # type: ignore
+    def eval_action(self, state: Array, net_outputs: Optional[Netout] = None) -> Action:
+        return self.eval_policy.select_action(state, self.net, net_outputs).item()
 
     def action(self, state: State) -> Action:
         if self.train_started:

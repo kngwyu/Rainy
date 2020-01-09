@@ -101,6 +101,9 @@ class Config:
         self.episode_log_freq = 1000
         self.network_log_freq = 10000
 
+        # Evaluation hooks: Do some stuff with environment, when evaluating
+        self.eval_hooks = []
+
         # Optimizer and preconditioner
         self.__optim: Dict[Optional[str], Callable[[], Optimizer]] = {
             None: lambda params: RMSprop(params, 0.001)
@@ -222,6 +225,10 @@ class Config:
         return self._get_cooler(
             self.ppo_clip, self.ppo_clip_min, self.nsteps * self.nworkers
         )
+
+    def initialize_hooks(self) -> None:
+        for eval_hook in self.eval_hooks:
+            eval_hook.setup(self)
 
     def __repr__(self) -> str:
         d = filter(lambda t: not t[0].startswith("_Config"), self.__dict__.items())

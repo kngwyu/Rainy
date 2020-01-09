@@ -8,6 +8,7 @@ from torch import nn, Tensor
 from typing import (
     Callable,
     ClassVar,
+    Dict,
     Generic,
     Iterable,
     List,
@@ -16,14 +17,15 @@ from typing import (
     Sequence,
     Tuple,
 )
-import dataclasses
 import warnings
 from ..config import Config
 from ..lib import mpi
 from ..net import DummyRnn, RnnState
-from ..envs import EnvExt, EnvTransition, ParallelEnv
+from ..envs import EnvTransition, ParallelEnv
 from ..prelude import Action, Array, State
 from ..replay import ReplayFeed
+
+Netout = Dict[str, Tensor]
 
 
 class EpisodeResult(NamedTuple):
@@ -61,7 +63,7 @@ class Agent(ABC):
         pass
 
     @abstractmethod
-    def eval_action(self, state: Array) -> Action:
+    def eval_action(self, state: Array, net_outputs: Optional[Netout] = None) -> Action:
         """Return the best action according to training results.
         """
         pass
@@ -82,7 +84,10 @@ class Agent(ABC):
         self.logger.close()
 
     def __eval_episode(
-        self, select_action: Callable[[Array], Action], render: bool, pause: bool
+        self,
+        select_action: Callable[[Array, Optional[Netout]], Action],
+        render: bool,
+        pause: bool,
     ) -> EpisodeResult:
         return_ = 0.0
         steps = 0
@@ -90,21 +95,29 @@ class Agent(ABC):
         if self.config.seed is not None:
             env.seed(self.config.seed)
         state = env.reset()
+        for hook in self.config.eval_hooks:
+            hook.reset(env, state)
         if render:
             env.render()
             if pause:
                 click.pause()
         while True:
             state = env.extract(state)
-            action = select_action(state)
+            net_out = {}
+            action = select_action(state, net_out)
             transition = env.step_and_render(action, render)
+            for hook in self.config.eval_hooks:
+                hook.step(env, action, transition, net_out)
             steps += 1
             return_ += transition.reward
             state = transition.state
             res = self._result(transition.terminal, transition.info, return_, steps)
             if res is not None:
                 self.eval_reset()
-                return res
+                break
+        for hook in self.config.eval_hooks:
+            hook.close()
+        return res
 
     def _result(
         self, done: bool, info: dict, return_: float, episode_length: int,
@@ -119,7 +132,7 @@ class Agent(ABC):
     def random_episode(
         self, render: bool = False, pause: bool = False
     ) -> EpisodeResult:
-        def act(_state) -> Action:
+        def act(_state, *args) -> Action:
             return self.config.eval_env.spec.random_action()
 
         return self.__eval_episode(act, render, pause)
@@ -127,7 +140,7 @@ class Agent(ABC):
     def random_and_save(
         self, fname: str, render: bool = False, pause: bool = False
     ) -> EpisodeResult:
-        def act(_state) -> Action:
+        def act(_state, *args) -> Action:
             return self.config.eval_env.spec.random_action()
 
         res = self.__eval_episode(act, render, pause)
@@ -141,7 +154,7 @@ class Agent(ABC):
         self, fname: str, render: bool = False, pause: bool = False
     ) -> EpisodeResult:
         res = self.__eval_episode(self.eval_action, render, pause)
-        self.config.env_env.save_history(fname)
+        self.config.eval_env.save_history(fname)
         return res
 
     def save(self, filename: str, directory: Optional[Path] = None) -> None:
