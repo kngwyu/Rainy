@@ -54,13 +54,9 @@ class A2CAgent(A2CLikeAgent[State]):
             )
         return policy.eval_action(self.config.eval_deterministic)
 
-    def eval_action_parallel(
-        self, states: Array, mask: torch.Tensor, ent: Optional[Array[float]] = None
-    ) -> Array[Action]:
+    def eval_action_parallel(self, states: Array, mask: torch.Tensor) -> Array[Action]:
         with torch.no_grad():
             policy, self.eval_rnns = self.net.policy(states, self.eval_rnns)
-        if ent is not None:
-            ent += policy.entropy().cpu().numpy()
         return policy.eval_action(self.config.eval_deterministic)
 
     def _network_in(self, states: Array[State]) -> Tuple[Array, RnnState, torch.Tensor]:

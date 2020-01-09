@@ -173,12 +173,8 @@ class ACTCAgent(A2CLikeAgent[State]):
         policy = self._eval_policy(state)
         return policy[0].eval_action(self.config.eval_deterministic)
 
-    def eval_action_parallel(
-        self, states: Array, mask: torch.Tensor, ent: Optional[Array[float]] = None
-    ) -> Array[Action]:
+    def eval_action_parallel(self, states: Array, mask: torch.Tensor) -> Array[Action]:
         policy = self._eval_policy(states)
-        if ent is not None:
-            ent += policy.entropy().cpu().numpy()
         return policy.eval_action(self.config.eval_deterministic)
 
     @property

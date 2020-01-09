@@ -1,5 +1,4 @@
 from functools import partial
-import numpy as np
 import pytest
 import rainy
 from rainy.agents import A2CAgent, AOCAgent, PPOAgent
@@ -19,8 +18,7 @@ def test_eval_parallel(n: int, make_ag: callable) -> None:
     c.set_net_fn("option-critic", net.option_critic.fc_shared(units=[32, 32]))
     c.set_env(partial(DummyEnvDeterministic, flatten=True))
     ag = make_ag(c)
-    entropy = np.zeros(c.nworkers)
-    res = ag.eval_parallel(n, entropy=entropy)
+    res = ag.eval_parallel(n=n)
     assert len(res) == n
     for r in res:
         assert r.return_ == 20.0

@@ -277,9 +277,7 @@ class A2CLikeAgent(Agent, Generic[State]):
         self.eval_rnns: RnnState = DummyRnn.DUMMY_STATE
         self.step_width = self.config.nsteps * self.config.nworkers * mpi.global_size()
 
-    def eval_parallel(
-        self, n: Optional[int] = None, entropy: Optional[Array[float]] = None,
-    ) -> List[EpisodeResult]:
+    def eval_parallel(self, n: Optional[int] = None) -> List[EpisodeResult]:
         reserved = (
             copy.deepcopy(self.returns),
             copy.deepcopy(self.episode_length),
@@ -299,9 +297,7 @@ class A2CLikeAgent(Agent, Generic[State]):
         states = self.eval_penv.reset()
         mask = self.config.device.ones(self.config.nworkers)
         while True:
-            actions = self.eval_action_parallel(
-                self.penv.extract(states), mask, entropy
-            )
+            actions = self.eval_action_parallel(self.penv.extract(states), mask)
             states, rewards, done, info = self.eval_penv.step(actions)
             self.episode_length += 1
             self.returns[:n] += rewards
@@ -315,9 +311,7 @@ class A2CLikeAgent(Agent, Generic[State]):
         return res
 
     @abstractmethod
-    def eval_action_parallel(
-        self, states: Array, mask: torch.Tensor, ent: Optional[Array[float]] = None,
-    ) -> Array[Action]:
+    def eval_action_parallel(self, states: Array, mask: torch.Tensor) -> Array[Action]:
         pass
 
     @abstractmethod
