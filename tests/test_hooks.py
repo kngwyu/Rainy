@@ -11,7 +11,7 @@ except ImportError:
     HAS_PYBULLET = False
 
 
-class QValueHook(envs.EnvHook):
+class QValueHook(lib.hooks.EvalHook):
     def setup(self, config) -> None:
         self.q_values = []
         self.q_value_mean = config.device.zeros(config.action_dim)
@@ -44,7 +44,7 @@ def test_qvalue_hook(make_ag: callable, is_bootdqn: bool) -> None:
 
 def test_video_hook_atari() -> None:
     c = rainy.Config()
-    c.eval_hooks.append(envs.VideoWriterHook(video_name="BreakoutVideo"))
+    c.eval_hooks.append(lib.hooks.VideoWriterHook(video_name="BreakoutVideo"))
     c.set_net_fn("dqn", net.value.dqn_conv())
     c.set_env(lambda: envs.Atari("Breakout"))
     c.eval_env = envs.Atari("Breakout")
@@ -59,7 +59,7 @@ def test_video_hook_atari() -> None:
 @pytest.mark.skipif(not HAS_PYBULLET, reason="PyBullet is an optional dependency")
 def test_video_hook_pybullet() -> None:
     c = rainy.Config()
-    c.eval_hooks.append(envs.VideoWriterHook(video_name="HopperVideo"))
+    c.eval_hooks.append(lib.hooks.VideoWriterHook(video_name="HopperVideo"))
     c.set_env(lambda: envs.PyBullet("Hopper"))
     c.set_explorer(lambda: lib.explore.GaussianNoise())
     c.set_explorer(lambda: lib.explore.Greedy(), key="eval")

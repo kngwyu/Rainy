@@ -1,24 +1,26 @@
-"""Environment hooks: do some stuff when evaluating
+"""Training/evaluation hooks which make visualization or custom logging easier
 """
-from abc import ABC, abstractmethod
+from abc import ABC
 import cv2
 import numpy as np
 from torch import Tensor
 from typing import Any, Dict
-from .ext import EnvExt, EnvTransition
+from ..envs import EnvExt, EnvTransition
 from ..prelude import Action, State
 
-Config = Any
+Agent, Config = Any, Any
 
 
-class EnvHook(ABC):
+class EvalHook(ABC):
+    """Evaluation hooks: do some stuff when evaluating
+    """
+
     def setup(self, config: Config) -> None:
         pass
 
-    def reset(self, env: EnvExt, initial_state: State) -> None:
+    def reset(self, agent: Agent, env: EnvExt, initial_state: State) -> None:
         pass
 
-    @abstractmethod
     def step(
         self,
         env: EnvExt,
@@ -32,7 +34,7 @@ class EnvHook(ABC):
         pass
 
 
-class VideoWriterHook(EnvHook):
+class VideoWriterHook(EvalHook):
     """Record video using env.render
     """
 
@@ -58,7 +60,7 @@ class VideoWriterHook(EnvHook):
     def setup(self, config: Config) -> None:
         self.logdir = config.logger.logdir
 
-    def reset(self, env: EnvExt, _initial_state: State) -> None:
+    def reset(self, _agent: Agent, env: EnvExt, _initial_state: State) -> None:
         file_ = self.logdir.joinpath(f"{self.video_name}-{self.video_id}.avi")
         self.video_id += 1
         image = env.render(mode="rgb_array")

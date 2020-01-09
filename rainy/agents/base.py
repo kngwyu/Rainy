@@ -96,7 +96,7 @@ class Agent(ABC):
             env.seed(self.config.seed)
         state = env.reset()
         for hook in self.config.eval_hooks:
-            hook.reset(env, state)
+            hook.reset(self, env, state)
         if render:
             env.render()
             if pause:

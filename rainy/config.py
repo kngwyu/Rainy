@@ -6,6 +6,7 @@ from .net import actor_critic, bootstrap, deterministic, option_critic, sac, val
 from .net.prelude import NetFn
 from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
 from .lib import mpi
+from .lib.hooks import EvalHook
 from .lib.kfac import KfacPreConditioner, PreConditioner
 from .prelude import Params
 from .replay import DQNReplayFeed, ReplayBuffer, UniformReplayBuffer
@@ -102,7 +103,7 @@ class Config:
         self.network_log_freq = 10000
 
         # Evaluation hooks: Do some stuff with environment, when evaluating
-        self.eval_hooks = []
+        self.eval_hooks: List[EvalHook] = []
 
         # Optimizer and preconditioner
         self.__optim: Dict[Optional[str], Callable[[], Optimizer]] = {
