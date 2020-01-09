@@ -3,7 +3,7 @@ import gym
 from typing import Callable, Optional
 from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
 from .deepsea import DeepSea as DeepSeaGymEnv
-from .ext import EnvExt, EnvSpec  # noqa
+from .ext import EnvExt, EnvSpec, EnvTransition  # noqa
 from .monitor import RewardMonitor
 from .obs_wrappers import AddTimeStep, TransposeObs
 from .parallel import (  # noqa

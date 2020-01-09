@@ -3,9 +3,23 @@
 import gym
 from gym import spaces
 import numpy as np
-from typing import Any, Generic, Sequence, Optional, Tuple
+from typing import Callable, Generic, NamedTuple, Sequence, Optional
 from .monitor import RewardMonitor
-from ..prelude import Action, Array, State
+from ..prelude import Action, Array, GenericNamedMeta, Self, State
+
+
+class EnvTransition(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
+    state: State
+    reward: float
+    terminal: bool
+    info: dict
+
+    def replace_s(self, state: State) -> Self:
+        return EnvTransition(state, *self[1:])
+
+    def map_r(self, f: Callable[[float], float]) -> Self:
+        s, r, t, i = self
+        return EnvTransition(s, f(r), t, i)
 
 
 class EnvSpec:
@@ -97,25 +111,24 @@ class EnvExt(gym.Env, Generic[Action, State]):
         """
         self._env.seed(seed)
 
-    def step(self, action: Action) -> Tuple[State, float, bool, Any]:
+    def step(self, action: Action) -> EnvTransition:
         """
         Inherited from gym.Env.
         """
-        return self._env.step(action)
+        return EnvTransition(*self._env.step(action))
 
-    def step_and_render(
-        self, action: Action, render: bool = False
-    ) -> Tuple[State, float, bool, Any]:
+    def step_and_render(self, action: Action, render: bool = False) -> EnvTransition:
         res = self._env.step(action)
         if render:
             self.render()
-        return res
+        return EnvTransition(*res)
 
-    def step_and_reset(self, action: Action) -> Tuple[State, float, bool, Any]:
-        state, reward, done, info = self.step(action)
-        if done:
-            state = self.reset()
-        return state, reward, done, info
+    def step_and_reset(self, action: Action) -> EnvTransition:
+        transition = self.step(action)
+        if transition.terminal:
+            return transition.replace_s(self.reset())
+        else:
+            return transition
 
     @property
     def unwrapped(self) -> gym.Env:

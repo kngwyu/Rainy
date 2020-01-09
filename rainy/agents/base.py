@@ -16,11 +16,12 @@ from typing import (
     Sequence,
     Tuple,
 )
+import dataclasses
 import warnings
 from ..config import Config
 from ..lib import mpi
 from ..net import DummyRnn, RnnState
-from ..envs import EnvExt, ParallelEnv
+from ..envs import EnvExt, EnvTransition, ParallelEnv
 from ..prelude import Action, Array, State
 from ..replay import ReplayFeed
 
@@ -82,7 +83,7 @@ class Agent(ABC):
 
     def __eval_episode(
         self, select_action: Callable[[Array], Action], render: bool, pause: bool
-    ) -> Tuple[EpisodeResult, EnvExt]:
+    ) -> EpisodeResult:
         return_ = 0.0
         steps = 0
         env = self.config.eval_env
@@ -96,13 +97,14 @@ class Agent(ABC):
         while True:
             state = env.extract(state)
             action = select_action(state)
-            state, reward, done, info = env.step_and_render(action, render)
+            transition = env.step_and_render(action, render)
             steps += 1
-            return_ += reward
-            res = self._result(done, info, return_, steps)
+            return_ += transition.reward
+            state = transition.state
+            res = self._result(transition.terminal, transition.info, return_, steps)
             if res is not None:
                 self.eval_reset()
-                return (res, env)
+                return res
 
     def _result(
         self, done: bool, info: dict, return_: float, episode_length: int,
@@ -120,7 +122,7 @@ class Agent(ABC):
         def act(_state) -> Action:
             return self.config.eval_env.spec.random_action()
 
-        return self.__eval_episode(act, render, pause)[0]
+        return self.__eval_episode(act, render, pause)
 
     def random_and_save(
         self, fname: str, render: bool = False, pause: bool = False
@@ -128,18 +130,18 @@ class Agent(ABC):
         def act(_state) -> Action:
             return self.config.eval_env.spec.random_action()
 
-        res, env = self.__eval_episode(act, render, pause)
-        env.save_history(fname)
+        res = self.__eval_episode(act, render, pause)
+        self.config.eval_env.save_history(fname)
         return res
 
     def eval_episode(self, render: bool = False, pause: bool = False) -> EpisodeResult:
-        return self.__eval_episode(self.eval_action, render, pause)[0]
+        return self.__eval_episode(self.eval_action, render, pause)
 
     def eval_and_save(
         self, fname: str, render: bool = False, pause: bool = False
     ) -> EpisodeResult:
-        res, env = self.__eval_episode(self.eval_action, render, pause)
-        env.save_history(fname)
+        res = self.__eval_episode(self.eval_action, render, pause)
+        self.config.env_env.save_history(fname)
         return res
 
     def save(self, filename: str, directory: Optional[Path] = None) -> None:
@@ -217,15 +219,9 @@ class DQNLikeAgent(Agent, Generic[State, Action, ReplayFeed]):
         pass
 
     def store_transition(
-        self,
-        state: State,
-        action: Action,
-        next_state: State,
-        reward: float,
-        done: bool,
+        self, state: State, action: Action, transition: EnvTransition,
     ) -> None:
-        reward *= self.config.reward_scale
-        self.replay.append(state, action, next_state, reward, done)
+        self.replay.append(state, action, *transition[:3])
 
     @property
     def train_started(self) -> bool:
@@ -238,22 +234,24 @@ class DQNLikeAgent(Agent, Generic[State, Action, ReplayFeed]):
         if self.config.seed is not None:
             self.env.seed(self.config.seed)
         state = self.env.reset()
-        return_ = 0.0
-        episode_length = 0
+        return_, episode_length = 0.0, 0
+        reward_scale = self.config.reward_scale
         while True:
             action = self.action(state)
-            next_state, reward, done, info = self.env.step(action)
-            self.store_transition(state, action, next_state, reward, done)
+            transition = self.env.step(action).map_r(lambda r: r * reward_scale)
+            self.store_transition(state, action, transition)
             if self.train_started and self.total_steps % self.config.update_freq == 0:
                 self.train(self.replay.sample(self.config.replay_batch_size))
                 self.update_steps += 1
             # Set next state
-            state = next_state
+            state = transition.state
             # Update stats
             self.total_steps += 1
-            return_ += reward
+            return_ += transition.reward
             episode_length += 1
-            res = self._result(done, info, return_, episode_length)
+            res = self._result(
+                transition.terminal, transition.info, return_, episode_length
+            )
             if res is not None:
                 yield [res]
                 state = self.env.reset()
@@ -276,6 +274,8 @@ class A2CLikeAgent(Agent, Generic[State]):
         self.eval_penv = None
         self.eval_rnns: RnnState = DummyRnn.DUMMY_STATE
         self.step_width = self.config.nsteps * self.config.nworkers * mpi.global_size()
+
+        self.reward_scale = self.config.reward_scale
 
     def eval_parallel(self, n: Optional[int] = None) -> List[EpisodeResult]:
         reserved = (
@@ -349,11 +349,11 @@ class A2CLikeAgent(Agent, Generic[State]):
 
     def _one_step(self, states: Array[State]) -> Array[State]:
         actions, net_outputs = self.actions(states)
-        states, rewards, terminals, infos = self.penv.step(actions)
-        self.storage.push(states, rewards, terminals, **net_outputs)
-        self.returns += rewards
+        transition = self.penv.step(actions).map_r(lambda r: r * self.reward_scale)
+        self.storage.push(*transition[:3], **net_outputs)
+        self.returns += transition.rewards
         self.episode_length += 1
-        self._report_reward(terminals, infos)
+        self._report_reward(transition.terminals, transition.infos)
         return states
 
     def close(self) -> None:

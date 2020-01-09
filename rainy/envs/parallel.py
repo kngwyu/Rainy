@@ -6,16 +6,20 @@ from numpy import ndarray
 from typing import Any, Callable, Generic, Iterable, NamedTuple, Sequence
 from .ext import EnvExt, EnvSpec
 from ..utils import mp_utils
-from ..prelude import Action, Array, Self, State
+from ..prelude import Action, Array, GenericNamedMeta, Self, State
 
 EnvGen = Callable[[], EnvExt]
 
 
-class PEnvTransition(NamedTuple):
+class PEnvTransition(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
     states: Array[State]
     rewards: Array[float]
     terminals: Array[bool]
     infos: Array[dict]
+
+    def map_r(self, f: Callable[[Array[float]], Array[float]]) -> Self:
+        s, r, t, i = self
+        return PEnvTransition(s, f(r), t, i)
 
 
 class ParallelEnv(ABC, Generic[Action, State]):
@@ -165,7 +169,8 @@ class DummyParallelEnv(ParallelEnv):
 
     def step(self, actions: Iterable[Action]) -> PEnvTransition:
         res = [e.step_and_reset(a) for (a, e) in zip(actions, self.envs)]
-        return PEnvTransition(*map(np.array, zip(*res)))
+        res = PEnvTransition(*map(np.array, zip(*res)))
+        return res
 
     def seed(self, seeds: Iterable[int]) -> None:
         for env, seed in zip(self.envs, seeds):

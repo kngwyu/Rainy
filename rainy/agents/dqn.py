@@ -64,8 +64,9 @@ class DQNAgent(DQNLikeAgent):
     def train(self, replay_feed: DQNReplayFeed) -> None:
         obs = [ob.to_array(self.env.extract) for ob in replay_feed]
         states, actions, next_states, rewards, done = map(np.asarray, zip(*obs))
-        q_next = self._q_next(next_states).squeeze_().mul_(self.tensor(1.0 - done))
-        q_target = self.tensor(rewards).add_(q_next.mul_(self.config.discount_factor))
+        q_next = self._q_next(next_states).squeeze_()
+        discount = self.tensor(1.0 - done).mul_(self.config.discount_factor)
+        q_target = self.tensor(rewards).add_(q_next.mul_(discount))
         q_prediction = self.net(states)[self.batch_indices, actions]
         loss = F.mse_loss(q_prediction, q_target)
         self._backward(loss, self.optimizer, self.net.parameters())
