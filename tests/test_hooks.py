@@ -3,6 +3,13 @@ import rainy
 from rainy import agents, envs, lib, net, replay
 import torch
 
+try:
+    import pybullet  # noqa
+
+    HAS_PYBULLET = True
+except ImportError:
+    HAS_PYBULLET = False
+
 
 class QValueHook(envs.EnvHook):
     def setup(self, config) -> None:
@@ -49,6 +56,7 @@ def test_video_hook_atari() -> None:
     assert videopath.exists()
 
 
+@pytest.mark.skipif(not HAS_PYBULLET, reason="PyBullet is an optional dependency")
 def test_video_hook_pybullet() -> None:
     c = rainy.Config()
     c.eval_hooks.append(envs.VideoWriterHook(video_name="HopperVideo"))
