@@ -26,7 +26,6 @@ def config(envname: str = "HalfCheetah") -> Config:
     c.ppo_minibatch_size = (16 * 128) // 16
     c.ppo_clip = 0.2
     c.use_gae = True
-    c.use_reward_monitor = True
     c.eval_freq = None
     return c
 

@@ -83,7 +83,6 @@ class Atari(EnvExt):
         )
         env = TransposeObs(env)
         super().__init__(env)
-        self.spec.use_reward_monitor = True
 
     @staticmethod
     def extract(obs: State) -> Array:
@@ -135,7 +134,6 @@ class PyBullet(EnvExt):
             env = AddTimeStep(env)
         super().__init__(RewardMonitor(env))
         self._viewer = None
-        self.spec.use_reward_monitor = True
 
     def render(self, mode: str = "human") -> Optional[Array]:
         if mode == "human":

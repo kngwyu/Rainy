@@ -16,7 +16,6 @@ def config(envname: str = "Hopper", nworkers: int = 1) -> Config:
     c.set_optimizer(lambda params: Adam(params, lr=3e-4), key="entropy")
     c.replay_size = int(1e6)
     c.train_start = int(1e4)
-    c.use_reward_monitor = True
     c.eval_deterministic = True
     c.eval_freq = c.max_steps // 100
     c.sync_freq = 1

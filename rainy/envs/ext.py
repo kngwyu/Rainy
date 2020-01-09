@@ -1,19 +1,23 @@
+"""Environment specifications:
+"""
 import gym
 from gym import spaces
 import numpy as np
 from typing import Any, Generic, Sequence, Optional, Tuple
+from .monitor import RewardMonitor
 from ..prelude import Action, Array, State
 
 
 class EnvSpec:
+    """EnvSpec holds obs/action dims and monitors
+    """
+
     def __init__(
         self,
         state_dim: Sequence[int],
         action_space: gym.Space,
         use_reward_monitor: bool = False,
     ) -> None:
-        """Properties which are common both in EnvExt and ParallelEnv
-        """
         self.state_dim = state_dim
         self.action_space = action_space
         self.use_reward_monitor = use_reward_monitor
@@ -46,6 +50,17 @@ class EnvSpec:
         )
 
 
+def _use_reward_monitor(env: gym.Env) -> bool:
+    if not hasattr(env, "env"):
+        return False
+    parent = env.env
+
+    if isinstance(parent, RewardMonitor):
+        return True
+    else:
+        return _use_reward_monitor(parent)
+
+
 class EnvExt(gym.Env, Generic[Action, State]):
     def __init__(self, env: gym.Env, obs_shape: Optional[spaces.Space] = None) -> None:
         self._env = env
@@ -55,7 +70,8 @@ class EnvExt(gym.Env, Generic[Action, State]):
                 raise NotImplementedError(
                     f"Failed detect state dimension from {env.obs_shape}!"
                 )
-        self.spec = EnvSpec(obs_shape, self._env.action_space)
+        use_reward_monitor = _use_reward_monitor(env)
+        self.spec = EnvSpec(obs_shape, self._env.action_space, use_reward_monitor)
 
     def close(self):
         """

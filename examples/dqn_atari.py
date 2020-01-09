@@ -22,7 +22,6 @@ def config(envname: str = "Breakout") -> Config:
     c.max_steps = int(2e7)
     c.eval_env = Atari(envname)
     c.eval_freq = None
-    c.use_reward_monitor = True
     return c
 
 
