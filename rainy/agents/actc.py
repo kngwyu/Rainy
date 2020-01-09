@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from torch import BoolTensor, LongTensor, Tensor
 from torch.nn import functional as F
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 from .base import A2CLikeAgent
 from ..config import Config
 from ..envs import ParallelEnv
@@ -81,10 +81,10 @@ class TCRolloutStorage(RolloutStorage[State]):
 def calc_beta_adv(
     p_mu_x: Tensor, p_x_xs: Tensor, p_mu_xf: Tensor, p_xf_xs: Tensor
 ) -> Tensor:
-    adv_p = torch.log(p_mu_x) - torch.log(p_mu_xf)
-    log_pxfxs_pmux = torch.log(p_xf_xs) + torch.log(p_mu_x)
-    log_pmuxf_pxxs = torch.log(p_mu_xf) + torch.log(p_x_xs)
-    adv_tau = 1.0 - torch.exp(log_pxfxs_pmux - log_pmuxf_pxxs)
+    P_EPS = 1e-8  # Prevent p=0 -> log(p) = -inf
+    adv_p = (p_mu_x + P_EPS).log() - (p_mu_xf + P_EPS).log()
+    log_p_ratio = (p_xf_xs * p_mu_x + P_EPS).log() - (p_mu_xf * p_x_xs + P_EPS).log()
+    adv_tau = 1.0 - torch.exp(log_p_ratio)
     return adv_p + adv_tau
 
 
