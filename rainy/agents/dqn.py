@@ -69,7 +69,7 @@ class DQNAgent(DQNLikeAgent):
         q_prediction = self.net(states)[self.batch_indices, actions]
         loss = F.mse_loss(q_prediction, q_target)
         self._backward(loss, self.optimizer, self.net.parameters())
-        self.network_log(q_value=q_current.mean().item(), value_loss=loss.item())
+        self.network_log(q_value=q_prediction.mean().item(), value_loss=loss.item())
         if self.update_steps > 0 and self.update_steps % self.config.sync_freq == 0:
             self.target_net.load_state_dict(self.net.state_dict())
 
