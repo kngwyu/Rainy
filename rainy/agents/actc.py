@@ -11,7 +11,6 @@ from torch.nn import functional as F
 from typing import Optional, Tuple
 from .base import A2CLikeAgent, Netout
 from ..config import Config
-from ..envs import ParallelEnv
 from ..lib.explore import EpsGreedy
 from ..lib.rollout import RolloutStorage
 from ..net import OptionActorCriticNet, TerminationCriticNet
@@ -46,9 +45,6 @@ class TCRolloutStorage(RolloutStorage[State]):
         batched = torch.cat(self.options, dim=0)
         return batched[: -self.nworkers], batched[self.nworkers :]
 
-    def last_states(self, penv: ParallelEnv, repeat: bool = True) -> Tensor:
-        return self.device.tensor(penv.extract(self.states[-1]))
-
     def calc_ac_returns(self, next_value: Tensor, gamma: float) -> None:
         self.returns[-1] = next_value
         rewards = self.device.tensor(self.rewards)
@@ -63,18 +59,27 @@ class TCRolloutStorage(RolloutStorage[State]):
         res = self.device.zeros((self.nsteps, self.nworkers))
         p_xiplus1_xf = beta_xf
         for i in reversed(range(self.nsteps)):
-            p_x_xf = p_xiplus1_xf * (1.0 - beta_x[i])
+            p_x_xf = (1.0 - beta_x[i]) * p_xiplus1_xf
             p_x_x = beta_x[i]
             res[i] = torch.where(self.is_new_options[i + 1], p_x_x, p_x_xf)
             p_xiplus1_xf = res[i]
         return res
 
-    def _prepare_initial_states(self, xs: Tensor, batch_states: Tensor) -> Tensor:
+    def _prepare_xs(self, xs: Tensor, batch_states: Tensor) -> Tensor:
         states = batch_states.view(self.nsteps, self.nworkers, *batch_states.shape[1:])
         res = [xs]
         for i in range(1, self.nsteps):
             is_new_options = self.is_new_options[i - 1].view(self.nworkers, 1)
             res.append(torch.where(is_new_options, states[i], res[i - 1]))
+        return torch.cat(res)
+
+    def _prepare_xf(self, xf: Tensor, batch_states: Tensor) -> Tensor:
+        states = batch_states.view(self.nsteps, self.nworkers, *batch_states.shape[1:])
+        res = [xf]
+        for i in reversed(range(self.nsteps - 1)):
+            is_new_options = self.is_new_options[i].view(self.nworkers, 1)
+            res.append(torch.where(is_new_options, states[i], res[-1]))
+        res.reverse()
         return torch.cat(res)
 
 
@@ -92,7 +97,7 @@ class ACTCAgent(A2CLikeAgent[State]):
     """ACTC: Actor Critic Termination Critic
     """
 
-    SAVED_MEMBERS = "net", "opt_explorer"
+    SAVED_MEMBERS = "ac_net", "tc_net", "optimizer", "tc_optimizer"
 
     def __init__(self, config: Config) -> None:
         super().__init__(config)
@@ -208,8 +213,8 @@ class ACTCAgent(A2CLikeAgent[State]):
         return actions, net_outputs
 
     @torch.no_grad()
-    def _next_value(self, states: Array[State]) -> Tuple[Tensor, Tensor]:
-        opt_q = self.ac_net.opt_q(self.penv.extract(states))
+    def _next_value(self, states: Tensor) -> Tuple[Tensor, Tensor]:
+        opt_q = self.ac_net.opt_q(states)
         current_opt_q = opt_q[self.worker_indices, self.prev_options]
         eps = self.opt_explorer.epsilon
         next_opt_q = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(-1)
@@ -220,16 +225,17 @@ class ACTCAgent(A2CLikeAgent[State]):
         """
         # N: Number of Steps W: Number of workers O: Number of options
         N, W = self.config.nsteps, self.config.nworkers
+        last_states = self.tensor(self.penv.extract(last_states))
         next_v = self._next_value(last_states)
         self.storage.calc_ac_returns(next_v, self.config.discount_factor)
 
         prev_options, options = self.storage.batch_options()  # NW
         x = self.storage.batch_states(self.penv)  # NW
-        xs = self.storage._prepare_initial_states(self._xs_reserved, x)  # NW
-        xf = self.storage.last_states(self.penv).repeat(N, 1)  # NW
+        xs = self.storage._prepare_xs(self._xs_reserved, x)  # NW
+        xf = self.storage._prepare_xf(last_states, x)  # NW
         with torch.no_grad():
-            p_xs_xf = self.tc_net.p(xs, xf)  # NW x O
-            p_xs_xf = p_xs_xf[self.batch_indices, prev_options]  # NW
+            p_xf_xs = self.tc_net.p(xs, xf)  # NW x O
+            p_xf_xs = p_xf_xs[self.batch_indices, prev_options]  # NW
 
         beta_x, p_x_xs, p_mu_x, _ = self.tc_net(xs, x)
         beta_xf, p_xf_x, p_mu_xf, baseline = self.tc_net(x, xf)
@@ -251,16 +257,16 @@ class ACTCAgent(A2CLikeAgent[State]):
         p_mu_xf = p_mu_xf[self.batch_indices, prev_options]
         baseline = baseline[self.batch_indices, prev_options]
 
-        beta_adv = calc_beta_adv(p_mu_x, p_x_xs, p_mu_xf_averaged, p_xs_xf)
-        beta_loss = -(bx_l * bx_p * (beta_adv - baseline)).mean()
+        beta_adv = calc_beta_adv(p_mu_x, p_x_xs, p_mu_xf_averaged, p_xf_xs)
+        beta_loss = -(bx_l * bx_p * (beta_adv - baseline.detach())).mean()
         beta_xf_averaged = beta_xf.view(N, W).mean(dim=0)
         p_target = self.storage.calc_p_target(
             beta_x.dist.probs.detach(), beta_xf_averaged
         )
-        p_loss = F.mse_loss(p_xf_x, p_target.flatten())
+        p_loss = (p_target.flatten() - p_xf_x).pow(2).mean()
         pmu_loss = F.mse_loss(p_mu_xf, p_xf_x.detach())
         baseline_loss = F.mse_loss(baseline, beta_adv)
-        tc_loss = beta_loss + p_loss + pmu_loss + baseline_loss
+        tc_loss = beta_loss + 0.5 * p_loss + pmu_loss + baseline_loss
         self._backward(tc_loss, self.tc_optimizer, self.tc_net.parameters())
 
         policy, q = self.ac_net(x)
@@ -268,12 +274,12 @@ class ACTCAgent(A2CLikeAgent[State]):
         policy.set_action(self.storage.batch_actions())
         policy_loss = -(policy.log_prob() * self.storage.advs[:-1].flatten()).mean()
         ret = self.storage.returns[:-1].flatten()
-        value_loss = F.mse_loss(q[self.batch_indices, options], ret)
+        value_loss = (ret - q[self.batch_indices, options]).pow(2).mean()
         entropy = policy.entropy().mean()
 
         ac_loss = (
             policy_loss
-            + self.config.value_loss_weight * value_loss
+            + self.config.value_loss_weight * 0.5 * value_loss
             - self.config.entropy_weight * entropy
         )
         self._backward(ac_loss, self.optimizer, self.ac_net.parameters())
