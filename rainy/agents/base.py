@@ -367,7 +367,7 @@ class A2CLikeAgent(Agent, Generic[State]):
         self.returns += transition.rewards
         self.episode_length += 1
         self._report_reward(transition.terminals, transition.infos)
-        return states
+        return transition.states
 
     def close(self) -> None:
         self.env.close()
