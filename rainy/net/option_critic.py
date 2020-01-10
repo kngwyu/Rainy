@@ -31,6 +31,10 @@ class OptionCriticNet(nn.Module, ABC):
         pass
 
     @abstractmethod
+    def beta(self, states: ArrayLike) -> BernoulliPolicy:
+        pass
+
+    @abstractmethod
     def forward(self, states: ArrayLike) -> Tuple[Policy, Tensor, BernoulliPolicy]:
         pass
 
@@ -65,6 +69,10 @@ class SharedBodyOCNet(OptionCriticNet):
     def opt_q(self, states: ArrayLike) -> Tensor:
         feature = self.body(self.device.tensor(states))
         return self.optq_head(feature)
+
+    def beta(self, states: ArrayLike) -> BernoulliPolicy:
+        feature = self.body(self.device.tensor(states))
+        return self.beta_dist(self.beta_head(feature))
 
     def forward(self, states: ArrayLike) -> Tuple[Policy, Tensor, BernoulliPolicy]:
         feature = self.body(self.device.tensor(states))
