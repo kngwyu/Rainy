@@ -66,21 +66,23 @@ class TCRolloutStorage(RolloutStorage[State]):
         return res
 
     def _prepare_xs(self, xs: Tensor, batch_states: Tensor) -> Tensor:
-        states = batch_states.view(self.nsteps, self.nworkers, *batch_states.shape[1:])
-        res = [xs]
+        state_shape = batch_states.shape[1:]
+        states = batch_states.view(self.nsteps, self.nworkers, -1)
+        res = [xs.view(self.nworkers, -1)]
         for i in range(1, self.nsteps):
-            is_new_options = self.is_new_options[i - 1].view(self.nworkers, 1)
+            is_new_options = self.is_new_options[i - 1].unsqueeze(1)
             res.append(torch.where(is_new_options, states[i], res[i - 1]))
-        return torch.cat(res)
+        return torch.cat(res).view(self.nsteps * self.nworkers, *state_shape)
 
     def _prepare_xf(self, xf: Tensor, batch_states: Tensor) -> Tensor:
-        states = batch_states.view(self.nsteps, self.nworkers, *batch_states.shape[1:])
-        res = [xf]
+        state_shape = batch_states.shape[1:]
+        states = batch_states.view(self.nsteps, self.nworkers, -1)
+        res = [xf.view(self.nworkers, -1)]
         for i in reversed(range(self.nsteps - 1)):
-            is_new_options = self.is_new_options[i].view(self.nworkers, 1)
+            is_new_options = self.is_new_options[i].unsqueeze(1)
             res.append(torch.where(is_new_options, states[i], res[-1]))
         res.reverse()
-        return torch.cat(res)
+        return torch.cat(res).view(self.nsteps * self.nworkers, *state_shape)
 
 
 def calc_beta_adv(

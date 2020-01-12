@@ -84,7 +84,7 @@ def oac_conv_shared(
     num_options: int = 4,
     policy: Type[PolicyDist] = CategoricalDist,
     hidden_channels: Tuple[int, int, int] = (32, 64, 32),
-    output_dim: int = 256,
+    feature_dim: int = 256,
     **cnn_args,
 ) -> NetFn:
     def _net(
@@ -93,7 +93,7 @@ def oac_conv_shared(
         body = ConvBody(
             state_dim,
             hidden_channels=hidden_channels,
-            output_dim=output_dim,
+            output_dim=feature_dim,
             **cnn_args,
         )
         ac_head = LinearHead(body.output_dim, action_dim * num_options, policy_init())
