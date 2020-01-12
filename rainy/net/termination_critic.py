@@ -32,6 +32,10 @@ class OptionActorCriticNet(nn.Module, ABC):
         pass
 
     @abstractmethod
+    def opt_pi(self, states: ArrayLike) -> Policy:
+        pass
+
+    @abstractmethod
     def forward(self, states: ArrayLike) -> Tuple[Policy, Tensor]:
         pass
 
@@ -64,11 +68,16 @@ class SharedOACNet(OptionActorCriticNet):
         feature = self.body(self.device.tensor(states))
         return self.optq_head(feature)
 
+    def opt_pi(self, states: ArrayLike) -> Policy:
+        feature = self.body(self.device.tensor(states))
+        logits = self.actor_head(feature).view(-1, self.num_options, self.action_dim)
+        return self.policy_dist(logits)
+
     def forward(self, states: ArrayLike) -> Tuple[Policy, Tensor]:
         feature = self.body(self.device.tensor(states))
-        policy = self.actor_head(feature).view(-1, self.num_options, self.action_dim)
+        logits = self.actor_head(feature).view(-1, self.num_options, self.action_dim)
         opt_q = self.optq_head(feature)
-        return self.policy_dist(policy), opt_q
+        return self.policy_dist(logits), opt_q
 
 
 def oac_conv_shared(
