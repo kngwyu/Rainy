@@ -169,8 +169,7 @@ class DummyParallelEnv(ParallelEnv):
 
     def step(self, actions: Iterable[Action]) -> PEnvTransition:
         res = [e.step_and_reset(a) for (a, e) in zip(actions, self.envs)]
-        res = PEnvTransition(*map(np.array, zip(*res)))
-        return res
+        return PEnvTransition(*map(np.array, zip(*res)))
 
     def seed(self, seeds: Iterable[int]) -> None:
         for env, seed in zip(self.envs, seeds):

@@ -14,9 +14,6 @@ class EnvTransition(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
     terminal: bool
     info: dict
 
-    def replace_s(self, state: State) -> Self:
-        return EnvTransition(state, *self[1:])
-
     def map_r(self, f: Callable[[float], float]) -> Self:
         s, r, t, i = self
         return EnvTransition(s, f(r), t, i)
@@ -126,7 +123,7 @@ class EnvExt(gym.Env, Generic[Action, State]):
     def step_and_reset(self, action: Action) -> EnvTransition:
         transition = self.step(action)
         if transition.terminal:
-            return transition.replace_s(self.reset())
+            return EnvTransition(self.reset(), *transition[1:])
         else:
             return transition
 
