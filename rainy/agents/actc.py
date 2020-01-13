@@ -50,16 +50,17 @@ class TCRolloutStorage(RolloutStorage[State]):
         rewards = self.device.tensor(self.rewards)
         for i in reversed(range(self.nsteps)):
             self.returns[i] = (
-                gamma * self.masks[i + 1] * self.returns[i + 1] + rewards[i]
+                rewards[i] + gamma * self.masks[i + 1] * self.returns[i + 1]
             )
             opt_q, opt = self.values[i], self.options[i + 1]
             self.advs[i] = self.returns[i] - opt_q[self.worker_indices, opt]
 
     def calc_p_target(self, beta_x: Tensor, beta_xf: Tensor) -> Tensor:
         res = self.device.zeros((self.nsteps, self.nworkers))
+        beta_x = beta_x.view(self.nsteps, self.nworkers)
         p_xiplus1_xf = beta_xf
         for i in reversed(range(self.nsteps)):
-            p_x_xf = (1.0 - beta_x[i]) * p_xiplus1_xf
+            p_x_xf = (1.0 - beta_x[i]).mul_(p_xiplus1_xf)
             p_x_x = beta_x[i]
             res[i] = torch.where(self.is_new_options[i + 1], p_x_x, p_x_xf)
             p_xiplus1_xf = res[i]
@@ -68,19 +69,23 @@ class TCRolloutStorage(RolloutStorage[State]):
     def _prepare_xs(self, xs: Tensor, batch_states: Tensor) -> Tensor:
         state_shape = batch_states.shape[1:]
         states = batch_states.view(self.nsteps, self.nworkers, -1)
-        res = [xs.view(self.nworkers, -1)]
-        for i in range(1, self.nsteps):
-            is_new_options = self.is_new_options[i - 1].unsqueeze(1)
-            res.append(torch.where(is_new_options, states[i], res[i - 1]))
+        xs_last = xs.view(self.nworkers, -1)
+        res = []
+        for i in range(self.nsteps):
+            is_new_options = self.is_new_options[i].unsqueeze(1)
+            xs_last = torch.where(is_new_options, states[i], xs_last)
+            res.append(xs_last)
         return torch.cat(res).view(self.nsteps * self.nworkers, *state_shape)
 
     def _prepare_xf(self, xf: Tensor, batch_states: Tensor) -> Tensor:
         state_shape = batch_states.shape[1:]
         states = batch_states.view(self.nsteps, self.nworkers, -1)
-        res = [xf.view(self.nworkers, -1)]
-        for i in reversed(range(self.nsteps - 1)):
-            is_new_options = self.is_new_options[i].unsqueeze(1)
-            res.append(torch.where(is_new_options, states[i], res[-1]))
+        xf_last = xf.view(self.nworkers, -1)
+        res = []
+        for i in reversed(range(self.nsteps)):
+            is_new_options = self.is_new_options[i + 1].unsqueeze(1)
+            xf_last = torch.where(is_new_options, states[i], xf_last)
+            res.append(xf_last)
         res.reverse()
         return torch.cat(res).view(self.nsteps * self.nworkers, *state_shape)
 
@@ -290,6 +295,7 @@ class ACTCAgent(A2CLikeAgent[State]):
             policy_loss=policy_loss.item(),
             value_loss=value_loss.item(),
             beta=beta_x.dist.probs.mean().item(),
+            pmu=p_mu_xf.mean().item(),
             beta_loss=beta_loss.item(),
             entropy=entropy.item(),
             p_loss=p_loss.item(),

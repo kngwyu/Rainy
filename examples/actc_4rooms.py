@@ -70,6 +70,8 @@ class OptionVisualizeHook(EvalHook):
                     nrows=2,
                     ncols=2,
                     index=i + 1,
+                    ticks=False,
+                    legend=self.initial and i == 1,
                 )
 
         if self.vis_pi:
@@ -114,7 +116,6 @@ def config(
     c.set_parallel_env(MultiProcEnv)
     c.set_optimizer(lambda params: optim.RMSprop(params, lr=0.0007))
     c.set_optimizer(lambda params: optim.Adam(params, lr=1e-4), key="termination")
-    c.set_explorer(lambda: rainy.lib.explore.EpsGreedy(0.1))
     c.grad_clip = 1.0
     c.eval_freq = c.max_steps // 20
     c.network_log_freq = (c.max_steps // c.batch_size) // 10

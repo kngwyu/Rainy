@@ -95,7 +95,7 @@ class RolloutStorage(Generic[State]):
         rewards = self._calc_ret_common(next_value)
         for i in reversed(range(self.nsteps)):
             self.returns[i] = (
-                self.returns[i + 1] * gamma * self.masks[i + 1] + rewards[i]
+                rewards[i] + gamma * self.masks[i + 1] * self.returns[i + 1]
             )
         self.advs[:-1] = self.returns[:-1] - self.batch_values
 
