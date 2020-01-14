@@ -84,7 +84,7 @@ class Experiment:
 
     def train(self, saveid_start: int = 0, eval_render: bool = False) -> None:
         if not self.logger.ready:
-            self.logger.setup()
+            self.logger.setup_logdir()
         logdir = self.logger.logdir.as_posix()
         click.secho(f"Train stared :) Logdir: {logdir}", bg="white", fg="black")
 

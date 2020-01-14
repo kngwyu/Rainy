@@ -32,17 +32,16 @@ def rainy_cli(
     action_file: Optional[str],
     **kwargs,
 ) -> None:
-    cfg_gen = ctx.obj["config_gen"]
     if envname is not None:
         kwargs["envname"] = envname
     if max_steps is not None:
         kwargs["max_steps"] = max_steps
-    config = cfg_gen(**kwargs)
+    config = ctx.obj.config_gen(**kwargs)
     config.seed = seed
-    ag = ctx.obj["agent_cls"](config)
-    ctx.obj["experiment"] = Experiment(ag, model, action_file)
-    ctx.obj["envname"] = "Default" if envname is None else envname
-    ctx.obj["kwargs"] = kwargs
+    ag = ctx.obj.get_agent(config, **kwargs)
+    ctx.obj.experiment = Experiment(ag, model, action_file)
+    if envname is not None:
+        ctx.obj.envname = envname
 
 
 @rainy_cli.command(help="Train agents")
@@ -60,13 +59,13 @@ def rainy_cli(
 def train(
     ctx: click.Context, comment: Optional[str], prefix: str, eval_render: bool = True
 ) -> None:
-    script_path = ctx.obj["script_path"]
-    experiment = ctx.obj["experiment"]
+    experiment = ctx.obj.experiment
+    script_path = ctx.obj.script_path
     if script_path is not None:
         fingerprint = dict(
             comment="" if comment is None else comment,
-            envname=ctx.obj["envname"],
-            kwargs=ctx.obj["kwargs"],
+            envname=ctx.obj.envname,
+            kwargs=ctx.obj.kwargs,
         )
         experiment.logger.setup_from_script_path(
             script_path, prefix=prefix, fingerprint=fingerprint
@@ -95,7 +94,7 @@ def train(
 def retrain(
     ctx: click.Context, logdir: str, additional_steps: int, eval_render: bool
 ) -> None:
-    experiment = ctx.obj["experiment"]
+    experiment = ctx.obj.experiment
     experiment.retrain(logdir, additional_steps, eval_render)
     if mpi.IS_MPI_ROOT:
         print(
@@ -119,9 +118,8 @@ def retrain(
 def eval(
     ctx: click.Context, logdir: str, save: bool, render: bool, pause: bool, replay: bool
 ) -> None:
-    experiment = ctx.obj["experiment"]
-    experiment.config.save_eval_actions |= save
-    experiment.evaluate(logdir, render, replay, pause)
+    ctx.obj.experiment.config.save_eval_actions |= save
+    ctx.obj.experiment.evaluate(logdir, render, replay, pause)
 
 
 @rainy_cli.command(help="Run the random agent and show its result")
@@ -137,26 +135,51 @@ def eval(
 def random(
     ctx: click.Context, save: bool, render: bool, pause: bool, replay: bool
 ) -> None:
-    experiment = ctx.obj["experiment"]
-    experiment.config.save_eval_actions |= save
-    experiment.random(render, replay, pause)
+    ctx.obj.experiment.config.save_eval_actions |= save
+    ctx.obj.experiment.random(render, replay, pause)
 
 
-def _add_options(options: List[click.Command]) -> click.Group:
+def _add_options(options: List[click.Command]) -> None:
     for option in options:
         rainy_cli.params.append(option)
 
 
+class _CLIContext:
+    def __init__(
+        self,
+        config_gen: Callable[..., Config],
+        agent_cls: Type[Agent],
+        agent_selector: Callable[..., Type[Agent]],
+        script_path: Optional[str],
+    ) -> None:
+        self.config_gen = config_gen
+        self.agent_cls = agent_cls
+        self.agent_selector = agent_selector
+        self.script_path = script_path
+        self.experiment = None
+        self.envname = "Default"
+        self.kwargs = {}
+
+    def get_agent(self, config: Config, **kwargs) -> Agent:
+        self.kwargs.update(kwargs)
+        if self.agent_cls is not None:
+            return self.agent_cls(config)
+        elif self.agent_selector is not None:
+            agent_cls = self.agent_selector(**kwargs)
+            return agent_cls(config)
+        else:
+            assert False, "Unreachable!"
+
+
 def run_cli(
     config_gen: Callable[..., Config],
-    agent_cls: Type[Agent],
+    agent_cls: Optional[Type[Agent]] = None,
     script_path: Optional[str] = None,
     options: List[click.Command] = [],
+    agent_selector: Optional[Callable[..., Type[Agent]]] = None,
 ) -> None:
-    obj = {
-        "config_gen": config_gen,
-        "agent_cls": agent_cls,
-        "script_path": script_path,
-    }
+    if agent_cls is None and agent_selector is None:
+        raise ValueError("run_cli needs agent_cls or agent_selector!")
+
     _add_options(options)
-    rainy_cli(obj=obj)
+    rainy_cli(obj=_CLIContext(config_gen, agent_cls, agent_selector, script_path))
