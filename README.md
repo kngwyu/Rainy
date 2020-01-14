@@ -13,22 +13,23 @@ Python >= 3.6.1
 
 ## Implementation Status
 
-|**Algorithm** |**Multi Worker(Sync)**|**Recurrent**                     |**Discrete Action** |**Continuous Action**|**MPI support**   |
-| ------------ | -------------------- | -------------------------------- | ------------------ | ------------------- | ---------------- |
-|DQN/Double DQN|:heavy_check_mark:    |:x:                               |:heavy_check_mark:  |:x:                  |:x:               |
-|BootDQN/RPF   |:x:                   |:x:                               |:heavy_check_mark:  |:x:                  |:x:               |
-|DDPG          |:heavy_check_mark:    |:x:                               |:x:                 |:heavy_check_mark:   |:x:               |
-|TD3           |:heavy_check_mark:    |:x:                               |:x:                 |:heavy_check_mark:   |:x:               |
-|SAC           |:heavy_check_mark:    |:x:                               |:x:                 |:heavy_check_mark:   |:x:               |
-|PPO           |:heavy_check_mark:    |:heavy_check_mark:                |:heavy_check_mark:  |:heavy_check_mark:   |:heavy_check_mark:|
-|A2C           |:heavy_check_mark:    |:small_red_triangle:<sup>(1)</sup>|:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
-|ACKTR         |:heavy_check_mark:    |:x:<sup>(2)</sup>                 |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
-|AOC           |:heavy_check_mark:    |:x:                               |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
-|PPOC          |:heavy_check_mark:    |:x:                               |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
-|ACTC          |:heavy_check_mark:    |:x:                               |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
+|**Algorithm**     |**Multi Worker(Sync)**|**Recurrent**                     |**Discrete Action** |**Continuous Action**|**MPI support**   |
+| ---------------- | -------------------- | -------------------------------- | ------------------ | ------------------- | ---------------- |
+|DQN/Double DQN    |:heavy_check_mark:    |:x:                               |:heavy_check_mark:  |:x:                  |:x:               |
+|BootDQN/RPF       |:x:                   |:x:                               |:heavy_check_mark:  |:x:                  |:x:               |
+|DDPG              |:heavy_check_mark:    |:x:                               |:x:                 |:heavy_check_mark:   |:x:               |
+|TD3               |:heavy_check_mark:    |:x:                               |:x:                 |:heavy_check_mark:   |:x:               |
+|SAC               |:heavy_check_mark:    |:x:                               |:x:                 |:heavy_check_mark:   |:x:               |
+|PPO               |:heavy_check_mark:    |:heavy_check_mark:                |:heavy_check_mark:  |:heavy_check_mark:   |:heavy_check_mark:|
+|A2C               |:heavy_check_mark:    |:small_red_triangle:<sup>(1)</sup>|:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
+|ACKTR             |:heavy_check_mark:    |:x:<sup>(2)</sup>                 |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
+|AOC               |:heavy_check_mark:    |:x:                               |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
+|PPOC              |:heavy_check_mark:    |:x:                               |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
+|ACTC<sup>(3)</sup>|:heavy_check_mark:    |:x:                               |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
 
-<sup><sup>(1): Very unstable </sup></sup><br>
-<sup><sup>(2): Needs https://openreview.net/forum?id=HyMTkQZAb implemented </sup></sup><br>
+<sup>(1): Very unstable </sup><br>
+<sup>(2): Needs https://openreview.net/forum?id=HyMTkQZAb implemented </sup><br>
+<sup>(3): Experimental, has some issues around β </sup><br>
 
 ## Sub packages
 
