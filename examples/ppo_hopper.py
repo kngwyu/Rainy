@@ -26,7 +26,6 @@ def config(envname: str = "Hopper") -> Config:
     c.ppo_minibatch_size = (4 * 512) // 8
     c.ppo_clip = 0.2
     c.use_gae = True
-    c.use_reward_monitor = True
     c.eval_freq = None
     return c
 

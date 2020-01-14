@@ -28,7 +28,6 @@ def config(
     c.use_gae = use_gae
     c.max_steps = int(2e7)
     c.eval_env = Atari(envname)
-    c.use_reward_monitor = True
     c.eval_deterministic = False
     c.episode_log_freq = 100
     c.opt_delib_cost = opt_delib_cost

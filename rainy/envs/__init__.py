@@ -3,7 +3,7 @@ import gym
 from typing import Callable, Optional
 from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
 from .deepsea import DeepSea as DeepSeaGymEnv
-from .ext import EnvExt, EnvSpec  # noqa
+from .ext import EnvExt, EnvSpec, EnvTransition  # noqa
 from .monitor import RewardMonitor
 from .obs_wrappers import AddTimeStep, TransposeObs
 from .parallel import (  # noqa
@@ -83,7 +83,6 @@ class Atari(EnvExt):
         )
         env = TransposeObs(env)
         super().__init__(env)
-        self.spec.use_reward_monitor = True
 
     @staticmethod
     def extract(obs: State) -> Array:
@@ -135,7 +134,6 @@ class PyBullet(EnvExt):
             env = AddTimeStep(env)
         super().__init__(RewardMonitor(env))
         self._viewer = None
-        self.spec.use_reward_monitor = True
 
     def render(self, mode: str = "human") -> Optional[Array]:
         if mode == "human":

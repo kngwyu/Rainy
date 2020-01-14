@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from torch import nn
 from typing import Optional, Tuple
-from .base import A2CLikeAgent
+from .base import A2CLikeAgent, Netout
 from ..config import Config
 from ..lib.rollout import RolloutStorage
 from ..net import ActorCriticNet, Policy, RnnState
@@ -44,7 +44,7 @@ class A2CAgent(A2CLikeAgent[State]):
     def eval_reset(self) -> None:
         self.eval_rnns.fill_(0.0)
 
-    def eval_action(self, state: Array) -> Action:
+    def eval_action(self, state: Array, net_outputs: Optional[Netout] = None) -> Action:
         if len(state.shape) == len(self.net.state_dim):
             # treat as batch_size == 1
             state = np.stack([state])
@@ -52,15 +52,13 @@ class A2CAgent(A2CLikeAgent[State]):
             policy, self.eval_rnns[0] = self.net.policy(
                 state, self.eval_rnns[0].unsqueeze()
             )
+        if net_outputs is not None:
+            net_outputs["policy"] = policy
         return policy.eval_action(self.config.eval_deterministic)
 
-    def eval_action_parallel(
-        self, states: Array, mask: torch.Tensor, ent: Optional[Array[float]] = None
-    ) -> Array[Action]:
+    def eval_action_parallel(self, states: Array, mask: torch.Tensor) -> Array[Action]:
         with torch.no_grad():
             policy, self.eval_rnns = self.net.policy(states, self.eval_rnns)
-        if ent is not None:
-            ent += policy.entropy().cpu().numpy()
         return policy.eval_action(self.config.eval_deterministic)
 
     def _network_in(self, states: Array[State]) -> Tuple[Array, RnnState, torch.Tensor]:

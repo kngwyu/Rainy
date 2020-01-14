@@ -9,9 +9,9 @@ Corresponding papers:
 
 import numpy as np
 import torch
-from torch import ByteTensor, LongTensor, nn, Tensor
+from torch import BoolTensor, LongTensor, Tensor
 from typing import List, Optional, Tuple
-from .base import A2CLikeAgent
+from .base import A2CLikeAgent, Netout
 from ..config import Config
 from ..lib.explore import EpsGreedy
 from ..lib.rollout import RolloutStorage
@@ -27,7 +27,7 @@ class AOCRolloutStorage(RolloutStorage[State]):
     ) -> None:
         super().__init__(nsteps, nworkers, device)
         self.options = [self.device.zeros(self.nworkers, dtype=torch.long)]
-        self.is_new_options = [self.device.ones(self.nworkers, dtype=torch.uint8)]
+        self.is_new_options = [self.device.ones(self.nworkers, dtype=torch.bool)]
         self.epsilons: List[float] = []
         self.option_mus: List[CategoricalPolicy] = []
         self.beta_adv = torch.zeros_like(self.batch_values)
@@ -121,6 +121,7 @@ class AOCAgent(A2CLikeAgent[State]):
     It's a synchronous batched version of A2OC: Asynchronou Adavantage Option Critic
     """
 
+    EPS = 0.001
     SAVED_MEMBERS = "net", "opt_explorer"
 
     def __init__(self, config: Config) -> None:
@@ -155,13 +156,13 @@ class AOCAgent(A2CLikeAgent[State]):
         beta: BernoulliPolicy,
         prev_options: LongTensor,
         explorer: Optional[EpsGreedy] = None,
-    ) -> Tuple[LongTensor, ByteTensor]:
+    ) -> Tuple[LongTensor, BoolTensor]:
         if explorer is None:
             explorer = self.opt_explorer
         current_beta = beta[self.worker_indices, prev_options]
-        do_options_end = current_beta.action()
-        # If do_options[i] == 1 or the episode ends, use new option.
-        use_new_options = do_options_end.add(1.0 - self.storage.masks[-1]) > 0.1
+        do_options_end = current_beta.action().bool()
+        is_initial_states = (1.0 - self.storage.masks[-1]).bool()
+        use_new_options = do_options_end | is_initial_states
         epsgreedy_options = explorer.select_from_value(opt_q, same_device=True)
         options = torch.where(use_new_options, epsgreedy_options, prev_options)
         return options, use_new_options  # type: ignore
@@ -175,19 +176,15 @@ class AOCAgent(A2CLikeAgent[State]):
         self.eval_prev_options = options
         return opt_policy[self.worker_indices, options]
 
-    def eval_action(self, state: Array) -> Action:
+    def eval_action(self, state: Array, net_outputs: Optional[Netout] = None) -> Action:
         if len(state.shape) == len(self.net.state_dim):
             # treat as batch_size == nworkers
             state = np.stack([state] * self.config.nworkers)
         policy = self._eval_policy(state)
         return policy[0].eval_action(self.config.eval_deterministic)
 
-    def eval_action_parallel(
-        self, states: Array, mask: torch.Tensor, ent: Optional[Array[float]] = None
-    ) -> Array[Action]:
+    def eval_action_parallel(self, states: Array, mask: torch.Tensor) -> Array[Action]:
         policy = self._eval_policy(states)
-        if ent is not None:
-            ent += policy.entropy().cpu().numpy()
         return policy.eval_action(self.config.eval_deterministic)
 
     @property
@@ -195,7 +192,7 @@ class AOCAgent(A2CLikeAgent[State]):
         return self.storage.options[-1]  # type: ignore
 
     @property
-    def prev_is_new_options(self) -> ByteTensor:
+    def prev_is_new_options(self) -> BoolTensor:
         return self.storage.is_new_options[-1]  # type: ignore
 
     @torch.no_grad()
@@ -252,16 +249,13 @@ class AOCAgent(A2CLikeAgent[State]):
         beta_loss = term_prob.mul(masks).mul(beta_adv).mean()
         value_loss = (opt_q[self.batch_indices, options] - ret).pow(2).mean()
         entropy = policy.entropy().mean()
-
-        self.optimizer.zero_grad()
-        (
+        loss = (
             policy_loss
             + beta_loss
             + self.config.value_loss_weight * 0.5 * value_loss
             - self.config.entropy_weight * entropy
-        ).backward()
-        nn.utils.clip_grad_norm_(self.net.parameters(), self.config.grad_clip)
-        self.optimizer.step()
+        )
+        self._backward(loss, self.optimizer, self.net.parameters())
 
         self.network_log(
             policy_loss=policy_loss.item(),

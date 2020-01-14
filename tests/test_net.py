@@ -1,6 +1,13 @@
 import numpy as np
 import pytest
-from rainy.net import actor_critic, DQNConv, GruBlock, LstmBlock
+from rainy.net import (
+    actor_critic,
+    ConvBody,
+    ConvBodyWithoutFc,
+    GruBlock,
+    LstmBlock,
+    termination_critic,
+)
 from rainy.net.init import Initializer, kaiming_normal, kaiming_uniform
 from rainy.utils import Device
 from test_env import DummyEnv
@@ -81,7 +88,7 @@ def test_acnet(
         ),
     ],
 )
-def test_dqnconv(
+def test_convbody(
     input_dim: Tuple[int, int, int],
     batch_size: int,
     params: Optional[list],
@@ -96,9 +103,32 @@ def test_dqnconv(
         kwargs["init"] = init
     if channels is not None:
         kwargs["hidden_channels"] = channels
-    dqn_conv = DQNConv(input_dim, **kwargs)
-    assert dqn_conv.fc.in_features == np.prod(hidden)
+    conv = ConvBody(input_dim, **kwargs)
+    assert conv.fc.in_features == np.prod(hidden)
     x = torch.ones((batch_size, *input_dim))
-    x = dqn_conv(x)
+    x = conv(x)
     assert x.size(0) == batch_size
-    assert x.size(1) == dqn_conv.output_dim
+    assert x.size(1) == conv.output_dim
+
+    without_fc = ConvBodyWithoutFc(input_dim, **kwargs)
+    assert without_fc.output_dim == conv.fc.in_features
+
+
+@pytest.mark.parametrize("state_dim", [(2, 64, 64), (100,)])
+def test_tcnet(state_dim: tuple):
+    BATCH_SIZE = 10
+    NUM_OPTIONS = 3
+
+    if len(state_dim) > 1:
+        net_fn = termination_critic.tc_conv_shared(num_options=NUM_OPTIONS)
+    else:
+        net_fn = termination_critic.tc_fc_shared(num_options=NUM_OPTIONS)
+
+    net = net_fn(state_dim, 1, Device())
+    input1 = torch.randn(BATCH_SIZE, *state_dim)
+    input2 = torch.randn(BATCH_SIZE, *state_dim)
+    out = net(input1, input2)
+    assert tuple(out.beta.dist.logits.shape) == (BATCH_SIZE, NUM_OPTIONS)
+    assert tuple(out.p.shape) == (BATCH_SIZE, NUM_OPTIONS)
+    assert tuple(out.p_mu.shape) == (BATCH_SIZE, NUM_OPTIONS)
+    assert tuple(out.baseline.shape) == (BATCH_SIZE, NUM_OPTIONS)

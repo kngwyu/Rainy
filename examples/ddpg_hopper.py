@@ -18,7 +18,6 @@ def config(envname: str = "Hopper", nworkers: int = 1) -> Config:
     c.train_start = int(1e4)
     c.set_explorer(lambda: explore.GaussianNoise())
     c.set_explorer(lambda: explore.Greedy(), key="eval")
-    c.use_reward_monitor = True
     c.eval_deterministic = True
     c.grad_clip = None
     c.eval_freq = c.max_steps // 10

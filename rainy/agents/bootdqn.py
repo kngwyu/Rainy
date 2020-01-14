@@ -10,8 +10,10 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch.nn import functional as F
-from .base import DQNLikeAgent
+from typing import Optional
+from .base import DQNLikeAgent, Netout
 from ..config import Config
+from ..envs import EnvTransition
 from ..prelude import Action, Array, State
 from ..replay import BootDQNReplayFeed
 
@@ -37,8 +39,8 @@ class BootDQNAgent(DQNLikeAgent):
         self.net.train(mode=train)
 
     @torch.no_grad()
-    def eval_action(self, state: Array) -> Action:
-        return self.eval_policy.select_action(state, self.net).item()  # type: ignore
+    def eval_action(self, state: Array, net_outputs: Optional[Netout] = None) -> Action:
+        return self.eval_policy.select_action(state, self.net, net_outputs).item()
 
     def action(self, state: State) -> Action:
         if self.train_started:
@@ -49,18 +51,12 @@ class BootDQNAgent(DQNLikeAgent):
             return self.env.spec.random_action()
 
     def store_transition(
-        self,
-        state: State,
-        action: Action,
-        next_state: State,
-        reward: float,
-        done: bool,
+        self, state: State, action: Action, transition: EnvTransition,
     ) -> None:
         randn = np.random.uniform(0, 1, self.config.num_ensembles)
         mask = randn < self.config.replay_prob
-        reward *= self.config.reward_scale
-        self.replay.append(state, action, next_state, reward, done, mask)
-        if done:
+        self.replay.append(state, action, *transition[:3], mask)
+        if transition.terminal:
             self.active_head = np.random.randint(self.config.num_ensembles)
 
     @torch.no_grad()
@@ -71,9 +67,9 @@ class BootDQNAgent(DQNLikeAgent):
         obs = [ob.to_array(self.env.extract) for ob in replay_feed]
         states, actions, next_states, rewards, done, mask = map(np.asarray, zip(*obs))
         q_next = self._q_next(next_states)
-        r = self._tensor(rewards).view(-1, 1)
-        discount = self.tensor(1.0 - done).mul_(gamma)
-        q_target = r + q_next.mul_(discount).view(-1, 1)
+        r = self.tensor(rewards).unsqueeze_(-1)
+        discount = self.tensor(1.0 - done).mul_(self.config.discount_factor)
+        q_target = r + discount.unsqueeze_(-1) * q_next
         q_current = self.net.q_s_a(states, actions)
         loss = F.mse_loss(q_current, q_target, reduction="none")
         masked_loss = loss.masked_select(self.tensor(mask, dtype=torch.bool)).mean()

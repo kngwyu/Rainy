@@ -52,6 +52,7 @@ def test_frame_stack(penv: ParallelEnv, nstack: int) -> None:
 @pytest.mark.parametrize("style", ["dopamine", "deepmind", "baselines"])
 def test_atari(style: str):
     atari = envs.Atari("Pong", style=style)
+    assert atari.spec.use_reward_monitor
     STATE_DIM = (4, 84, 84)
     assert atari.state_dim == STATE_DIM
     assert atari.action_dim == 6

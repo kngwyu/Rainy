@@ -2,7 +2,7 @@ import numpy as np
 from pathlib import Path
 from typing import Iterable, List, Optional
 from ..prelude import Action, Array, State
-from .base import Agent, DQNLikeAgent, EpisodeResult
+from .base import Agent, DQNLikeAgent, EpisodeResult, Netout
 
 
 class DQNLikeParallel(Agent):
@@ -56,8 +56,8 @@ class DQNLikeParallel(Agent):
             if self.total_steps >= max_steps:
                 break
 
-    def eval_action(self, state: Array) -> Action:
-        return self.agent.eval_action(state)
+    def eval_action(self, state: Array, net_outputs: Optional[Netout] = None) -> Action:
+        return self.agent.eval_action(state, net_outputs=net_outputs)
 
     @property
     def update_steps(self) -> int:

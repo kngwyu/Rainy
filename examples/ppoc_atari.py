@@ -20,7 +20,6 @@ def config(
     c = Config()
     c.set_env(lambda: Atari(envname, frame_stack=False))
     c.set_parallel_env(atari_parallel())
-    c.use_reward_monitor = True
     c.set_optimizer(lambda params: RMSprop(params, lr=7e-4, alpha=0.99, eps=1e-5))
     c.max_steps = int(2e7)
     c.grad_clip = 0.5

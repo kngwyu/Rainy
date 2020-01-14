@@ -8,7 +8,8 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch.nn import functional as F
-from .base import DQNLikeAgent
+from typing import Optional
+from .base import DQNLikeAgent, Netout
 from ..config import Config
 from ..envs import ParallelEnv
 from ..prelude import Action, Array, State
@@ -34,9 +35,11 @@ class DDPGAgent(DQNLikeAgent):
         self.net.train(mode=train)
 
     @torch.no_grad()
-    def eval_action(self, state: Array) -> Action:
-        action = self.eval_explorer.add_noise(self.net.action(state))
-        return action.cpu().numpy()  # type: ignore
+    def eval_action(self, state: Array, net_outputs: Optional[Netout] = None) -> Action:
+        action = self.net.action(state)
+        if net_outputs is not None:
+            net_outputs["action"] = action
+        return self.eval_explorer.add_noise(action).cpu().numpy()
 
     def action(self, state: State) -> Action:
         if self.train_started:

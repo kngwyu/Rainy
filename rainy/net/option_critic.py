@@ -1,8 +1,10 @@
+"""Networks for Option-Critic families.
+"""
 from abc import ABC, abstractmethod
 from torch import nn, Tensor
 from typing import Sequence, Tuple, Type
 from .actor_critic import policy_init
-from .block import DQNConv, FcBody, LinearHead, NetworkBlock
+from .block import ConvBody, FcBody, LinearHead, NetworkBlock
 from .policy import (
     BernoulliDist,
     BernoulliPolicy,
@@ -26,6 +28,10 @@ class OptionCriticNet(nn.Module, ABC):
 
     @abstractmethod
     def opt_q(self, states: ArrayLike) -> Tensor:
+        pass
+
+    @abstractmethod
+    def beta(self, states: ArrayLike) -> BernoulliPolicy:
         pass
 
     @abstractmethod
@@ -53,7 +59,7 @@ class SharedBodyOCNet(OptionCriticNet):
         self.optq_head = optq_head
         self.beta_head = beta_head
         self.policy_dist = policy_dist
-        self.beta_dist = BernoulliDist(1)
+        self.beta_dist = BernoulliDist()
         self.num_options = optq_head.output_dim
         self.action_dim = actor_head.output_dim // self.num_options
         self.device = device
@@ -63,6 +69,10 @@ class SharedBodyOCNet(OptionCriticNet):
     def opt_q(self, states: ArrayLike) -> Tensor:
         feature = self.body(self.device.tensor(states))
         return self.optq_head(feature)
+
+    def beta(self, states: ArrayLike) -> BernoulliPolicy:
+        feature = self.body(self.device.tensor(states))
+        return self.beta_dist(self.beta_head(feature))
 
     def forward(self, states: ArrayLike) -> Tuple[Policy, Tensor, BernoulliPolicy]:
         feature = self.body(self.device.tensor(states))
@@ -114,7 +124,7 @@ def conv_shared(
     def _net(
         state_dim: Tuple[int, int, int], action_dim: int, device: Device
     ) -> SharedBodyOCNet:
-        body = DQNConv(
+        body = ConvBody(
             state_dim, hidden_channels=hidden_channels, output_dim=output_dim, **kwargs
         )
         ac_head = LinearHead(body.output_dim, action_dim * num_options, policy_init())

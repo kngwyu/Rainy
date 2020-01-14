@@ -21,7 +21,6 @@ def config(envname: str = "CartPoleSwingUpContinuous-v0", nworkers: int = 1) -> 
     c.set_explorer(
         lambda: explore.GaussianNoise(explore.DummyCooler(0.2), 0.5), key="target"
     )
-    c.use_reward_monitor = True
     c.eval_deterministic = True
     c.eval_freq = c.max_steps // 10
     c.grad_clip = None

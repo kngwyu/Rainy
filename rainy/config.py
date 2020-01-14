@@ -6,6 +6,7 @@ from .net import actor_critic, bootstrap, deterministic, option_critic, sac, val
 from .net.prelude import NetFn
 from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
 from .lib import mpi
+from .lib.hooks import EvalHook
 from .lib.kfac import KfacPreConditioner, PreConditioner
 from .prelude import Params
 from .replay import DQNReplayFeed, ReplayBuffer, UniformReplayBuffer
@@ -100,6 +101,9 @@ class Config:
         self.save_eval_actions = False
         self.episode_log_freq = 1000
         self.network_log_freq = 10000
+
+        # Evaluation hooks: Do some stuff with environment, when evaluating
+        self.eval_hooks: List[EvalHook] = []
 
         # Optimizer and preconditioner
         self.__optim: Dict[Optional[str], Callable[[], Optimizer]] = {
@@ -222,6 +226,10 @@ class Config:
         return self._get_cooler(
             self.ppo_clip, self.ppo_clip_min, self.nsteps * self.nworkers
         )
+
+    def initialize_hooks(self) -> None:
+        for eval_hook in self.eval_hooks:
+            eval_hook.setup(self)
 
     def __repr__(self) -> str:
         d = filter(lambda t: not t[0].startswith("_Config"), self.__dict__.items())

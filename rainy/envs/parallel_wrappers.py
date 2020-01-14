@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Any, Iterable, Tuple
-from .parallel import ParallelEnv
+from .parallel import ParallelEnv, PEnvTransition
 from ..prelude import Action, Array, Self, State
 from ..utils import RunningMeanStd
 
@@ -17,9 +17,7 @@ class ParallelEnvWrapper(ParallelEnv[Action, State]):
     def reset(self) -> Array[State]:
         return self.penv.reset()
 
-    def step(
-        self, actions: Iterable[Action]
-    ) -> Tuple[Array[State], Array[float], Array[bool], Array[Any]]:
+    def step(self, actions: Iterable[Action]) -> PEnvTransition:
         return self.penv.step(actions)
 
     def seed(self, seeds: Iterable[int]) -> None:
@@ -47,15 +45,13 @@ class FrameStackParallel(ParallelEnvWrapper):
         self.shape = (nstack, *self.penv.state_dim[idx:])
         self.obs = np.zeros((self.num_envs, *self.shape), dtype=dtype)
 
-    def step(
-        self, actions: Iterable[Action]
-    ) -> Tuple[Array, Array[float], Array[bool], Array[Any]]:
-        state, reward, done, info = self.penv.step(actions)
+    def step(self, actions: Iterable[Action]) -> PEnvTransition:
+        transition = self.penv.step(actions)
         self.obs = np.roll(self.obs, shift=-1, axis=1)
-        for i, _ in filter(lambda t: t[1], enumerate(done)):
+        for i, _ in filter(lambda t: t[1], enumerate(transition.terminals)):
             self.obs[i] = 0.0
-        self.obs[:, -1] = self.extract(state).squeeze()
-        return (self.obs, reward, done, info)
+        self.obs[:, -1] = self.extract(transition.states).squeeze()
+        return PEnvTransition(self.obs, *transition[1:])
 
     def reset(self) -> Array[State]:
         self.obs.fill(0)
@@ -75,11 +71,9 @@ class NormalizeObs(ParallelEnvWrapper[Action, Array[float]]):
         self._rms = RunningMeanStd(shape=self.state_dim)
         self._training_mode = True
 
-    def step(
-        self, actions: Iterable[Action]
-    ) -> Tuple[Array[Array[float]], Array[float], Array[bool], Array[Any]]:
-        state, reward, done, info = self.penv.step(actions)
-        return self._filter_obs(state), reward, done, info
+    def step(self, actions: Iterable[Action]) -> PEnvTransition:
+        transition = self.penv.step(actions)
+        return PEnvTransition(self._filter_obs(transition.states), *transition[1:])
 
     def _filter_obs(self, obs: Array[Array[float]]) -> Array[Array[float]]:
         if self._training_mode:
@@ -113,16 +107,15 @@ class NormalizeReward(ParallelEnvWrapper[Action, State]):
         self._ret = np.zeros(self.num_envs)
         self._training_mode = True
 
-    def step(
-        self, actions: Iterable[Action]
-    ) -> Tuple[Array[State], Array[float], Array[bool], Array[Any]]:
-        state, reward, done, info = self.penv.step(actions)
+    def step(self, actions: Iterable[Action]) -> PEnvTransition:
+        transition = self.penv.step(actions)
         if self._training_mode:
-            ret = self._ret * self.gamma + reward
+            ret = self._ret * self.gamma + transition.rewards
             self._rms.update(ret)
-            self._ret = ret * (1.0 - done)
-        reward = np.clip(reward / self._rms.std(), -self.reward_clip, self.reward_clip)
-        return state, reward, done, info
+            self._ret = ret * (1.0 - transition.terminals)
+        return transition.map_r(
+            lambda r: np.clip(r / self._rms.std(), -self.reward_clip, self.reward_clip)
+        )
 
     def reset(self) -> Array[State]:
         self._ret.fill(0.0)

@@ -1,19 +1,34 @@
+"""Environment specifications:
+"""
 import gym
 from gym import spaces
 import numpy as np
-from typing import Any, Generic, Sequence, Optional, Tuple
-from ..prelude import Action, Array, State
+from typing import Callable, Generic, NamedTuple, Sequence, Optional
+from .monitor import RewardMonitor
+from ..prelude import Action, Array, GenericNamedMeta, Self, State
+
+
+class EnvTransition(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
+    state: State
+    reward: float
+    terminal: bool
+    info: dict
+
+    def map_r(self, f: Callable[[float], float]) -> Self:
+        s, r, t, i = self
+        return EnvTransition(s, f(r), t, i)
 
 
 class EnvSpec:
+    """EnvSpec holds obs/action dims and monitors
+    """
+
     def __init__(
         self,
         state_dim: Sequence[int],
         action_space: gym.Space,
         use_reward_monitor: bool = False,
     ) -> None:
-        """Properties which are common both in EnvExt and ParallelEnv
-        """
         self.state_dim = state_dim
         self.action_space = action_space
         self.use_reward_monitor = use_reward_monitor
@@ -46,6 +61,17 @@ class EnvSpec:
         )
 
 
+def _use_reward_monitor(env: gym.Env) -> bool:
+    if not hasattr(env, "env"):
+        return False
+    parent = env.env
+
+    if isinstance(parent, RewardMonitor):
+        return True
+    else:
+        return _use_reward_monitor(parent)
+
+
 class EnvExt(gym.Env, Generic[Action, State]):
     def __init__(self, env: gym.Env, obs_shape: Optional[spaces.Space] = None) -> None:
         self._env = env
@@ -55,7 +81,8 @@ class EnvExt(gym.Env, Generic[Action, State]):
                 raise NotImplementedError(
                     f"Failed detect state dimension from {env.obs_shape}!"
                 )
-        self.spec = EnvSpec(obs_shape, self._env.action_space)
+        use_reward_monitor = _use_reward_monitor(env)
+        self.spec = EnvSpec(obs_shape, self._env.action_space, use_reward_monitor)
 
     def close(self):
         """
@@ -69,11 +96,11 @@ class EnvExt(gym.Env, Generic[Action, State]):
         """
         return self._env.reset()
 
-    def render(self, mode: str = "human") -> None:
+    def render(self, mode: str = "human") -> Optional[Array]:
         """
         Inherited from gym.Env.
         """
-        self._env.render(mode=mode)
+        return self._env.render(mode=mode)
 
     def seed(self, seed: int) -> None:
         """
@@ -81,25 +108,24 @@ class EnvExt(gym.Env, Generic[Action, State]):
         """
         self._env.seed(seed)
 
-    def step(self, action: Action) -> Tuple[State, float, bool, Any]:
+    def step(self, action: Action) -> EnvTransition:
         """
         Inherited from gym.Env.
         """
-        return self._env.step(action)
+        return EnvTransition(*self._env.step(action))
 
-    def step_and_render(
-        self, action: Action, render: bool = False
-    ) -> Tuple[State, float, bool, Any]:
+    def step_and_render(self, action: Action, render: bool = False) -> EnvTransition:
         res = self._env.step(action)
         if render:
             self.render()
-        return res
+        return EnvTransition(*res)
 
-    def step_and_reset(self, action: Action) -> Tuple[State, float, bool, Any]:
-        state, reward, done, info = self.step(action)
-        if done:
-            state = self.reset()
-        return state, reward, done, info
+    def step_and_reset(self, action: Action) -> EnvTransition:
+        transition = self.step(action)
+        if transition.terminal:
+            return EnvTransition(self.reset(), *transition[1:])
+        else:
+            return transition
 
     @property
     def unwrapped(self) -> gym.Env:

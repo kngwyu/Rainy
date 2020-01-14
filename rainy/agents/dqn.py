@@ -12,7 +12,8 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch.nn import functional as F
-from .base import DQNLikeAgent
+from typing import Optional
+from .base import DQNLikeAgent, Netout
 from ..config import Config
 from ..envs import ParallelEnv
 from ..prelude import Action, Array, State
@@ -41,8 +42,8 @@ class DQNAgent(DQNLikeAgent):
         self.net.train(mode=train)
 
     @torch.no_grad()
-    def eval_action(self, state: Array) -> Action:
-        return self.eval_policy.select_action(state, self.net).item()  # type: ignore
+    def eval_action(self, state: Array, net_outputs: Optional[Netout] = None) -> Action:
+        return self.eval_policy.select_action(state, self.net, net_outputs).item()
 
     def action(self, state: State) -> Action:
         if self.train_started:
@@ -64,8 +65,9 @@ class DQNAgent(DQNLikeAgent):
     def train(self, replay_feed: DQNReplayFeed) -> None:
         obs = [ob.to_array(self.env.extract) for ob in replay_feed]
         states, actions, next_states, rewards, done = map(np.asarray, zip(*obs))
-        q_next = self._q_next(next_states).squeeze_().mul_(self.tensor(1.0 - done))
-        q_target = self.tensor(rewards).add_(q_next.mul_(self.config.discount_factor))
+        q_next = self._q_next(next_states).squeeze_()
+        discount = self.tensor(1.0 - done).mul_(self.config.discount_factor)
+        q_target = self.tensor(rewards).add_(q_next.mul_(discount))
         q_prediction = self.net(states)[self.batch_indices, actions]
         loss = F.mse_loss(q_prediction, q_target)
         self._backward(loss, self.optimizer, self.net.parameters())
