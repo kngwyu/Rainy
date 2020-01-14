@@ -25,6 +25,7 @@ Python >= 3.6.1
 |ACKTR         |:heavy_check_mark:    |:x:<sup>(2)</sup>                 |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
 |AOC           |:heavy_check_mark:    |:x:                               |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
 |PPOC          |:heavy_check_mark:    |:x:                               |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
+|ACTC          |:heavy_check_mark:    |:x:                               |:heavy_check_mark:  |:heavy_check_mark:   |:x:               |
 
 <sup><sup>(1): Very unstable </sup></sup><br>
 <sup><sup>(2): Needs https://openreview.net/forum?id=HyMTkQZAb implemented </sup></sup><br>
@@ -73,6 +74,9 @@ Python >= 3.6.1
 
 ### PPOC (Proximal Option Critic)
 - https://arxiv.org/abs/1712.00004
+
+### ACTC (Actor Critic Termination Critic)
+- http://proceedings.mlr.press/v89/harutyunyan19a.html
 
 ## Implementaions I referenced
 Thank you!
