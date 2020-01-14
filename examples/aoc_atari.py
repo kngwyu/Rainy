@@ -44,4 +44,4 @@ if __name__ == "__main__":
         click.Option(["--opt-beta-adv-merginal"], type=float, default=0.01),
         click.Option(["--use-gae"], is_flag=True),
     ]
-    cli.run_cli(config, AOCAgent, script_path=os.path.realpath(__file__))
+    cli.run_cli(config, AOCAgent, os.path.realpath(__file__), options=options)
