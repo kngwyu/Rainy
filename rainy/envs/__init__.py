@@ -23,6 +23,11 @@ from ..prelude import Array, Self, State
 
 
 class AtariConfig:
+    """
+    Configuration of Atari wrappers.
+    By default, 'deepmind' config is used.
+    """
+
     STYLES = ["deepmind", "baselines", "dopamine", "rnd"]
 
     def __init__(self) -> None:
