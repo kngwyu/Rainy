@@ -22,7 +22,8 @@ def config(
     c.set_parallel_env(MultiProcEnv)
     c.set_optimizer(lambda params: optim.RMSprop(params, lr=0.0007))
     c.grad_clip = 1.0
-    c.eval_freq = 10000
+    c.eval_freq = c.max_steps // 10
+    c.network_log_freq = (c.max_steps // c.batch_size) // 10
     c.entropy_weight = 0.001
     c.value_loss_weight = 1.0
     c.opt_delib_cost = opt_delib_cost

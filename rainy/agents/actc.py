@@ -280,8 +280,8 @@ class ACTCAgent(A2CLikeAgent[State]):
         policy = policy[self.batch_indices, prev_options]
         policy.set_action(self.storage.batch_actions())
         policy_loss = -(policy.log_prob() * self.storage.advs[:-1].flatten()).mean()
-        ret = self.storage.returns[:-1].flatten()
-        value_loss = (ret - q[self.batch_indices, options]).pow(2).mean()
+        value = q[self.batch_indices, options]
+        value_loss = (value - self.storage.returns[:-1].flatten()).pow(2).mean()
         entropy = policy.entropy().mean()
 
         ac_loss = (
@@ -293,8 +293,9 @@ class ACTCAgent(A2CLikeAgent[State]):
 
         self.network_log(
             policy_loss=policy_loss.item(),
+            value=value.detach_().mean().item(),
             value_loss=value_loss.item(),
-            beta=beta_x.dist.probs.mean().item(),
+            beta=beta_x.dist.probs.detach_().mean().item(),
             pmu=p_mu_xf.mean().item(),
             beta_loss=beta_loss.item(),
             entropy=entropy.item(),

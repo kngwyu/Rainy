@@ -18,7 +18,7 @@ def config(envname: str = "CartPole-v0", num_options: int = 2) -> rainy.Config:
     c.set_optimizer(lambda params: optim.Adam(params), key="termination")
     c.set_explorer(lambda: rainy.lib.explore.EpsGreedy(0.1))
     c.grad_clip = 0.5
-    c.eval_freq = 10000
+    c.eval_freq = c.max_steps // 10
     c.network_log_freq = (c.max_steps // c.batch_size) // 10
     c.entropy_weight = 0.001
     c.value_loss_weight = 1.0
