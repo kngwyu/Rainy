@@ -4,6 +4,7 @@ which is described in
 - The Termination Critic
   - https://arxiv.org/abs/1902.09996
 """
+import gym
 import numpy as np
 import torch
 from torch import BoolTensor, LongTensor, Tensor
@@ -28,18 +29,29 @@ class TCRolloutStorage(RolloutStorage[State]):
         self.is_new_options = [self.device.ones(self.nworkers, dtype=torch.bool)]
         self.noptions = num_options
         self.worker_indices = self.device.indices(self.nworkers)
+        # This is a special storage, which is available only when 'raw_obs' is used
+        self.raw_states = []
 
     def reset(self) -> None:
         super().reset()
         self.options = [self.options[-1]]
         self.is_new_options = [self.is_new_options[-1]]
+        if len(self.raw_states) > 0:
+            self.raw_states = [self.raw_states[-1]]
 
     def push(
-        self, *args, options: LongTensor, is_new_options: Tensor, **kwargs,
+        self,
+        *args,
+        options: LongTensor,
+        is_new_options: Tensor,
+        raw_obs: Optional[Array[int]] = None,
+        **kwargs,
     ) -> None:
         super().push(*args, **kwargs)
         self.options.append(options)
         self.is_new_options.append(is_new_options)
+        if raw_obs is not None:
+            self.raw_states.append(raw_obs)
 
     def batch_options(self) -> Tuple[Tensor, Tensor]:
         batched = torch.cat(self.options, dim=0)
@@ -89,6 +101,17 @@ class TCRolloutStorage(RolloutStorage[State]):
         res.reverse()
         return torch.cat(res).view(self.nsteps * self.nworkers, *state_shape)
 
+    def _prepare_raw_xf(self, batch_states: Array) -> Array:
+        states = batch_states.reshape(self.nsteps, self.nworkers, -1)
+        xf_last = self.raw_states[-1]
+        res = []
+        for i in reversed(range(self.nsteps)):
+            is_new_options = self.is_new_options[i + 1].unsqueeze(1).cpu().numpy()
+            xf_last = np.where(is_new_options, states[i], xf_last)
+            res.append(xf_last)
+        res.reverse()
+        return np.concatenate(res)
+
 
 def calc_beta_adv(
     p_mu_x: Tensor, p_x_xs: Tensor, p_mu_xf: Tensor, p_xf_xs: Tensor
@@ -104,6 +127,7 @@ class ACTCAgent(A2CLikeAgent[State]):
     """ACTC: Actor Critic Termination Critic
     """
 
+    EPS = 1e-6
     SAVED_MEMBERS = "ac_net", "tc_net", "optimizer", "tc_optimizer"
 
     def __init__(self, config: Config) -> None:
@@ -132,6 +156,31 @@ class ACTCAgent(A2CLikeAgent[State]):
             config.nworkers, dtype=torch.long
         )
         self.eval_initial_states = None
+        # Environment specific implementation
+        # Hold count table to get exact Pμ
+        if self.config.tc_exact_pmu:
+            if hasattr(self.config.eval_env.unwrapped, "raw_observation_space"):
+                self._setup_xf_table(
+                    self.config.eval_env.unwrapped.raw_observation_space
+                )
+                self._do_xf_count = True
+            else:
+                import warnings
+
+                warnings.warn(
+                    "tc_exact_pmu requires the environment has raw_observation_space"
+                )
+        else:
+            self._do_xf_count = False
+
+    def _setup_xf_table(self, space: gym.spaces.Box) -> None:
+        """Setup count table to get exact Pμ
+        """
+        if not np.issubdtype(space.dtype, np.integer):
+            raise ValueError("StateCountMixIn requires tabular space!")
+        self._low = space.low
+        range_ = space.high - space.low + 1
+        self._xf_table = np.zeros((*range_, self.noptions), dtype=np.int32)
 
     def eval_reset(self) -> None:
         self.eval_prev_options.fill_(0)
@@ -141,6 +190,30 @@ class ACTCAgent(A2CLikeAgent[State]):
         self, is_new_options: Array[bool], new_states: Array
     ) -> None:
         self.option_initial_states[is_new_options] = new_states[is_new_options]
+
+    def _update_xf_count(self, is_new_options: Array[bool]) -> None:
+        if not is_new_options.any() or len(self.storage.raw_states) == 0:
+            return
+        prev_states = self.storage.raw_states[-1]
+        xf = prev_states[is_new_options]
+        opt = self.prev_options.cpu().numpy()[is_new_options]
+        self._xf_table[tuple(np.hsplit(xf, xf.shape[1])) + (opt,)] += 1
+
+    def _pmu_from_count_impl(self, x: Array) -> Array:
+        """Suppose x is (batch, state_dim) array
+        """
+        dims = tuple(dim.squeeze() for dim in np.hsplit(x, x.shape[1]))
+        total = self._xf_table[dims].sum(-1)  # (batch, )
+        options = torch.cat(self.storage.options[:-1]).cpu().numpy()
+        specific = self._xf_table[dims + (options,)]
+        return specific / (total + self.EPS)
+
+    def _pmu_from_count(self) -> Tuple[Array, Array]:
+        x = np.concatenate(self.storage.raw_states[: self.config.nsteps], axis=0)
+        pmu_x = self._pmu_from_count_impl(x)
+        xf = self.storage._prepare_raw_xf(x)
+        pmu_xf = self._pmu_from_count_impl(xf)
+        return pmu_x, pmu_xf
 
     def _reset(self, initial_states: Array[State]) -> None:
         self.storage.set_initial_state(initial_states)
@@ -205,7 +278,10 @@ class ACTCAgent(A2CLikeAgent[State]):
         options, is_new_options = self._sample_options(
             opt_q, tc_output.beta, self.prev_options
         )
-        self._update_option_initial_states(is_new_options.cpu().numpy(), x)
+        is_new_options_np = is_new_options.cpu().numpy()
+        self._update_option_initial_states(is_new_options_np, x)
+        if self._do_xf_count:
+            self._update_xf_count(is_new_options_np)
         policy = opt_policy[self.worker_indices, options]
         actions = policy.action().squeeze().cpu().numpy()
         net_outputs = dict(
@@ -218,6 +294,21 @@ class ACTCAgent(A2CLikeAgent[State]):
             beta=tc_output.beta,
         )
         return actions, net_outputs
+
+    def _one_step(self, states: Array[State]) -> Array[State]:
+        actions, net_outputs = self.actions(states)
+        transition = self.penv.step(actions).map_r(lambda r: r * self.reward_scale)
+        if self._do_xf_count:
+            raw_obs = np.stack(
+                [info["raw_obs"] - self._low for info in transition.infos]
+            )
+            self.storage.push(*transition[:3], raw_obs=raw_obs, **net_outputs)
+        else:
+            self.storage.push(*transition[:3], **net_outputs)
+        self.returns += transition.rewards
+        self.episode_length += 1
+        self._report_reward(transition.terminals, transition.infos)
+        return transition.states
 
     @torch.no_grad()
     def _next_value(self, states: Tensor) -> Tuple[Tensor, Tensor]:
@@ -250,28 +341,33 @@ class ACTCAgent(A2CLikeAgent[State]):
         beta_x = beta_x[self.batch_indices, prev_options]
         bx_p, bx_l = beta_x.dist.probs, beta_x.dist.logits
         p_x_xs = p_x_xs.detach_()[self.batch_indices, prev_options]
-        p_mu_x = p_mu_x.detach_()[self.batch_indices, prev_options]
+        p_mu_x = p_mu_x[self.batch_indices, prev_options]
 
         beta_xf = beta_xf.dist.probs.detach_()[self.batch_indices, prev_options]
         p_xf_x = p_xf_x[self.batch_indices, prev_options]
-        with torch.no_grad():
-            p_mu_xf_averaged = (
+        if self._do_xf_count:
+            p_mu_x_count, p_mu_xf_count = self._pmu_from_count()
+            beta_adv = calc_beta_adv(
+                self.tensor(p_mu_x_count), p_x_xs, self.tensor(p_mu_xf_count), p_xf_xs
+            )
+        else:
+            p_mu_xf_avg = (
                 p_mu_xf.detach()
                 .view(N, W, -1)
                 .mean(0)
                 .repeat(N, 1)[self.batch_indices, prev_options]
             )
+            beta_adv = calc_beta_adv(p_mu_x.detach_(), p_x_xs, p_mu_xf_avg, p_xf_xs)
         p_mu_xf = p_mu_xf[self.batch_indices, prev_options]
         baseline = baseline[self.batch_indices, prev_options]
 
-        beta_adv = calc_beta_adv(p_mu_x, p_x_xs, p_mu_xf_averaged, p_xf_xs)
         beta_loss = -(bx_l * bx_p * (beta_adv - baseline.detach())).mean()
         beta_xf_averaged = beta_xf.view(N, W).mean(dim=0)
         p_target = self.storage.calc_p_target(
             beta_x.dist.probs.detach(), beta_xf_averaged
         )
         p_loss = (p_target.flatten() - p_xf_x).pow(2).mean()
-        pmu_loss = F.mse_loss(p_mu_xf, p_xf_x.detach())
+        pmu_loss = F.mse_loss(p_mu_xf, p_xf_x.detach()) + F.mse_loss(p_mu_x, p_x_xs)
         baseline_loss = F.mse_loss(baseline, beta_adv)
         tc_loss = beta_loss + 0.5 * p_loss + pmu_loss + baseline_loss
         self._backward(tc_loss, self.tc_optimizer, self.tc_net.parameters())

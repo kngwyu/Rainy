@@ -121,6 +121,7 @@ def config(
     c.network_log_freq = (c.max_steps // c.batch_size) // 10
     c.entropy_weight = 0.001
     c.value_loss_weight = 1.0
+    c.tc_exact_pmu = "GridWorld" in envname
     if "v2" in envname:
         CONV_ARGS = dict(
             hidden_channels=(8, 8),
