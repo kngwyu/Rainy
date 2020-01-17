@@ -29,7 +29,7 @@ Python >= 3.6.1
 
 <sup>(1): Very unstable </sup><br>
 <sup>(2): Needs https://openreview.net/forum?id=HyMTkQZAb implemented </sup><br>
-<sup>(3): Experimental, has some issues around β </sup><br>
+<sup>(3): Incomplete implementation. β is often too high. </sup><br>
 
 ## Sub packages
 

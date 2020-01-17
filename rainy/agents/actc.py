@@ -156,8 +156,7 @@ class ACTCAgent(A2CLikeAgent[State]):
             config.nworkers, dtype=torch.long
         )
         self.eval_initial_states = None
-        # Environment specific implementation
-        # Hold count table to get exact Pμ
+        # Environment specific implementation: use count table to get exact Pμ
         if self.config.tc_exact_pmu:
             if hasattr(self.config.eval_env.unwrapped, "raw_observation_space"):
                 self._setup_xf_table(
@@ -335,7 +334,7 @@ class ACTCAgent(A2CLikeAgent[State]):
             p_xf_xs = self.tc_net.p(xs, xf)  # NW x O
             p_xf_xs = p_xf_xs[self.batch_indices, prev_options]  # NW
 
-        beta_x, p_x_xs, p_mu_x, _ = self.tc_net(xs, x)
+        beta_x, p_x_xs, p_mu_x, baseline2 = self.tc_net(xs, x)
         beta_xf, p_xf_x, p_mu_xf, baseline = self.tc_net(x, xf)
 
         beta_x = beta_x[self.batch_indices, prev_options]
@@ -360,16 +359,18 @@ class ACTCAgent(A2CLikeAgent[State]):
             beta_adv = calc_beta_adv(p_mu_x.detach_(), p_x_xs, p_mu_xf_avg, p_xf_xs)
         p_mu_xf = p_mu_xf[self.batch_indices, prev_options]
         baseline = baseline[self.batch_indices, prev_options]
+        bl2 = baseline2[self.batch_indices, prev_options]
 
-        beta_loss = -(bx_l * bx_p * (beta_adv - baseline.detach())).mean()
+        beta_adv_ = beta_adv - baseline.detach()
+        beta_loss = -(bx_l * bx_p * beta_adv_).mean()
         beta_xf_averaged = beta_xf.view(N, W).mean(dim=0)
         p_target = self.storage.calc_p_target(
             beta_x.dist.probs.detach(), beta_xf_averaged
         )
-        p_loss = (p_target.flatten() - p_xf_x).pow(2).mean()
+        p_loss = F.mse_loss(p_xf_x, p_target.flatten())
         pmu_loss = F.mse_loss(p_mu_xf, p_xf_x.detach()) + F.mse_loss(p_mu_x, p_x_xs)
-        baseline_loss = F.mse_loss(baseline, beta_adv)
-        tc_loss = beta_loss + 0.5 * p_loss + pmu_loss + baseline_loss
+        baseline_loss = F.mse_loss(baseline, beta_adv) + F.mse_loss(bl2, beta_adv)
+        tc_loss = beta_loss + p_loss + pmu_loss * 0.5 + baseline_loss * 0.5
         self._backward(tc_loss, self.tc_optimizer, self.tc_net.parameters())
 
         policy, q = self.ac_net(x)
