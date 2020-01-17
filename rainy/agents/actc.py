@@ -311,7 +311,7 @@ class ACTCAgent(A2CLikeAgent[State]):
         return transition.states
 
     @torch.no_grad()
-    def _next_value(self, states: Tensor) -> Tuple[Tensor, Tensor]:
+    def _next_value(self, states: Tensor) -> Tensor:
         opt_q = self.ac_net.opt_q(states)
         current_opt_q = opt_q[self.worker_indices, self.prev_options]
         eps = self.opt_explorer.epsilon

@@ -211,7 +211,7 @@ class AOCAgent(A2CLikeAgent[State]):
         return actions, net_outputs
 
     @torch.no_grad()
-    def _next_value(self, states: Array[State]) -> Tuple[Tensor, Tensor]:
+    def _next_value(self, states: Array[State]) -> Tensor:
         opt_q = self.net.opt_q(self.penv.extract(states))
         current_opt_q = opt_q[self.worker_indices, self.prev_options]
         eps = self.opt_explorer.epsilon
