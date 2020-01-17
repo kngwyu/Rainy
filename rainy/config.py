@@ -91,6 +91,9 @@ class Config:
         self.opt_delib_cost = 0.02
         self.opt_avg_baseline = False  # Use value[state, :].mean() as baseline1
 
+        # For Termination Critic
+        self.tc_exact_pmu = False
+
         # For PPOC
         self.proximal_update_for_mu = False
 
