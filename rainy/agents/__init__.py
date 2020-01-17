@@ -1,8 +1,8 @@
 from .a2c import A2CAgent
 from .acktr import ACKTRAgent
-from .actc import ACTCAgent
-from .aoc import AOCAgent
-from .base import Agent, A2CLikeAgent, DQNLikeAgent, EpisodeResult
+from .actc import ACTCAgent, TCRolloutStorage
+from .aoc import AOCAgent, AOCRolloutStorage
+from .base import Agent, A2CLikeAgent, DQNLikeAgent, EpisodeResult, Netout
 from .bootdqn import BootDQNAgent
 from .ddpg import DDPGAgent
 from .dqn import DQNAgent, DoubleDQNAgent

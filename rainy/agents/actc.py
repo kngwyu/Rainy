@@ -179,7 +179,7 @@ class ACTCAgent(A2CLikeAgent[State]):
             raise ValueError("StateCountMixIn requires tabular space!")
         self._low = space.low
         range_ = space.high - space.low + 1
-        self._xf_table = np.zeros((*range_, self.noptions), dtype=np.int32)
+        self._xf_table = np.zeros((self.noptions, *range_), dtype=np.int32)
 
     def eval_reset(self) -> None:
         self.eval_prev_options.fill_(0)
@@ -196,15 +196,16 @@ class ACTCAgent(A2CLikeAgent[State]):
         prev_states = self.storage.raw_states[-1]
         xf = prev_states[is_new_options]
         opt = self.prev_options.cpu().numpy()[is_new_options]
-        self._xf_table[tuple(np.hsplit(xf, xf.shape[1])) + (opt,)] += 1
+        self._xf_table[(opt,) + tuple(np.hsplit(xf, xf.shape[1]))] += 1
 
     def _pmu_from_count_impl(self, x: Array) -> Array:
         """Suppose x is (batch, state_dim) array
         """
-        dims = tuple(dim.squeeze() for dim in np.hsplit(x, x.shape[1]))
-        total = self._xf_table[dims].sum(-1)  # (batch, )
+        batch_size = x.shape[0]
         options = torch.cat(self.storage.options[:-1]).cpu().numpy()
-        specific = self._xf_table[dims + (options,)]
+        total = self._xf_table[options].reshape(batch_size, -1).sum(-1)  # (batch, )
+        dims = tuple(dim.squeeze() for dim in np.hsplit(x, x.shape[1]))
+        specific = self._xf_table[(options,) + dims]
         return specific / (total + self.EPS)
 
     def _pmu_from_count(self) -> Tuple[Array, Array]:
