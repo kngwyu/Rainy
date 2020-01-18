@@ -46,6 +46,11 @@ class DummyEnvImpl(gym.Env):
         self.state = State(np.random.choice(np.arange(5), 1, p=prob))
         return self.state, self.rewards[self.state.value], self.state.is_end(), {}
 
+    def state_reward(self, state: int) -> float:
+        """For testing do_any
+        """
+        return self.rewards[state]
+
 
 class DummyEnv(EnvExt):
     def __init__(

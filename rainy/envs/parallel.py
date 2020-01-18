@@ -3,7 +3,7 @@ import multiprocessing as mp
 from multiprocessing.connection import Connection
 import numpy as np
 from numpy import ndarray
-from typing import Any, Callable, Generic, Iterable, NamedTuple, Sequence
+from typing import Any, Callable, Generic, Iterable, NamedTuple, Optional, Sequence
 from .ext import EnvExt, EnvSpec
 from ..utils import mp_utils
 from ..prelude import Action, Array, GenericNamedMeta, Self, State
@@ -23,7 +23,7 @@ class PEnvTransition(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
 
 
 class ParallelEnv(ABC, Generic[Action, State]):
-    num_envs: int
+    nworkers: int
     spec: EnvSpec
 
     @abstractmethod
@@ -61,6 +61,18 @@ class ParallelEnv(ABC, Generic[Action, State]):
         """
         pass
 
+    @abstractmethod
+    def do_any(
+        self,
+        function: str,
+        args: Optional[tuple] = None,
+        kwargs: Optional[dict] = None,
+    ) -> Array[Any]:
+        """
+        Execute any function.
+        """
+        pass
+
     def copyto(self, other: Self) -> None:
         pass
 
@@ -75,7 +87,7 @@ class MultiProcEnv(ParallelEnv):
         self.to_array = envs[0].extract
         self.spec = envs[0].spec
         self.envs = [_ProcHandler(i, envs[i]) for i in range(nworkers)]
-        self.num_envs = nworkers
+        self.nworkers = nworkers
 
     def close(self) -> None:
         for env in self.envs:
@@ -99,6 +111,20 @@ class MultiProcEnv(ParallelEnv):
     def extract(self, states: Iterable[State]) -> ndarray:
         return np.asarray([self.to_array(s) for s in states])
 
+    def do_any(
+        self,
+        function: str,
+        args: Optional[tuple] = None,
+        kwargs: Optional[dict] = None,
+    ) -> Array[Any]:
+        if args is None:
+            args = ()
+        if kwargs is None:
+            kwargs = {}
+        for env in self.envs:
+            env.do_any(function, args, kwargs)
+        return np.array([env.recv() for env in self.envs])
+
 
 class _ProcHandler:
     def __init__(self, envid: int, env: EnvExt) -> None:
@@ -118,6 +144,9 @@ class _ProcHandler:
     def step(self, action: Action) -> None:
         self.pipe.send((_ProcWorker.STEP, action))
 
+    def do_any(self, function: str, args: tuple, kwargs: dict) -> None:
+        self.pipe.send((_ProcWorker.ANY, (function, args, kwargs)))
+
     def recv(self) -> Any:
         return self.pipe.recv()
 
@@ -127,6 +156,7 @@ class _ProcWorker(mp.Process):
     RESET = 1
     SEED = 2
     STEP = 3
+    ANY = 4
 
     def __init__(self, envid: int, env: EnvExt, pipe: Connection) -> None:
         super().__init__()
@@ -140,6 +170,10 @@ class _ProcWorker(mp.Process):
                 op, arg = self.pipe.recv()
                 if op == self.STEP:
                     self.pipe.send(self.env.step_and_reset(arg))
+                elif op == self.ANY:
+                    fname, args, kwargs = arg
+                    fn = getattr(self.env.unwrapped, fname)
+                    self.pipe.send(fn(*args, **kwargs))
                 elif op == self.RESET:
                     self.pipe.send(self.env.reset())
                 elif op == self.SEED:
@@ -158,7 +192,7 @@ class DummyParallelEnv(ParallelEnv):
     def __init__(self, env_gen: EnvGen, nworkers: int) -> None:
         self.envs = [env_gen() for _ in range(nworkers)]
         self.spec = self.envs[0].spec
-        self.num_envs = nworkers
+        self.nworkers = nworkers
 
     def close(self) -> None:
         for env in self.envs:
@@ -177,3 +211,19 @@ class DummyParallelEnv(ParallelEnv):
 
     def extract(self, states: Iterable[State]) -> ndarray:
         return np.asarray([e.extract(s) for (s, e) in zip(states, self.envs)])
+
+    def do_any(
+        self,
+        function: str,
+        args: Optional[tuple] = None,
+        kwargs: Optional[dict] = None,
+    ) -> Array[Any]:
+        if args is None:
+            args = ()
+        if kwargs is None:
+            kwargs = {}
+        res = []
+        for env in self.envs:
+            fn = getattr(env.unwrapped, function)
+            res.append(fn(*args, **kwargs))
+        return np.array(res)

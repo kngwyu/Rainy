@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Any, Iterable, Tuple
+from typing import Any, Iterable, Optional, Tuple
 from .parallel import ParallelEnv, PEnvTransition
 from ..prelude import Action, Array, Self, State
 from ..utils import RunningMeanStd
@@ -8,7 +8,7 @@ from ..utils import RunningMeanStd
 class ParallelEnvWrapper(ParallelEnv[Action, State]):
     def __init__(self, penv: ParallelEnv) -> None:
         self.penv = penv
-        self.num_envs = penv.num_envs
+        self.nworkers = penv.nworkers
         self.spec = self.penv.spec
 
     def close(self) -> None:
@@ -25,6 +25,14 @@ class ParallelEnvWrapper(ParallelEnv[Action, State]):
 
     def extract(self, states: Iterable[State]) -> Array:
         return self.penv.extract(states)
+
+    def do_any(
+        self,
+        function: str,
+        args: Optional[tuple] = None,
+        kwargs: Optional[dict] = None,
+    ) -> Array[Any]:
+        return self.penv.do_any(function, args, kwargs)
 
 
 class FrameStackParallel(ParallelEnvWrapper):
@@ -43,7 +51,7 @@ class FrameStackParallel(ParallelEnvWrapper):
             else:
                 break
         self.shape = (nstack, *self.penv.state_dim[idx:])
-        self.obs = np.zeros((self.num_envs, *self.shape), dtype=dtype)
+        self.obs = np.zeros((self.nworkers, *self.shape), dtype=dtype)
 
     def step(self, actions: Iterable[Action]) -> PEnvTransition:
         transition = self.penv.step(actions)
@@ -104,7 +112,7 @@ class NormalizeReward(ParallelEnvWrapper[Action, State]):
         self.reward_clip = reward_clip
         self.gamma = gamma
         self._rms = RunningMeanStd(shape=())
-        self._ret = np.zeros(self.num_envs)
+        self._ret = np.zeros(self.nworkers)
         self._training_mode = True
 
     def step(self, actions: Iterable[Action]) -> PEnvTransition:

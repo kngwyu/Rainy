@@ -21,7 +21,9 @@ def test_penv(penv: ParallelEnv) -> None:
             ok[i] |= done
     for i in range(4):
         assert ok[i]
-    assert penv.num_envs == 4
+    assert penv.nworkers == 4
+    rewards = penv.do_any("state_reward", args=(1, ))
+    assert_array_almost_equal(rewards, np.zeros(4))
     penv.close()
 
 
@@ -35,12 +37,12 @@ def test_penv(penv: ParallelEnv) -> None:
 )
 def test_frame_stack(penv: ParallelEnv, nstack: int) -> None:
     penv = FrameStackParallel(penv, nstack=nstack)
-    penv.seed(np.arange(penv.num_envs))
+    penv.seed(np.arange(penv.nworkers))
     init = np.array(penv.reset())
     assert init.shape == (6, nstack, 16, 16)
     assert penv.state_dim == (nstack, 16, 16)
     for i in range(3):
-        obs, *_ = penv.step([None] * penv.num_envs)
+        obs, *_ = penv.step([None] * penv.nworkers)
         if i < 2:
             assert_array_almost_equal(obs[:, -2 - i], init[:, -1])
     assert_array_almost_equal(obs[:, -2], np.zeros((6, 16, 16)))

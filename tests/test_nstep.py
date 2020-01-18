@@ -20,8 +20,8 @@ ACTION_DIM = 3
     ],
 )
 def test_storage(penv: ParallelEnv) -> None:
-    NWORKERS = penv.num_envs
-    storage = RolloutStorage(NSTEP, penv.num_envs, Device())
+    NWORKERS = penv.nworkers
+    storage = RolloutStorage(NSTEP, penv.nworkers, Device())
     storage.set_initial_state(penv.reset())
     policy_dist = CategoricalDist(ACTION_DIM)
     for _ in range(NSTEP):
@@ -43,9 +43,9 @@ def test_storage(penv: ParallelEnv) -> None:
 
 def test_oc_storage() -> None:
     penv = DummyParallelEnv(lambda: DummyEnv(array_dim=(16, 16)), 6)
-    NWORKERS = penv.num_envs
+    NWORKERS = penv.nworkers
     NOPTIONS = 4
-    storage = AOCRolloutStorage(NSTEP, penv.num_envs, Device(), NOPTIONS)
+    storage = AOCRolloutStorage(NSTEP, penv.nworkers, Device(), NOPTIONS)
     storage.set_initial_state(penv.reset())
     policy_dist = CategoricalDist(ACTION_DIM)
     for _ in range(NSTEP):
@@ -102,13 +102,13 @@ class TeState(recurrent.RnnState):
     ],
 )
 def test_sampler(penv: ParallelEnv, is_recurrent: bool) -> None:
-    NWORKERS = penv.num_envs
+    NWORKERS = penv.nworkers
     rnns = (
         TeState(torch.arange(NWORKERS))
         if is_recurrent
         else recurrent.DummyRnn.DUMMY_STATE
     )
-    storage = RolloutStorage(NSTEP, penv.num_envs, Device())
+    storage = RolloutStorage(NSTEP, penv.nworkers, Device())
     storage.set_initial_state(penv.reset(), rnn_state=rnns)
     policy_dist = CategoricalDist(ACTION_DIM)
     for _ in range(NSTEP):
