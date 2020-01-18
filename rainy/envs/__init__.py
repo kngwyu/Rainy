@@ -131,7 +131,7 @@ class PyBullet(EnvExt):
         try:
             import pybullet_envs  # noqa
         except ImportError:
-            raise ImportError("pybullet is not installed")
+            raise ImportError("PyBullet is not installed")
         if not nosuffix:
             name += "BulletEnv-v0"
         env = gym.make(name)

@@ -176,7 +176,7 @@ class ACTCAgent(A2CLikeAgent[State]):
         """Setup count table to get exact Pμ
         """
         if not np.issubdtype(space.dtype, np.integer):
-            raise ValueError("StateCountMixIn requires tabular space!")
+            raise ValueError("raw_observation_space have to be tabular!")
         self._low = space.low
         range_ = space.high - space.low + 1
         self._xf_table = np.zeros((self.noptions, *range_), dtype=np.int32)
