@@ -117,7 +117,7 @@ def conv_shared(
     num_options: int = 8,
     policy: Type[PolicyDist] = CategoricalDist,
     hidden_channels: Tuple[int, int, int] = (32, 64, 32),
-    output_dim: int = 256,
+    feature_dim: int = 256,
     has_mu: bool = False,
     **kwargs,
 ) -> NetFn:
@@ -125,7 +125,7 @@ def conv_shared(
         state_dim: Tuple[int, int, int], action_dim: int, device: Device
     ) -> SharedBodyOCNet:
         body = ConvBody(
-            state_dim, hidden_channels=hidden_channels, output_dim=output_dim, **kwargs
+            state_dim, hidden_channels=hidden_channels, output_dim=feature_dim, **kwargs
         )
         ac_head = LinearHead(body.output_dim, action_dim * num_options, policy_init())
         optq_head = LinearHead(body.output_dim, num_options)
