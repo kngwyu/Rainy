@@ -225,11 +225,13 @@ class ACTCAgent(A2CLikeAgent[State]):
         opt_q: Tensor,
         beta: BernoulliPolicy,
         prev_options: LongTensor,
-        explorer: Optional[EpsGreedy] = None,
+        evaluate: bool = False,
     ) -> Tuple[LongTensor, BoolTensor]:
-        """TODO: ε-Greedy is appropriate here?
+        """Sample options by ε-Greedy
         """
-        if explorer is None:
+        if evaluate:
+            explorer = self.eval_opt_explorer
+        else:
             explorer = self.opt_explorer
         current_beta = beta[self.worker_indices, prev_options]
         do_options_end = current_beta.action().bool()
@@ -246,7 +248,7 @@ class ACTCAgent(A2CLikeAgent[State]):
             self.eval_initial_states = states.copy()
         beta = self.tc_net.beta(self.eval_initial_states, states)
         options, _ = self._sample_options(
-            opt_q, beta, self.eval_prev_options, self.eval_opt_explorer
+            opt_q, beta, self.eval_prev_options, evaluate=True,
         )
         self.eval_prev_options = options
         return opt_policy[self.worker_indices, options]
