@@ -196,7 +196,8 @@ class ACTCAgent(A2CLikeAgent[State]):
         prev_states = self.storage.raw_states[-1]
         xf = prev_states[is_new_options]
         opt = self.prev_options.cpu().numpy()[is_new_options]
-        self._xf_table[(opt,) + tuple(np.hsplit(xf, xf.shape[1]))] += 1
+        for op, shape in zip(opt, xf):
+            self._xf_table[(op, *shape)] += 1
 
     def _pmu_from_count_impl(self, x: Array) -> Array:
         """Suppose x is (batch, state_dim) array
