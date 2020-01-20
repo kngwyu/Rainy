@@ -18,7 +18,9 @@ class Policy(ABC):
         self._baction: Optional[Tensor] = None
 
     def action(self) -> Tensor:
-        """Sample actions if this policy has no action cache.
+        """
+        Sample actions.
+        If this policy already has cached actions, return them.
         """
         if self._action is None:
             self._action = self.sample()
@@ -26,28 +28,30 @@ class Policy(ABC):
         return self._action.squeeze(dim=0)
 
     def baction(self) -> Tensor:
-        """Sample "backwardable" actions.
+        """Sample 'backwardable' actions by PyTorch's ``rsample``.
         """
         if self._baction is None:
             self._baction = self.rsample()
         return self._baction.squeeze(dim=0)
 
     def set_action(self, action: Tensor) -> None:
+        """Set action cache explicitly.
+        """
         self._action = action
 
     @torch.no_grad()
     def sample(self) -> Tensor:
+        """Sample actions with ``requires_grad=True``.
+        """
         return self.dist.sample()
 
     def rsample(self) -> Tensor:
-        """Sampling by reparameterization trick,
-        which means the returned tensor is backwardable
+        """Sampling by reparameterization trick. Returned tensor is backwardable.
         """
         return self.dist.rsample()
 
     def eval_action(self, deterministic: bool = False, to_numpy: bool = True) -> Array:
-        """Sample actions for evaluation, which leave no action cache
-        and returns numpy array.
+        """Sample actions for evaluation with no action cache set.
         """
         if deterministic:
             act = self.best_action()
@@ -78,6 +82,13 @@ class Policy(ABC):
     def detach(self) -> Self:
         pass
 
+    def merginalize(self, dim: int = -1) -> Self:
+        """
+        A special method for Option-Critic-like algorithms.
+        Returns π(s) when ``self`` represents π(s|o).
+        """
+        raise NotImplementedError(f"{type(self)} doesn't have merginalize!")
+
 
 class BernoulliPolicy(Policy):
     def __init__(self, *args, **kwargs) -> None:
@@ -102,6 +113,10 @@ class BernoulliPolicy(Policy):
     def detach(self) -> Self:
         return BernoulliPolicy(logits=self.dist.logits.detach())
 
+    def merginalize(self, dim: int = -1) -> Self:
+        merginal_logits = self.dist.logits.mean(dim=dim)
+        return BernoulliPolicy(logits=merginal_logits)
+
 
 class CategoricalPolicy(Policy):
     def __init__(self, *args, **kwargs) -> None:
@@ -125,6 +140,10 @@ class CategoricalPolicy(Policy):
 
     def detach(self) -> Self:
         return CategoricalPolicy(logits=self.dist.logits.detach())
+
+    def merginalize(self, dim: int = -1) -> Self:
+        merginal_logits = self.dist.logits.mean(dim=dim)
+        return CategoricalPolicy(logits=merginal_logits)
 
 
 class GaussianPolicy(Policy):

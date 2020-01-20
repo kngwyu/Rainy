@@ -9,9 +9,9 @@ from rainy.net import policy as P
 @pytest.mark.parametrize(
     "policy, check",
     [
-        (P.BernoulliPolicy(torch.empty(10).uniform_()), lambda x: x == 0.0 or x == 1.0),
+        (P.BernoulliPolicy(logits=torch.randn(10)), lambda x: x == 0.0 or x == 1.0),
         (
-            P.CategoricalPolicy(torch.empty(100).uniform_().view(10, 10)),
+            P.CategoricalPolicy(logits=torch.randn(10, 10)),
             lambda x: 0 <= x < 10,
         ),
         (P.GaussianPolicy(torch.zeros(10), torch.ones(10)), lambda x: -10 <= x <= 10,),
@@ -23,7 +23,7 @@ from rainy.net import policy as P
 )
 def test_action(policy: P.Policy, check: Callable[[float], bool]) -> None:
     action = policy.action()
-    assert action.size(0) == 10
+    assert tuple(action.shape) == (10, )
     for x in action:
         assert check(x.item())
 
@@ -31,8 +31,8 @@ def test_action(policy: P.Policy, check: Callable[[float], bool]) -> None:
 @pytest.mark.parametrize(
     "policy",
     [
-        P.BernoulliPolicy(torch.empty(10).uniform_()),
-        P.CategoricalPolicy(torch.empty(100).uniform_().view(10, 10)),
+        P.BernoulliPolicy(logits=torch.randn(10)),
+        P.CategoricalPolicy(logits=torch.randn(10, 10)),
         P.GaussianPolicy(torch.zeros(10), torch.ones(10)),
         P.TanhGaussianPolicy(torch.zeros(10), torch.ones(10)),
     ],
@@ -41,6 +41,18 @@ def test_getitem(policy: P.Policy) -> None:
     best = policy.best_action()
     partial = policy[3:8].best_action()
     assert_array(best[3:8].numpy(), partial.numpy())
+
+
+@pytest.mark.parametrize(
+    "policy",
+    [
+        P.BernoulliPolicy(logits=torch.randn(10, 4)),
+        P.CategoricalPolicy(logits=torch.randn(10, 10, 4)),
+    ],
+)
+def test_merginalize(policy: P.Policy) -> None:
+    sampled = policy.merginalize().sample()
+    assert tuple(sampled.shape) == (10, )
 
 
 @pytest.mark.parametrize(
@@ -58,8 +70,8 @@ def test_baction(policy: P.Policy) -> None:
 @pytest.mark.parametrize(
     "policy",
     [
-        P.BernoulliPolicy(torch.empty(10).uniform_().requires_grad_()),
-        P.CategoricalPolicy(torch.empty(100).uniform_().view(10, 10).requires_grad_()),
+        P.BernoulliPolicy(logits=torch.randn(10).requires_grad_()),
+        P.CategoricalPolicy(logits=torch.randn(10, 10).requires_grad_()),
         P.GaussianPolicy(
             torch.zeros(10).requires_grad_(), torch.ones(10).requires_grad_()
         ),
