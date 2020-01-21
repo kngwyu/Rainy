@@ -360,7 +360,7 @@ class ACTCAgent(A2CLikeAgent[State]):
                 .mean(0)
                 .repeat(N, 1)[self.batch_indices, prev_options]
             )
-            beta_adv = calc_beta_adv(p_mu_x.detach_(), p_x_xs, p_mu_xf_avg, p_xf_xs)
+            beta_adv = calc_beta_adv(p_mu_x.detach(), p_x_xs, p_mu_xf_avg, p_xf_xs)
         p_mu_xf = p_mu_xf[self.batch_indices, prev_options]
         baseline = baseline[self.batch_indices, prev_options]
         bl2 = baseline2[self.batch_indices, prev_options]
