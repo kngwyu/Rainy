@@ -1,6 +1,6 @@
 from torch import nn
 from torch.optim import Optimizer, RMSprop
-from typing import Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence
 from .envs import ClassicControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEnv
 from .net import actor_critic, bootstrap, deterministic, option_critic, sac, value
 from .net.prelude import NetFn
@@ -237,3 +237,15 @@ class Config:
     def __repr__(self) -> str:
         d = filter(lambda t: not t[0].startswith("_Config"), self.__dict__.items())
         return "Config: " + str(dict(d))
+
+    def ensure(self, name: str, default_value: Any) -> None:
+        if hasattr(self, name):
+            pass
+        else:
+            import warnings
+
+            warnings.warn(
+                f"""Config doesn't has an attribute {name}.
+                Default value {default_value} is used."""
+            )
+            setattr(self, name, default_value)

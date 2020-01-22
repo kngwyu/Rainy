@@ -10,10 +10,7 @@ from rainy.net import policy as P
     "policy, check",
     [
         (P.BernoulliPolicy(logits=torch.randn(10)), lambda x: x == 0.0 or x == 1.0),
-        (
-            P.CategoricalPolicy(logits=torch.randn(10, 10)),
-            lambda x: 0 <= x < 10,
-        ),
+        (P.CategoricalPolicy(logits=torch.randn(10, 10)), lambda x: 0 <= x < 10,),
         (P.GaussianPolicy(torch.zeros(10), torch.ones(10)), lambda x: -10 <= x <= 10,),
         (
             P.TanhGaussianPolicy(torch.zeros(10), torch.ones(10)),
@@ -23,7 +20,7 @@ from rainy.net import policy as P
 )
 def test_action(policy: P.Policy, check: Callable[[float], bool]) -> None:
     action = policy.action()
-    assert tuple(action.shape) == (10, )
+    assert tuple(action.shape) == (10,)
     for x in action:
         assert check(x.item())
 
@@ -52,7 +49,7 @@ def test_getitem(policy: P.Policy) -> None:
 )
 def test_merginalize(policy: P.Policy) -> None:
     sampled = policy.merginalize().sample()
-    assert tuple(sampled.shape) == (10, )
+    assert tuple(sampled.shape) == (10,)
 
 
 @pytest.mark.parametrize(

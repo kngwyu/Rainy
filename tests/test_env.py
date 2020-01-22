@@ -22,7 +22,7 @@ def test_penv(penv: ParallelEnv) -> None:
     for i in range(4):
         assert ok[i]
     assert penv.nworkers == 4
-    rewards = penv.do_any("state_reward", args=(1, ))
+    rewards = penv.do_any("state_reward", args=(1,))
     assert_array_almost_equal(rewards, np.zeros(4))
     penv.close()
 
