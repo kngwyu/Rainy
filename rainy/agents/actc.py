@@ -292,9 +292,6 @@ class ACTCAgent(A2CLikeAgent[State]):
             value=opt_q,
             options=options,
             is_new_options=is_new_options,
-            p_x_xs_preds=tc_output.p,
-            p_mu_x_pred=tc_output.p_mu,
-            beta=tc_output.beta,
         )
         return actions, net_outputs
 
