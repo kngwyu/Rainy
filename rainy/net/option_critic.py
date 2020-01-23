@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from torch import nn, Tensor
 from typing import Sequence, Tuple, Type
 from .actor_critic import policy_init
-from .block import ConvBody, FcBody, LinearHead, NetworkBlock
+from .block import CNNBody, FcBody, LinearHead, NetworkBlock
 from .policy import (
     BernoulliDist,
     BernoulliPolicy,
@@ -124,7 +124,7 @@ def conv_shared(
     def _net(
         state_dim: Tuple[int, int, int], action_dim: int, device: Device
     ) -> SharedBodyOCNet:
-        body = ConvBody(
+        body = CNNBody(
             state_dim, hidden_channels=hidden_channels, output_dim=feature_dim, **kwargs
         )
         ac_head = LinearHead(body.output_dim, action_dim * num_options, policy_init())

@@ -36,7 +36,7 @@ class LinearHead(NetworkBlock):
         return self.fc(x)
 
 
-class ConvBody(NetworkBlock):
+class CNNBody(NetworkBlock):
     """Multiple CNN layers + FC
     By default, this is the same as CNN used in the DQN paper.
     """
@@ -44,14 +44,14 @@ class ConvBody(NetworkBlock):
     def __init__(
         self,
         input_dim: Tuple[int, int, int],
-        kernel_and_strides: Sequence[Tuple[int, int]] = [(8, 4), (4, 2), (3, 1)],
+        cnn_params: Sequence[tuple] = [(8, 4), (4, 2), (3, 1)],
         hidden_channels: Sequence[int] = (32, 64, 64),
         output_dim: int = 512,
         activator: nn.Module = nn.ReLU(inplace=True),
         init: Initializer = Initializer(orthogonal(nonlinearity="relu")),
     ) -> None:
         super().__init__()
-        cnns, hidden = make_cnns(input_dim, kernel_and_strides, hidden_channels)
+        cnns, hidden = make_cnns(input_dim, cnn_params, hidden_channels)
         self.cnns = init.make_list(cnns)
         self.fc = init(nn.Linear(hidden, output_dim))
         self.input_dim = input_dim
@@ -66,20 +66,20 @@ class ConvBody(NetworkBlock):
         return x
 
 
-class ConvBodyWithoutFc(NetworkBlock):
-    """Almost the same as ConvBody, but has no FC layer
+class CNNBodyWithoutFc(NetworkBlock):
+    """Almost the same as CNNBody, but has no FC layer
     """
 
     def __init__(
         self,
         input_dim: Tuple[int, int, int],
-        kernel_and_strides: Sequence[Tuple[int, int]] = [(8, 4), (4, 2), (3, 1)],
+        cnn_params: Sequence[Tuple[int, int]] = [(8, 4), (4, 2), (3, 1)],
         hidden_channels: Sequence[int] = (32, 64, 64),
         activator: nn.Module = nn.ReLU(inplace=True),
         init: Initializer = Initializer(orthogonal(nonlinearity="relu")),
     ) -> None:
         super().__init__()
-        cnns, hidden = make_cnns(input_dim, kernel_and_strides, hidden_channels)
+        cnns, hidden = make_cnns(input_dim, cnn_params, hidden_channels)
         self.cnns = init.make_list(cnns)
         self.input_dim = input_dim
         self.output_dim = hidden

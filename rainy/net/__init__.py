@@ -1,7 +1,7 @@
 from .actor_critic import ActorCriticNet, SeparatedACNet, SharedACNet, policy_init
 from .block import (
-    ConvBody,
-    ConvBodyWithoutFc,
+    CNNBody,
+    CNNBodyWithoutFc,
     FcBody,
     ResNetBody,
     LinearHead,

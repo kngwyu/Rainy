@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from torch import nn, Tensor
 from typing import Sequence, Tuple
-from .block import ConvBody, FcBody, LinearHead, NetworkBlock
+from .block import CNNBody, FcBody, LinearHead, NetworkBlock
 from .prelude import NetFn
 from ..utils import Device
 from ..prelude import Array, ArrayLike
@@ -76,7 +76,7 @@ def dqn_conv(*args, **kwargs) -> NetFn:
     def _net(
         state_dim: Tuple[int, int, int], action_dim: int, device: Device
     ) -> DiscreteQValueNet:
-        body = ConvBody(state_dim, *args, **kwargs)
+        body = CNNBody(state_dim, *args, **kwargs)
         head = LinearHead(body.output_dim, action_dim)
         return DiscreteQValueNet(body, head, device=device)
 

@@ -6,7 +6,7 @@ import torch
 from torch import nn, Tensor
 from typing import NamedTuple, Sequence, Tuple, Type
 from .actor_critic import policy_init
-from .block import ConvBody, ConvBodyWithoutFc, FcBody, LinearHead, NetworkBlock
+from .block import CNNBody, CNNBodyWithoutFc, FcBody, LinearHead, NetworkBlock
 from .init import Initializer
 from .policy import (
     BernoulliDist,
@@ -90,7 +90,7 @@ def oac_conv_shared(
     def _net(
         state_dim: Tuple[int, int, int], action_dim: int, device: Device
     ) -> SharedOACNet:
-        body = ConvBody(
+        body = CNNBody(
             state_dim,
             hidden_channels=hidden_channels,
             output_dim=feature_dim,
@@ -205,10 +205,10 @@ def tc_conv_shared(
     def _net(
         state_dim: Tuple[int, int, int], _action_dim: int, device: Device
     ) -> SharedTCNet:
-        body1 = ConvBodyWithoutFc(
+        body1 = CNNBodyWithoutFc(
             state_dim, hidden_channels=hidden_channels, **cnn_args
         )
-        body2 = ConvBodyWithoutFc(
+        body2 = CNNBodyWithoutFc(
             state_dim, hidden_channels=hidden_channels, **cnn_args
         )
         return SharedTCNet(

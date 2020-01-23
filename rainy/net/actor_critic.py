@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from torch import nn, Tensor
 from typing import List, Optional, Sequence, Tuple, Type
-from .block import ConvBody, FcBody, ResNetBody, LinearHead, NetworkBlock
+from .block import CNNBody, FcBody, ResNetBody, LinearHead, NetworkBlock
 from .init import Initializer, orthogonal
 from .policy import CategoricalDist, Policy, PolicyDist
 from .prelude import NetFn
@@ -215,7 +215,7 @@ def ac_conv(
     def _net(
         state_dim: Tuple[int, int, int], action_dim: int, device: Device
     ) -> SharedACNet:
-        body = ConvBody(
+        body = CNNBody(
             state_dim, hidden_channels=hidden_channels, output_dim=feature_dim, **kwargs
         )
         policy_dist = policy(action_dim, device)

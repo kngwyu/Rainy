@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 from rainy.net import (
     actor_critic,
-    ConvBody,
-    ConvBodyWithoutFc,
+    CNNBody,
+    CNNBodyWithoutFc,
     GruBlock,
     LstmBlock,
     termination_critic,
@@ -98,19 +98,19 @@ def test_convbody(
 ) -> None:
     kwargs = {}
     if params is not None:
-        kwargs["kernel_and_strides"] = params
+        kwargs["cnn_params"] = params
     if init is not None:
         kwargs["init"] = init
     if channels is not None:
         kwargs["hidden_channels"] = channels
-    conv = ConvBody(input_dim, **kwargs)
+    conv = CNNBody(input_dim, **kwargs)
     assert conv.fc.in_features == np.prod(hidden)
     x = torch.ones((batch_size, *input_dim))
     x = conv(x)
     assert x.size(0) == batch_size
     assert x.size(1) == conv.output_dim
 
-    without_fc = ConvBodyWithoutFc(input_dim, **kwargs)
+    without_fc = CNNBodyWithoutFc(input_dim, **kwargs)
     assert without_fc.output_dim == conv.fc.in_features
 
 

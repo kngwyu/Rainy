@@ -110,7 +110,7 @@ def config(
                 num_options=num_options,
                 hidden_channels=(8, 8),
                 output_dim=128,
-                kernel_and_strides=[(4, 1), (2, 1)],
+                cnn_params=[(4, 1), (2, 1)],
             ),
         )
     else:

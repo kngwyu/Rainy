@@ -126,7 +126,7 @@ def config(
         CONV_ARGS = dict(
             hidden_channels=(8, 8),
             feature_dim=128,
-            kernel_and_strides=[(4, 1), (2, 1)],
+            cnn_params=[(4, 1), (2, 1)],
         )
         c.set_net_fn(
             "actor-critic", tc.oac_conv_shared(num_options=num_options, **CONV_ARGS),
