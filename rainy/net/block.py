@@ -200,7 +200,7 @@ def make_cnns(
 ) -> Tuple[List[nn.Conv2d], int]:
     """Make a list of CNNs from lists of parameters.
     """
-    channel, width, height = input_dim
+    channel, height, width = input_dim  # input is CHW
     hiddens = list(hidden_channels)
     res = []
     for ic, oc, param in zip([channel] + hiddens, hiddens, params):
