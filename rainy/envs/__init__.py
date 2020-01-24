@@ -141,16 +141,16 @@ class PyBullet(EnvExt):
         self._viewer = None
 
     def render(self, mode: str = "human") -> Optional[Array]:
+        arr = self._env.render("rgb_array").astype(np.uint8)
         if mode == "human":
-            arr = self._env.render("rgb_array")
             if self._viewer is None:
                 from gym.envs.classic_control import rendering
 
                 self._viewer = rendering.SimpleImageViewer()
-            self._viewer.imshow(arr.astype(np.uint8))  # type: ignore
+            self._viewer.imshow(arr)
             return None
         else:
-            return self._env.render(mode)
+            return arr
 
     def close(self) -> None:
         if self._viewer is not None:
