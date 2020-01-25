@@ -159,15 +159,10 @@ class Experiment:
 
     def evaluate(
         self,
-        logdir_: str,
         render: bool = False,
         replay: bool = False,
         pause: bool = False,
     ) -> None:
-        logdir = Path(logdir_)
-        if not self._load_agent(logdir):
-            raise ValueError("File'{}' does not exists".format(self._save_file_name))
-
         if self.config.save_eval_actions:
             action_file = "eval-" + self._action_file.as_posix()
         else:
@@ -182,6 +177,18 @@ class Experiment:
             except Exception:
                 warnings.warn("This environment does not support replay")
         self.ag.close()
+
+    def load_and_evaluate(
+        self,
+        logdir_: str,
+        render: bool = False,
+        replay: bool = False,
+        pause: bool = False,
+    ) -> None:
+        logdir = Path(logdir_)
+        if not self._load_agent(logdir):
+            raise ValueError("File'{}' does not exists".format(self._save_file_name))
+        self.evaluate()
 
     def random(
         self, render: bool = False, replay: bool = False, pause: bool = False,

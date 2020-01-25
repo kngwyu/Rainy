@@ -119,7 +119,7 @@ def eval(
     ctx: click.Context, logdir: str, save: bool, render: bool, pause: bool, replay: bool
 ) -> None:
     ctx.obj.experiment.config.save_eval_actions |= save
-    ctx.obj.experiment.evaluate(logdir, render, replay, pause)
+    ctx.obj.experiment.load_and_evaluate(logdir, render, replay, pause)
 
 
 @rainy_cli.command(help="Run the random agent and show its result")
