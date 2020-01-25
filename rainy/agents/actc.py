@@ -288,10 +288,7 @@ class ACTCAgent(A2CLikeAgent[State]):
         policy = opt_policy[self.worker_indices, options]
         actions = policy.action().squeeze().cpu().numpy()
         net_outputs = dict(
-            policy=policy,
-            value=opt_q,
-            options=options,
-            is_new_options=is_new_options,
+            policy=policy, value=opt_q, options=options, is_new_options=is_new_options,
         )
         return actions, net_outputs
 

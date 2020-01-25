@@ -124,9 +124,7 @@ def config(
     c.tc_exact_pmu = "GridWorld" in envname
     if "v2" in envname:
         CONV_ARGS = dict(
-            hidden_channels=(8, 8),
-            feature_dim=128,
-            cnn_params=[(4, 1), (2, 1)],
+            hidden_channels=(8, 8), feature_dim=128, cnn_params=[(4, 1), (2, 1)],
         )
         c.set_net_fn(
             "actor-critic", tc.oac_conv_shared(num_options=num_options, **CONV_ARGS),

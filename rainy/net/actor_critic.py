@@ -203,7 +203,8 @@ def _make_ac_shared(
 
 def ac_conv(
     policy: Type[PolicyDist] = CategoricalDist,
-    hidden_channels: Tuple[int, int, int] = (32, 64, 32),
+    cnn_params: Sequence[tuple] = [(8, 4), (4, 2), (3, 1)],
+    hidden_channels: Sequence[int] = (32, 64, 32),
     feature_dim: int = 256,
     rnn: Type[RnnBlock] = DummyRnn,
     **kwargs,
@@ -216,7 +217,11 @@ def ac_conv(
         state_dim: Tuple[int, int, int], action_dim: int, device: Device
     ) -> SharedACNet:
         body = CNNBody(
-            state_dim, hidden_channels=hidden_channels, output_dim=feature_dim, **kwargs
+            state_dim,
+            cnn_params=cnn_params,
+            hidden_channels=hidden_channels,
+            output_dim=feature_dim,
+            **kwargs,
         )
         policy_dist = policy(action_dim, device)
         return _make_ac_shared(body, policy_dist, device, rnn)

@@ -205,12 +205,8 @@ def tc_conv_shared(
     def _net(
         state_dim: Tuple[int, int, int], _action_dim: int, device: Device
     ) -> SharedTCNet:
-        body1 = CNNBodyWithoutFc(
-            state_dim, hidden_channels=hidden_channels, **cnn_args
-        )
-        body2 = CNNBodyWithoutFc(
-            state_dim, hidden_channels=hidden_channels, **cnn_args
-        )
+        body1 = CNNBodyWithoutFc(state_dim, hidden_channels=hidden_channels, **cnn_args)
+        body2 = CNNBodyWithoutFc(state_dim, hidden_channels=hidden_channels, **cnn_args)
         return SharedTCNet(
             body1,
             body2,
