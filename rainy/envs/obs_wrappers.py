@@ -36,6 +36,18 @@ class TransposeObs(gym.ObservationWrapper):
         return img / self.scale
 
 
+class ScaleObs(gym.ObservationWrapper):
+    """Transpose & Scale image
+    """
+
+    def __init__(self, env: gym.Env, scale: float = 255.0) -> None:
+        super().__init__(env)
+        self.scale = scale
+
+    def observation(self, obs: Array):
+        return obs / self.scale
+
+
 class AddTimeStep(gym.ObservationWrapper):
     def __init__(self, env: TimeLimit) -> None:
         super().__init__(env)

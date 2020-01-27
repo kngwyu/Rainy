@@ -5,7 +5,7 @@ from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
 from .deepsea import DeepSea as DeepSeaGymEnv
 from .ext import EnvExt, EnvSpec, EnvTransition  # noqa
 from .monitor import RewardMonitor
-from .obs_wrappers import AddTimeStep, TransposeObs
+from .obs_wrappers import AddTimeStep, ScaleObs, TransposeObs
 from .parallel import (  # noqa
     DummyParallelEnv,
     EnvGen,
