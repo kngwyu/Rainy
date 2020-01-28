@@ -52,12 +52,15 @@ def rainy_cli(
     default=None,
     help="Comment that would be wrote to fingerprint.txt",
 )
-@click.option("--prefix", type=str, default="", help="Prefix of the log directory")
+@click.option("--logdir", type=str, default=None, help="Name of the log directory")
 @click.option(
     "--eval-render", is_flag=True, help="Render the environment when evaluating"
 )
 def train(
-    ctx: click.Context, comment: Optional[str], prefix: str, eval_render: bool = True
+    ctx: click.Context,
+    comment: Optional[str],
+    logdir: Optional[str],
+    eval_render: bool = True,
 ) -> None:
     experiment = ctx.obj.experiment
     script_path = ctx.obj.script_path
@@ -68,7 +71,7 @@ def train(
             kwargs=ctx.obj.kwargs,
         )
         experiment.logger.setup_from_script_path(
-            script_path, prefix=prefix, fingerprint=fingerprint
+            script_path, dirname=logdir, fingerprint=fingerprint
         )
     experiment.train(eval_render=eval_render)
     if mpi.IS_MPI_ROOT:

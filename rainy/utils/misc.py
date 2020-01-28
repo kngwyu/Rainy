@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 from torch import Tensor
 
@@ -14,3 +15,7 @@ def normalize_(t: Tensor, eps: float) -> None:
     mean = t.mean()
     std = t.std()
     t.sub_(mean).div_(std + eps)
+
+
+def assert_tensor(t1: Tensor, t2: Tensor) -> None:
+    np.testing.assert_array_almost_equal(t1.cpu().numpy(), t2.cpu().numpy())

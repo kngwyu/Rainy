@@ -5,7 +5,7 @@ import datetime as dt
 import pandas as pd
 from pandas import DataFrame
 from pathlib import Path
-from typing import Any, DefaultDict, Dict, List, NamedTuple, Tuple, Union
+from typing import Any, DefaultDict, Dict, List, NamedTuple, Optional, Tuple, Union
 import warnings
 
 
@@ -84,15 +84,21 @@ class ExperimentLogger:
         atexit.register(self.close)
 
     def setup_from_script_path(
-        self, script_path_: str, prefix: str = "", fingerprint: Dict[str, str] = {},
+        self,
+        script_path_: str,
+        dirname: Optional[str] = None,
+        fingerprint: Optional[Dict[str, str]] = None,
     ) -> None:
         script_path = Path(script_path_)
         logdir_top = "Results"
-        if prefix:
-            logdir_top = prefix + "/" + logdir_top
         self.exp_name = script_path.stem
-        time = self.exp_start.strftime("%y%m%d-%H%M%S")
-        self.logdir = Path(logdir_top).joinpath(self.exp_name).joinpath(time)
+        if dirname is None:
+            dirname = self.exp_start.strftime("%y%m%d-%H%M%S")
+        self.logdir = Path(logdir_top).joinpath(self.exp_name).joinpath(dirname)
+        if self.logdir.exists():
+            warnings.warn(f"{self.logdir} already exists and can be overridden.")
+        if fingerprint is None:
+            fingerprint = {}
         fingerprint.update(self.git_metadata(script_path))
         self.setup_logdir(fingerprint=fingerprint)
 

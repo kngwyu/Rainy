@@ -158,10 +158,7 @@ class Experiment:
         self.train(save_id, eval_render)
 
     def evaluate(
-        self,
-        render: bool = False,
-        replay: bool = False,
-        pause: bool = False,
+        self, render: bool = False, replay: bool = False, pause: bool = False,
     ) -> None:
         if self.config.save_eval_actions:
             action_file = "eval-" + self._action_file.as_posix()
