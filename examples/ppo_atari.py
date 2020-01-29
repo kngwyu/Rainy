@@ -9,8 +9,8 @@ from torch.optim import Adam
 def config(envname: str = "Breakout") -> Config:
     c = Config()
     c.set_env(lambda: Atari(envname, frame_stack=False))
-    #  c.set_net_fn('actor-critic', net.actor_critic.ac_conv(rnn=net.GruBlock))
-    c.set_net_fn("actor-critic", net.actor_critic.ac_conv())
+    #  c.set_net_fn('actor-critic', net.actor_critic.conv_shared(rnn=net.GruBlock))
+    c.set_net_fn("actor-critic", net.actor_critic.conv_shared())
     c.set_parallel_env(atari_parallel())
     c.set_optimizer(lambda params: Adam(params, lr=2.5e-4, eps=1.0e-4))
     c.max_steps = int(2e7)

@@ -14,8 +14,8 @@ def config(envname: str = "Breakout") -> Config:
     c = Config()
     c.set_env(lambda: Atari(envname, frame_stack=False))
     c.set_optimizer(lambda params: RMSprop(params, lr=7e-4, alpha=0.99, eps=1e-5))
-    #  c.set_net_fn('actor-critic', net.actor_critic.ac_conv(rnn=net.GruBlock))
-    c.set_net_fn("actor-critic", net.actor_critic.ac_conv())
+    #  c.set_net_fn('actor-critic', net.actor_critic.conv_shared(rnn=net.GruBlock))
+    c.set_net_fn("actor-critic", net.actor_critic.conv_shared())
     c.nworkers = 16
     c.nsteps = 5
     c.set_parallel_env(atari_parallel())

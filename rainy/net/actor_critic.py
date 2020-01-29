@@ -201,7 +201,7 @@ def _make_ac_shared(
     )
 
 
-def ac_conv(
+def conv_shared(
     policy: Type[PolicyDist] = CategoricalDist,
     cnn_params: Sequence[tuple] = [(8, 4), (4, 2), (3, 1)],
     hidden_channels: Sequence[int] = (32, 64, 32),

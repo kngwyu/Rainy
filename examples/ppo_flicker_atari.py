@@ -9,7 +9,7 @@ def config(envname: str = "Breakout") -> rainy.Config:
     c = ppo_atari.config(envname)
     c.set_env(lambda: Atari(envname, flicker_frame=True, frame_stack=False))
     c.set_parallel_env(atari_parallel(frame_stack=False))
-    c.set_net_fn("actor-critic", rainy.net.actor_critic.ac_conv(rnn=rainy.net.GruBlock))
+    c.set_net_fn("actor-critic", rainy.net.actor_critic.conv_shared(rnn=rainy.net.GruBlock))
     c.eval_env = Atari(envname, flicker_frame=True, frame_stack=True)
     return c
 
