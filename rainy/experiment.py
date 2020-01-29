@@ -185,7 +185,7 @@ class Experiment:
         logdir = Path(logdir_)
         if not self._load_agent(logdir):
             raise ValueError("File'{}' does not exists".format(self._save_file_name))
-        self.evaluate()
+        self.evaluate(render=render, replay=replay, pause=pause)
 
     def random(
         self, render: bool = False, replay: bool = False, pause: bool = False,
