@@ -56,7 +56,7 @@ class A2CAgent(A2CLikeAgent[State]):
             net_outputs["policy"] = policy
         return policy.eval_action(self.config.eval_deterministic)
 
-    def eval_action_parallel(self, states: Array, mask: torch.Tensor) -> Array[Action]:
+    def eval_action_parallel(self, states: Array) -> Array[Action]:
         with torch.no_grad():
             policy, self.eval_rnns = self.net.policy(states, self.eval_rnns)
         return policy.eval_action(self.config.eval_deterministic)

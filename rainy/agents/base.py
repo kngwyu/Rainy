@@ -301,6 +301,18 @@ class A2CLikeAgent(Agent, Generic[State]):
         self.episode_results.clear()
         n = n or self.config.nworkers
 
+        if n < self.config.nworkers:
+            diff = self.config.nworkers - n
+
+            def _done(done):
+                rest = np.zeros(diff, dtype=np.bool)
+                return np.concatenate((done, rest))
+
+        else:
+
+            def _done(done):
+                return done
+
         if self.eval_penv is None:
             self.eval_penv = self.config.parallel_env(min(n, self.config.nworkers))
             self.eval_penv.set_mode(train=False)
@@ -308,13 +320,12 @@ class A2CLikeAgent(Agent, Generic[State]):
 
         self.penv.copyto(self.eval_penv)
         states = self.eval_penv.reset()
-        mask = self.config.device.ones(self.config.nworkers)
         while True:
-            actions = self.eval_action_parallel(self.penv.extract(states), mask)
+            actions = self.eval_action_parallel(self.penv.extract(states))
             states, rewards, done, info = self.eval_penv.step(actions)
             self.episode_length += 1
             self.returns[:n] += rewards
-            self._report_reward(done, info)
+            self._report_reward(_done(done), info)
             if n <= len(self.episode_results):
                 break
 
@@ -324,7 +335,7 @@ class A2CLikeAgent(Agent, Generic[State]):
         return res
 
     @abstractmethod
-    def eval_action_parallel(self, states: Array, mask: torch.Tensor) -> Array[Action]:
+    def eval_action_parallel(self, states: Array) -> Array[Action]:
         pass
 
     @abstractmethod

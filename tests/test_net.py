@@ -22,7 +22,11 @@ ACTION_DIM = 10
     "net, state_dim, batch_size",
     [
         (actor_critic.fc_shared()((4,), ACTION_DIM, Device()), (4,), 32),
-        (actor_critic.conv_shared()((4, 84, 84), ACTION_DIM, Device()), (4, 84, 84), 32),
+        (
+            actor_critic.conv_shared()((4, 84, 84), ACTION_DIM, Device()),
+            (4, 84, 84),
+            32,
+        ),
         (
             actor_critic.conv_shared(rnn=GruBlock)((4, 84, 84), ACTION_DIM, Device()),
             (4, 84, 84),
