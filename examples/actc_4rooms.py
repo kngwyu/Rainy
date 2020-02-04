@@ -42,11 +42,14 @@ class OptionVisualizeHook(EvalHook):
         xs, xf = self._xs_xf(env.unwrapped, initial_state, env.extract)
 
         if random_goal:
+
             def to_np(tensor):
                 ngoals = env.unwrapped.domain.num_goals
                 shape = xs.size(0) // ngoals, ngoals, *tensor.shape[1:]
                 return tensor.view(shape).mean(1).cpu().numpy()
+
         else:
+
             def to_np(tensor):
                 return tensor.cpu().numpy()
 

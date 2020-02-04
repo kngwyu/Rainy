@@ -144,6 +144,7 @@ class ACTCAgent(A2CLikeAgent[State]):
             config.nworkers, dtype=torch.long
         )
         self.eval_initial_states = None
+        self._eval_masks = self.config.device.ones(self.config.nworkers)
         # Environment specific implementation: use count table to get exact Pμ
         if self.config.tc_exact_pmu:
             if hasattr(self.config.eval_env.unwrapped, "raw_observation_space"):
@@ -214,11 +215,13 @@ class ACTCAgent(A2CLikeAgent[State]):
         """
         if evaluate:
             explorer = self.eval_opt_explorer
+            masks = self._eval_masks[: opt_q.size(0)]
         else:
             explorer = self.opt_explorer
+            masks = self.storage.masks[-1]
         current_beta = beta[self.worker_indices, prev_options]
         do_options_end = current_beta.action().bool()
-        is_initial_states = (1.0 - self.storage.masks[-1]).bool()
+        is_initial_states = (1.0 - masks).bool()
         use_new_options = do_options_end | is_initial_states
         epsgreedy_options = explorer.select_from_value(opt_q, same_device=True)
         options = torch.where(use_new_options, epsgreedy_options, prev_options)
