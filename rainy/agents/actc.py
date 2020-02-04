@@ -208,17 +208,19 @@ class ACTCAgent(A2CLikeAgent[State]):
         self,
         opt_q: Tensor,
         beta: BernoulliPolicy,
-        prev_options: LongTensor,
         evaluate: bool = False,
     ) -> Tuple[LongTensor, BoolTensor]:
         """Sample options by ε-Greedy
         """
+        batch_size = opt_q.size(0)
         if evaluate:
             explorer = self.eval_opt_explorer
-            masks = self._eval_masks[: opt_q.size(0)]
+            masks = self._eval_masks[:batch_size]
+            prev_options = self.eval_prev_options[:batch_size]
         else:
             explorer = self.opt_explorer
             masks = self.storage.masks[-1]
+            prev_options = self.prev_options
         current_beta = beta[self.worker_indices, prev_options]
         do_options_end = current_beta.action().bool()
         is_initial_states = (1.0 - masks).bool()
@@ -233,9 +235,7 @@ class ACTCAgent(A2CLikeAgent[State]):
         if self.eval_initial_states is None:
             self.eval_initial_states = states.copy()
         beta = self.tc_net.beta(self.eval_initial_states, states)
-        options, _ = self._sample_options(
-            opt_q, beta, self.eval_prev_options, evaluate=True,
-        )
+        options, _ = self._sample_options(opt_q, beta, evaluate=True,)
         self.eval_prev_options = options
         return opt_policy[self.worker_indices, options]
 
@@ -263,9 +263,7 @@ class ACTCAgent(A2CLikeAgent[State]):
         x = self.penv.extract(states)
         opt_policy, opt_q = self.ac_net(x)
         tc_output = self.tc_net(self.option_initial_states, x)
-        options, is_new_options = self._sample_options(
-            opt_q, tc_output.beta, self.prev_options
-        )
+        options, is_new_options = self._sample_options(opt_q, tc_output.beta)
         if self._do_xf_count:
             self._update_xf_count(is_new_options.cpu().numpy())
         policy = opt_policy[self.worker_indices, options]
