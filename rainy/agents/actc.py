@@ -314,7 +314,6 @@ class ACTCAgent(A2CLikeAgent[State]):
         beta_xf, p_xf_x, p_mu_xf, baseline = self.tc_net(x, xf)
 
         beta_x = beta_x[self.batch_indices, prev_options]
-        bx_p, bx_l = beta_x.dist.probs, beta_x.dist.logits
         p_x_xs = p_x_xs.detach_()[self.batch_indices, prev_options]
         p_mu_x = p_mu_x[self.batch_indices, prev_options]
 
@@ -322,7 +321,7 @@ class ACTCAgent(A2CLikeAgent[State]):
         p_xf_x = p_xf_x[self.batch_indices, prev_options]
         if self._do_xf_count:
             p_mu_x_count, p_mu_xf_count = self._pmu_from_count()
-            beta_adv = calc_beta_adv(
+            beta_adv_raw = calc_beta_adv(
                 self.tensor(p_mu_x_count), p_x_xs, self.tensor(p_mu_xf_count), p_xf_xs
             )
         else:
@@ -332,19 +331,19 @@ class ACTCAgent(A2CLikeAgent[State]):
                 .mean(0)
                 .repeat(N, 1)[self.batch_indices, prev_options]
             )
-            beta_adv = calc_beta_adv(p_mu_x.detach(), p_x_xs, p_mu_xf_avg, p_xf_xs)
+            beta_adv_raw = calc_beta_adv(p_mu_x.detach(), p_x_xs, p_mu_xf_avg, p_xf_xs)
         p_mu_xf = p_mu_xf[self.batch_indices, prev_options]
         baseline = baseline[self.batch_indices, prev_options]
 
-        beta_adv_ = beta_adv - baseline.detach()
-        beta_loss = -(bx_l * bx_p * beta_adv_).mean()
+        beta_adv = beta_adv_raw - baseline.detach()
+        beta_loss = -(beta_x.dist.logits * beta_x.dist.probs.detach() * beta_adv).mean()
         beta_xf_averaged = beta_xf.view(N, W).mean(dim=0)
         p_target = self.storage.calc_p_target(
             beta_x.dist.probs.detach(), beta_xf_averaged
         )
         p_loss = F.mse_loss(p_xf_x, p_target.flatten())
         pmu_loss = F.mse_loss(p_mu_xf, p_xf_x.detach()) + F.mse_loss(p_mu_x, p_x_xs)
-        baseline_loss = F.mse_loss(baseline, beta_adv)
+        baseline_loss = F.mse_loss(baseline, beta_adv_raw)
         tc_loss = beta_loss + p_loss + pmu_loss * 0.5 + baseline_loss
         self._backward(tc_loss, self.tc_optimizer, self.tc_net.parameters())
 
