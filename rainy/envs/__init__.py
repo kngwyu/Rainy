@@ -5,7 +5,7 @@ from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
 from .deepsea import DeepSea as DeepSeaGymEnv
 from .ext import EnvExt, EnvSpec, EnvTransition  # noqa
 from .monitor import RewardMonitor
-from .obs_wrappers import AddTimeStep, ScaleObs, TransposeObs
+from .obs_wrappers import AddTimeStep, ScaleObs, TransposeObs  # noqa
 from .parallel import (  # noqa
     DummyParallelEnv,
     EnvGen,
@@ -123,7 +123,44 @@ class DeepSea(EnvExt):
         super().__init__(env)
 
 
+class RLPyGridWorld(EnvExt):
+    """
+    Class for RLPy3 grid world.
+    Current gym API cannot allow `reset` to pass raw observation, so here
+    we use this wrapper.
+    """
+
+    # To make CLI options shorter, we have a set of aliases of environment.
+    ALIASES = {
+        "4Rooms": "RLPyGridWorld11x11-4Rooms-RandomGoal",
+        "4RoomsExp": "RLPyFixedRewardGridWorld11x11-4Rooms",
+    }
+
+    def __init__(
+        self, name: str = "4Rooms", obs_type: str = "image", max_steps: int = 100,
+    ) -> None:
+        try:
+            from rlpy.gym import gridworld_obs
+        except ImportError:
+            raise ImportError("RLPy3 is not installed")
+
+        envname = self.ALIASES.get(name, name)
+        env = gym.make(envname + "-v1")
+        if max_steps is not None:
+            env._max_episode_steps = max_steps
+        self.domain = env.unwrapped.domain  # Get RLPy domain
+        obs_fn, obs_space = gridworld_obs(self.domain, mode=obs_type)
+        super().__init__(env, obs_space.shape)
+        self.obs_fn = obs_fn
+
+    def extract(self, state: Array[int]) -> Array[float]:
+        return self.obs_fn(self.domain, state[:2].astype(int))
+
+
 class PyBullet(EnvExt):
+    """PyBullet  environment.
+    """
+
     def __init__(
         self, name: str = "Hopper", add_timestep: bool = False, nosuffix: bool = False
     ) -> None:

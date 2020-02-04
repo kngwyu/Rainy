@@ -36,6 +36,7 @@ REQUIRED = [
 EXTRA = {
     "bullet": ["pybullet>=2.4"],
     "horovod": ["horovod>=0.16"],
+    "rlpy": ["rlpy3>=2.0.0b1"],
 }
 
 
