@@ -29,29 +29,18 @@ class TCRolloutStorage(RolloutStorage[State]):
         self.is_new_options = [self.device.ones(self.nworkers, dtype=torch.bool)]
         self.noptions = num_options
         self.worker_indices = self.device.indices(self.nworkers)
-        # This is a special storage, which is available only when 'raw_obs' is used
-        self.raw_states = []
 
     def reset(self) -> None:
         super().reset()
         self.options = [self.options[-1]]
         self.is_new_options = [self.is_new_options[-1]]
-        if len(self.raw_states) > 0:
-            self.raw_states = [self.raw_states[-1]]
 
     def push(
-        self,
-        *args,
-        options: LongTensor,
-        is_new_options: Tensor,
-        raw_obs: Optional[Array[int]] = None,
-        **kwargs,
+        self, *args, options: LongTensor, is_new_options: Tensor, **kwargs,
     ) -> None:
         super().push(*args, **kwargs)
         self.options.append(options)
         self.is_new_options.append(is_new_options)
-        if raw_obs is not None:
-            self.raw_states.append(raw_obs)
 
     def batch_options(self) -> Tuple[Tensor, Tensor]:
         batched = torch.cat(self.options, dim=0)
@@ -103,7 +92,7 @@ class TCRolloutStorage(RolloutStorage[State]):
 
     def _prepare_raw_xf(self, batch_states: Array) -> Array:
         states = batch_states.reshape(self.nsteps, self.nworkers, -1)
-        xf_last = self.raw_states[-1]
+        xf_last = self.states[-1]
         res = []
         for i in reversed(range(self.nsteps)):
             is_new_options = self.is_new_options[i + 1].unsqueeze(1).cpu().numpy()
@@ -144,7 +133,6 @@ class ACTCAgent(A2CLikeAgent[State]):
         self.storage = TCRolloutStorage(
             config.nsteps, config.nworkers, config.device, self.noptions
         )
-        self.option_initial_states = np.empty(())
         self._xs_reserved = self.config.device.zeros(())
         self.opt_explorer: EpsGreedy = config.explorer()
         self.eval_opt_explorer: EpsGreedy = config.explorer(key="eval")
@@ -156,6 +144,7 @@ class ACTCAgent(A2CLikeAgent[State]):
             config.nworkers, dtype=torch.long
         )
         self.eval_initial_states = None
+        self._eval_masks = self.config.device.ones(self.config.nworkers)
         # Environment specific implementation: use count table to get exact Pμ
         if self.config.tc_exact_pmu:
             if hasattr(self.config.eval_env.unwrapped, "raw_observation_space"):
@@ -177,7 +166,6 @@ class ACTCAgent(A2CLikeAgent[State]):
         """
         if not np.issubdtype(space.dtype, np.integer):
             raise ValueError("raw_observation_space have to be tabular!")
-        self._low = space.low
         range_ = space.high - space.low + 1
         self._xf_table = np.zeros((self.noptions, *range_), dtype=np.int32)
 
@@ -185,15 +173,10 @@ class ACTCAgent(A2CLikeAgent[State]):
         self.eval_prev_options.fill_(0)
         self.eval_initial_states = None
 
-    def _update_option_initial_states(
-        self, is_new_options: Array[bool], new_states: Array
-    ) -> None:
-        self.option_initial_states[is_new_options] = new_states[is_new_options]
-
     def _update_xf_count(self, is_new_options: Array[bool]) -> None:
-        if not is_new_options.any() or len(self.storage.raw_states) == 0:
+        if not is_new_options.any():
             return
-        prev_states = self.storage.raw_states[-1]
+        prev_states = self.storage.states[-1]
         xf = prev_states[is_new_options]
         opt = self.prev_options.cpu().numpy()[is_new_options]
         for op, shape in zip(opt, xf):
@@ -210,7 +193,7 @@ class ACTCAgent(A2CLikeAgent[State]):
         return specific / (total + self.EPS)
 
     def _pmu_from_count(self) -> Tuple[Array, Array]:
-        x = np.concatenate(self.storage.raw_states[: self.config.nsteps], axis=0)
+        x = np.concatenate(self.storage.states[: self.config.nsteps], axis=0)
         pmu_x = self._pmu_from_count_impl(x)
         xf = self.storage._prepare_raw_xf(x)
         pmu_xf = self._pmu_from_count_impl(xf)
@@ -232,11 +215,13 @@ class ACTCAgent(A2CLikeAgent[State]):
         """
         if evaluate:
             explorer = self.eval_opt_explorer
+            masks = self._eval_masks[: opt_q.size(0)]
         else:
             explorer = self.opt_explorer
+            masks = self.storage.masks[-1]
         current_beta = beta[self.worker_indices, prev_options]
         do_options_end = current_beta.action().bool()
-        is_initial_states = (1.0 - self.storage.masks[-1]).bool()
+        is_initial_states = (1.0 - masks).bool()
         use_new_options = do_options_end | is_initial_states
         epsgreedy_options = explorer.select_from_value(opt_q, same_device=True)
         options = torch.where(use_new_options, epsgreedy_options, prev_options)
@@ -281,10 +266,8 @@ class ACTCAgent(A2CLikeAgent[State]):
         options, is_new_options = self._sample_options(
             opt_q, tc_output.beta, self.prev_options
         )
-        is_new_options_np = is_new_options.cpu().numpy()
-        self._update_option_initial_states(is_new_options_np, x)
         if self._do_xf_count:
-            self._update_xf_count(is_new_options_np)
+            self._update_xf_count(is_new_options.cpu().numpy())
         policy = opt_policy[self.worker_indices, options]
         actions = policy.action().squeeze().cpu().numpy()
         net_outputs = dict(
@@ -295,13 +278,10 @@ class ACTCAgent(A2CLikeAgent[State]):
     def _one_step(self, states: Array[State]) -> Array[State]:
         actions, net_outputs = self.actions(states)
         transition = self.penv.step(actions).map_r(lambda r: r * self.reward_scale)
-        if self._do_xf_count:
-            raw_obs = np.stack(
-                [info["raw_obs"] - self._low for info in transition.infos]
-            )
-            self.storage.push(*transition[:3], raw_obs=raw_obs, **net_outputs)
-        else:
-            self.storage.push(*transition[:3], **net_outputs)
+        is_new_options = net_outputs["is_new_options"].cpu().numpy()
+        states = self.penv.extract(transition.states)
+        self.option_initial_states[is_new_options] = states[is_new_options]
+        self.storage.push(*transition[:3], **net_outputs)
         self.returns += transition.rewards
         self.episode_length += 1
         self._report_reward(transition.terminals, transition.infos)
@@ -332,7 +312,7 @@ class ACTCAgent(A2CLikeAgent[State]):
             p_xf_xs = self.tc_net.p(xs, xf)  # NW x O
             p_xf_xs = p_xf_xs[self.batch_indices, prev_options]  # NW
 
-        beta_x, p_x_xs, p_mu_x, baseline2 = self.tc_net(xs, x)
+        beta_x, p_x_xs, p_mu_x, _ = self.tc_net(xs, x)
         beta_xf, p_xf_x, p_mu_xf, baseline = self.tc_net(x, xf)
 
         beta_x = beta_x[self.batch_indices, prev_options]
@@ -357,7 +337,6 @@ class ACTCAgent(A2CLikeAgent[State]):
             beta_adv = calc_beta_adv(p_mu_x.detach(), p_x_xs, p_mu_xf_avg, p_xf_xs)
         p_mu_xf = p_mu_xf[self.batch_indices, prev_options]
         baseline = baseline[self.batch_indices, prev_options]
-        bl2 = baseline2[self.batch_indices, prev_options]
 
         beta_adv_ = beta_adv - baseline.detach()
         beta_loss = -(bx_l * bx_p * beta_adv_).mean()
@@ -367,8 +346,8 @@ class ACTCAgent(A2CLikeAgent[State]):
         )
         p_loss = F.mse_loss(p_xf_x, p_target.flatten())
         pmu_loss = F.mse_loss(p_mu_xf, p_xf_x.detach()) + F.mse_loss(p_mu_x, p_x_xs)
-        baseline_loss = F.mse_loss(baseline, beta_adv) + F.mse_loss(bl2, beta_adv)
-        tc_loss = beta_loss + p_loss + pmu_loss * 0.5 + baseline_loss * 0.5
+        baseline_loss = F.mse_loss(baseline, beta_adv)
+        tc_loss = beta_loss + p_loss + pmu_loss * 0.5 + baseline_loss
         self._backward(tc_loss, self.tc_optimizer, self.tc_net.parameters())
 
         policy, q = self.ac_net(x)
