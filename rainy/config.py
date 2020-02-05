@@ -1,6 +1,6 @@
 from torch import nn
 from torch.optim import Optimizer, RMSprop
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Container, Dict, List, Optional, Sequence
 from .envs import ClassicControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEnv
 from .net import actor_critic, bootstrap, deterministic, option_critic, sac, value
 from .net.prelude import NetFn
@@ -238,7 +238,12 @@ class Config:
         d = filter(lambda t: not t[0].startswith("_Config"), self.__dict__.items())
         return "Config: " + str(dict(d))
 
-    def ensure(self, name: str, default_value: Any) -> None:
+    def ensure(
+        self, name: str, default_value: Any, allowed: Optional[Container] = None
+    ) -> None:
+        """Ensure default config has an attr.
+        If it hasn't, set the default value.
+        """
         if hasattr(self, name):
             pass
         else:
@@ -249,3 +254,11 @@ class Config:
                 Default value {default_value} is used."""
             )
             setattr(self, name, default_value)
+
+        if allowed is not None:
+            value = getattr(self, name)
+            if value not in allowed:
+                raise ValueError(
+                    f"""Invalid value {value} as {name}.
+                    Allowed values are {allowed}."""
+                )

@@ -205,10 +205,7 @@ class ACTCAgent(A2CLikeAgent[State]):
         self._xs_reserved = self.tensor(self.option_initial_states)
 
     def _sample_options(
-        self,
-        opt_q: Tensor,
-        beta: BernoulliPolicy,
-        evaluate: bool = False,
+        self, opt_q: Tensor, beta: BernoulliPolicy, evaluate: bool = False,
     ) -> Tuple[LongTensor, BoolTensor]:
         """Sample options by ε-Greedy
         """
