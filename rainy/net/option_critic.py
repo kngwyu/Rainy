@@ -5,6 +5,7 @@ from torch import nn, Tensor
 from typing import Sequence, Tuple, Type
 from .actor_critic import policy_init
 from .block import CNNBody, FcBody, LinearHead, NetworkBlock
+from .init import Initializer
 from .policy import (
     BernoulliDist,
     BernoulliPolicy,
@@ -119,6 +120,7 @@ def conv_shared(
     hidden_channels: Tuple[int, int, int] = (32, 64, 32),
     feature_dim: int = 256,
     has_mu: bool = False,
+    beta_init: Initializer = Initializer(),
     **kwargs,
 ) -> NetFn:
     def _net(
@@ -129,7 +131,7 @@ def conv_shared(
         )
         ac_head = LinearHead(body.output_dim, action_dim * num_options, policy_init())
         optq_head = LinearHead(body.output_dim, num_options)
-        beta_head = LinearHead(body.output_dim, num_options)
+        beta_head = LinearHead(body.output_dim, num_options, init=beta_init)
         dist = policy(action_dim, device)
         if has_mu:
             mu_head = LinearHead(body.output_dim, num_options, policy_init())

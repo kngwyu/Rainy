@@ -184,10 +184,10 @@ class SharedACNet(ActorCriticNet):
         return self.policy_dist(policy), value.squeeze_(), rnn_next
 
 
-def policy_init() -> Initializer:
+def policy_init(gain: float = 0.01) -> Initializer:
     """Use small value for policy layer to make policy entroy larger
     """
-    return Initializer(weight_init=orthogonal(0.01))
+    return Initializer(weight_init=orthogonal(gain))
 
 
 def _make_ac_shared(
