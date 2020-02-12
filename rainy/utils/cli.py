@@ -1,5 +1,6 @@
-import click
 from typing import Callable, List, Optional, Type
+
+import click
 
 from ..agents import Agent
 from ..config import Config

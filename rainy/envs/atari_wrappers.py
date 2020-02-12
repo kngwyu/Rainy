@@ -5,13 +5,16 @@ Originaly from openai baselines, but modified to:
 - support StickyActions
 or so.
 """
+from typing import Optional
+
 import cv2
 import numpy as np
+
 import gym
 from gym import spaces
-from typing import Optional
-from ..replay import ArrayDeque
+
 from ..prelude import Array
+from ..replay import ArrayDeque
 
 cv2.ocl.setUseOpenCL(False)
 

@@ -1,8 +1,9 @@
 from functools import partial
-import numpy as np
 from typing import Callable, Iterable, Optional
+
+import numpy as np
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 
 InitFn = Callable[[Tensor], Tensor]
 

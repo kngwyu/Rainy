@@ -1,6 +1,7 @@
-from .array_deque import ArrayDeque
-from collections import deque
 import random
+from collections import deque
+
+from .array_deque import ArrayDeque
 
 
 def test_deque_push_back() -> None:

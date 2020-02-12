@@ -1,7 +1,8 @@
+import torch
+
 import pytest
 import rainy
 from rainy import agents, envs, lib, net, replay
-import torch
 
 try:
     import pybullet  # noqa

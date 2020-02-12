@@ -1,6 +1,6 @@
-from torch import Tensor
 from typing import Any, Iterable, List, Sequence, Tuple, TypeVar, Union
 
+from torch import Tensor
 
 try:
     from typing import GenericMeta, NamedTupleMeta  # type: ignore

@@ -1,8 +1,10 @@
 import numpy as np
-import pytest
 import torch
-from .rms import RunningMeanStd, RunningMeanStdTorch
+
+import pytest
+
 from ..utils import Device
+from .rms import RunningMeanStd, RunningMeanStdTorch
 
 
 @pytest.mark.parametrize("shape", [(10,), ()])

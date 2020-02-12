@@ -1,8 +1,10 @@
-import pytest
-from rainy.utils import Device
-from rainy.net import DilatedRnnBlock, GruBlock, LstmBlock, RnnBlock
-import torch
 from typing import Callable
+
+import torch
+
+import pytest
+from rainy.net import DilatedRnnBlock, GruBlock, LstmBlock, RnnBlock
+from rainy.utils import Device
 
 
 def dilated_gru(input_dim: int, output_dim: int) -> DilatedRnnBlock:

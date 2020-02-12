@@ -1,12 +1,13 @@
-import pytest
-from test_env import DummyEnv
 import torch
+
+import pytest
 from rainy.agents.aoc import AOCRolloutStorage
-from rainy.lib.rollout import RolloutSampler, RolloutStorage
 from rainy.envs import DummyParallelEnv, MultiProcEnv, ParallelEnv
-from rainy.net.policy import CategoricalDist
+from rainy.lib.rollout import RolloutSampler, RolloutStorage
 from rainy.net import recurrent
+from rainy.net.policy import CategoricalDist
 from rainy.utils import Device
+from test_env import DummyEnv
 
 NSTEP = 4
 ACTION_DIM = 3

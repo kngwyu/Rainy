@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
+from typing import Optional, Tuple
+
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 from torch.distributions import Bernoulli, Categorical, Distribution, Normal
 from torch.nn import functional as F
-from typing import Optional, Tuple
+
 from ..prelude import Array, Index, Self
 from ..utils import Device
 

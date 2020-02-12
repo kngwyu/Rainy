@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
+from typing import Dict, Optional
+
 import torch
 from torch import LongTensor, Tensor
 from torch.optim import Optimizer
-from typing import Dict, Optional
+
 from ..net.value import DiscreteQFunction
 from ..prelude import Array
 

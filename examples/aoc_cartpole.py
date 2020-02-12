@@ -1,9 +1,11 @@
-import click
 import os
-import rainy
-from rainy.utils.cli import run_cli
-from rainy.envs import ClassicControl, MultiProcEnv
+
+import click
 from torch import optim
+
+import rainy
+from rainy.envs import ClassicControl, MultiProcEnv
+from rainy.utils.cli import run_cli
 
 
 def config(

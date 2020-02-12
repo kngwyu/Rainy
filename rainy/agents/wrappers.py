@@ -1,6 +1,8 @@
-import numpy as np
 from pathlib import Path
 from typing import Iterable, List, Optional
+
+import numpy as np
+
 from ..prelude import Action, Array, State
 from .base import Agent, DQNLikeAgent, EpisodeResult, Netout
 

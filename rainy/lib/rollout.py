@@ -1,12 +1,14 @@
+from typing import DefaultDict, Generic, Iterator, List, NamedTuple, Optional
+
 import torch
 from torch import Tensor
-from typing import DefaultDict, Generic, NamedTuple, Iterator, List, Optional
+
 from ..envs import ParallelEnv, State
 from ..net import DummyRnn, Policy, RnnState
+from ..prelude import Array, Index
 from ..utils import Device
 from ..utils.misc import normalize_
 from ..utils.sample import FeedForwardBatchSampler, RecurrentBatchSampler
-from ..prelude import Array, Index
 
 
 class RolloutStorage(Generic[State]):

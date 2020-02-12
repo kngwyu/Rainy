@@ -2,22 +2,18 @@
 """
 
 from abc import ABC, abstractmethod
-import torch
-from torch import nn, Tensor
 from typing import NamedTuple, Sequence, Tuple, Type
+
+import torch
+from torch import Tensor, nn
+
+from ..prelude import ArrayLike
+from ..utils import Device
 from .actor_critic import policy_init
 from .block import CNNBody, CNNBodyWithoutFc, FcBody, LinearHead, NetworkBlock
 from .init import Initializer
-from .policy import (
-    BernoulliDist,
-    BernoulliPolicy,
-    CategoricalDist,
-    Policy,
-    PolicyDist,
-)
+from .policy import BernoulliDist, BernoulliPolicy, CategoricalDist, Policy, PolicyDist
 from .prelude import NetFn
-from ..prelude import ArrayLike
-from ..utils import Device
 
 
 class OptionActorCriticNet(nn.Module, ABC):

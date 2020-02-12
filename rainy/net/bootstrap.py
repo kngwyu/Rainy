@@ -1,16 +1,18 @@
 from abc import abstractmethod
 from copy import deepcopy
+from typing import List, Sequence
+
 import numpy as np
 import torch
-from torch import nn, Tensor
+from torch import Tensor, nn
 from torch.nn import functional as F
-from typing import List, Sequence
+
+from ..prelude import Array, ArrayLike
+from ..utils import Device
 from .block import FcBody, LinearHead, NetworkBlock
 from .init import Initializer, xavier_uniform
 from .prelude import NetFn
 from .value import DiscreteQFunction, DiscreteQValueNet
-from ..utils import Device
-from ..prelude import Array, ArrayLike
 
 
 class BootstrappedQFunction(DiscreteQFunction):

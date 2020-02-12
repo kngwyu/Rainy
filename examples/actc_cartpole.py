@@ -1,10 +1,12 @@
-import click
 import os
+
+import click
+from torch import optim
+
 import rainy
+from rainy.envs import ClassicControl, MultiProcEnv
 from rainy.net import termination_critic as tc
 from rainy.utils.cli import run_cli
-from rainy.envs import ClassicControl, MultiProcEnv
-from torch import optim
 
 
 def config(envname: str = "CartPole-v0", num_options: int = 2) -> rainy.Config:

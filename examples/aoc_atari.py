@@ -1,12 +1,14 @@
 """Train A2OC agent in ALE game registerd in gym.
 """
-import click
 import os
+
+import click
+from torch.optim import RMSprop
+
+import rainy.utils.cli as cli
 from rainy import Config, net
 from rainy.agents import AOCAgent
 from rainy.envs import Atari, atari_parallel
-import rainy.utils.cli as cli
-from torch.optim import RMSprop
 
 
 def config(

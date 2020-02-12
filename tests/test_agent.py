@@ -1,8 +1,9 @@
 from functools import partial
+
 import pytest
 import rainy
-from rainy.agents import A2CAgent, AOCAgent, PPOAgent
 from rainy import net
+from rainy.agents import A2CAgent, AOCAgent, PPOAgent
 from test_env import DummyEnvDeterministic
 
 

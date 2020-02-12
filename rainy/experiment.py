@@ -1,7 +1,9 @@
-import click
+import warnings
 from pathlib import Path
 from typing import List, Optional
-import warnings
+
+import click
+
 from .agents import Agent, DQNLikeAgent, DQNLikeParallel, EpisodeResult
 from .lib.mpi import IS_MPI_ROOT
 

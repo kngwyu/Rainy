@@ -6,15 +6,17 @@ This module has an implementation of A2C, which is described in
 A2C is a synchronous version of A3C, which is described in
 - http://proceedings.mlr.press/v48/mniha16.pdf
 """
+from typing import Optional, Tuple
+
 import numpy as np
 import torch
 from torch import nn
-from typing import Optional, Tuple
-from .base import A2CLikeAgent, Netout
+
 from ..config import Config
 from ..lib.rollout import RolloutStorage
 from ..net import ActorCriticNet, Policy, RnnState
 from ..prelude import Action, Array, State
+from .base import A2CLikeAgent, Netout
 
 
 class A2CAgent(A2CLikeAgent[State]):

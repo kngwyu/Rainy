@@ -1,11 +1,13 @@
-import click
 import os
+
+import click
+from torch.optim import Adam
+
+import rainy.utils.cli as cli
 from rainy import Config
 from rainy.agents import DDPGAgent
 from rainy.envs import PyBullet
 from rainy.lib import explore
-import rainy.utils.cli as cli
-from torch.optim import Adam
 
 
 def config(envname: str = "Hopper", nworkers: int = 1) -> Config:

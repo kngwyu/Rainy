@@ -1,9 +1,11 @@
 import os
+
+from torch.optim import Adam
+
+import rainy.utils.cli as cli
 from rainy import Config, net
 from rainy.agents import PPOAgent
-import rainy.utils.cli as cli
 from rainy.envs import Atari, atari_parallel
-from torch.optim import Adam
 
 
 def config(envname: str = "Breakout") -> Config:

@@ -2,6 +2,7 @@
 """
 from collections.abc import Sequence
 from typing import Any, List, Optional
+
 from ..utils.sample import sample_indices
 
 

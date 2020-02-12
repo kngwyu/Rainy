@@ -8,17 +8,19 @@ Corresponding papers:
   - https://arxiv.org/abs/1801.01290
 """
 from abc import ABC, abstractmethod
-import numpy as np
-from torch import nn, Tensor
-import torch
-from torch.nn import functional as F
 from typing import Optional, Tuple
-from .base import DQNLikeAgent, Netout
+
+import numpy as np
+import torch
+from torch import Tensor, nn
+from torch.nn import functional as F
+
 from ..config import Config
 from ..envs import ParallelEnv
 from ..net import Policy, SeparatedSACNet
 from ..prelude import Action, Array, State
 from ..replay import DQNReplayFeed
+from .base import DQNLikeAgent, Netout
 
 
 class EntropyTuner(ABC):

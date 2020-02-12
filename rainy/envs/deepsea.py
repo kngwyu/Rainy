@@ -1,7 +1,9 @@
+from typing import List, Optional, Tuple, Union
+
+import numpy as np
+
 import gym
 from gym.utils import seeding
-import numpy as np
-from typing import List, Optional, Tuple, Union
 
 
 class DeepSea(gym.Env):

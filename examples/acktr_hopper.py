@@ -1,11 +1,11 @@
 import os
+
+import rainy.utils.cli as cli
 from rainy import Config, net
 from rainy.agents import ACKTRAgent
-import rainy.utils.cli as cli
 from rainy.envs import PyBullet, pybullet_parallel
-from rainy.net.policy import SeparateStdGaussianDist
 from rainy.lib import kfac
-
+from rainy.net.policy import SeparateStdGaussianDist
 
 KFAC_KWARGS = {
     "tau": 12 * 20,

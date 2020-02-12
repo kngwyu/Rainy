@@ -1,12 +1,14 @@
-from abc import ABC, abstractmethod
 import multiprocessing as mp
+from abc import ABC, abstractmethod
 from multiprocessing.connection import Connection
+from typing import Any, Callable, Generic, Iterable, NamedTuple, Optional, Sequence
+
 import numpy as np
 from numpy import ndarray
-from typing import Any, Callable, Generic, Iterable, NamedTuple, Optional, Sequence
-from .ext import EnvExt, EnvSpec
-from ..utils import mp_utils
+
 from ..prelude import Action, Array, GenericNamedMeta, Self, State
+from ..utils import mp_utils
+from .ext import EnvExt, EnvSpec
 
 EnvGen = Callable[[], EnvExt]
 

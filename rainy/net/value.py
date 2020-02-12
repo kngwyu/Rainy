@@ -1,11 +1,13 @@
 from abc import ABC, abstractmethod
-import numpy as np
-from torch import nn, Tensor
 from typing import Sequence, Tuple
+
+import numpy as np
+from torch import Tensor, nn
+
+from ..prelude import Array, ArrayLike
+from ..utils import Device
 from .block import CNNBody, FcBody, LinearHead, NetworkBlock
 from .prelude import NetFn
-from ..utils import Device
-from ..prelude import Array, ArrayLike
 
 
 class ContinuousQFunction(ABC):

@@ -1,7 +1,8 @@
-import gym
-from gym.core import Wrapper
 import time
 from typing import Any, List, Tuple
+
+import gym
+from gym.core import Wrapper
 
 
 class RewardMonitor(Wrapper):

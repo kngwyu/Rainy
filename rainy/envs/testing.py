@@ -1,11 +1,14 @@
 """Dummy environment and utitlities for testing
 """
 from enum import Enum
-import gym
-import numpy as np
 from typing import Sequence, Tuple
-from .ext import EnvExt
+
+import numpy as np
+
+import gym
+
 from ..prelude import Array
+from .ext import EnvExt
 
 ACTION_DIM = 10
 

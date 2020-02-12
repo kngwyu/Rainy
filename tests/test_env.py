@@ -1,9 +1,10 @@
 import numpy as np
 from numpy.testing import assert_array_almost_equal
-from rainy import envs
-from rainy.envs import DummyParallelEnv, MultiProcEnv, ParallelEnv, FrameStackParallel
-from rainy.envs.testing import DummyEnv, DummyEnvDeterministic, State
+
 import pytest
+from rainy import envs
+from rainy.envs import DummyParallelEnv, FrameStackParallel, MultiProcEnv, ParallelEnv
+from rainy.envs.testing import DummyEnv, DummyEnvDeterministic, State
 
 
 @pytest.mark.parametrize(

@@ -1,8 +1,12 @@
 """Networks for Option-Critic families.
 """
 from abc import ABC, abstractmethod
-from torch import nn, Tensor
 from typing import Sequence, Tuple, Type
+
+from torch import Tensor, nn
+
+from ..prelude import ArrayLike
+from ..utils import Device
 from .actor_critic import policy_init
 from .block import CNNBody, FcBody, LinearHead, NetworkBlock
 from .init import Initializer
@@ -15,8 +19,6 @@ from .policy import (
     PolicyDist,
 )
 from .prelude import NetFn
-from ..prelude import ArrayLike
-from ..utils import Device
 
 
 class OptionCriticNet(nn.Module, ABC):

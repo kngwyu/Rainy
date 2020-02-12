@@ -6,16 +6,18 @@ This module has an implementation of Bootstrapped DQN, which is described in
   - URL: https://arxiv.org/abs/1806.03335
 """
 import copy
+from typing import Optional
+
 import numpy as np
 import torch
 from torch import Tensor
 from torch.nn import functional as F
-from typing import Optional
-from .base import DQNLikeAgent, Netout
+
 from ..config import Config
 from ..envs import EnvTransition
 from ..prelude import Action, Array, State
 from ..replay import BootDQNReplayFeed
+from .base import DQNLikeAgent, Netout
 
 
 class BootDQNAgent(DQNLikeAgent):

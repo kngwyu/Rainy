@@ -5,9 +5,10 @@ This module has an implementation of ACKTR, which is described in
   - URL: https://arxiv.org/abs/1708.05144
 """
 import torch
-from .a2c import A2CAgent
+
 from ..config import Config
 from ..net import Policy
+from .a2c import A2CAgent
 
 
 class ACKTRAgent(A2CAgent):

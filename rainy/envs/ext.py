@@ -1,11 +1,14 @@
 """Environment specifications:
 """
+from typing import Callable, Generic, NamedTuple, Optional, Sequence
+
+import numpy as np
+
 import gym
 from gym import spaces
-import numpy as np
-from typing import Callable, Generic, NamedTuple, Sequence, Optional
-from .monitor import RewardMonitor
+
 from ..prelude import Action, Array, GenericNamedMeta, Self, State
+from .monitor import RewardMonitor
 
 
 class EnvTransition(NamedTuple, Generic[State], metaclass=GenericNamedMeta):

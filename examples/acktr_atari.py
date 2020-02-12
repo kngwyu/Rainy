@@ -1,8 +1,9 @@
 import os
+
+import rainy.utils.cli as cli
 from rainy import Config, net
 from rainy.agents import ACKTRAgent
 from rainy.envs import Atari, atari_parallel
-import rainy.utils.cli as cli
 from rainy.lib import kfac
 
 KFAC_KWARGS = {

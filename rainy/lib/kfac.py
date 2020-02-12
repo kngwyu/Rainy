@@ -1,13 +1,15 @@
+import math
+import warnings
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from enum import Enum
-import math
-import torch
-from torch import nn, Tensor
-from torch.nn import functional as F
-from torch.optim import Optimizer, SGD
 from typing import Any, Callable, Generator, List, Optional, Tuple, Union
-import warnings
+
+import torch
+from torch import Tensor, nn
+from torch.nn import functional as F
+from torch.optim import SGD, Optimizer
+
 from ..prelude import Params
 
 

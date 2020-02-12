@@ -1,12 +1,13 @@
 import atexit
-import click
-from collections import defaultdict
 import datetime as dt
-import pandas as pd
-from pandas import DataFrame
+import warnings
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, DefaultDict, Dict, List, NamedTuple, Optional, Tuple, Union
-import warnings
+
+import click
+import pandas as pd
+from pandas import DataFrame
 
 
 class LogStore:
