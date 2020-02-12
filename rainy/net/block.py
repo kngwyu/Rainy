@@ -2,6 +2,7 @@
 """
 from abc import ABC
 import numpy as np
+import torch
 from torch import nn, Tensor
 from typing import List, Sequence, Tuple
 from .init import Initializer, orthogonal
@@ -34,6 +35,30 @@ class LinearHead(NetworkBlock):
 
     def forward(self, x: Tensor) -> Tensor:
         return self.fc(x)
+
+
+class RPFLinearHead(NetworkBlock):
+    """FC layer with Randomized Prior function(https://arxiv.org/abs/1806.03335)
+    """
+
+    def __init__(
+        self,
+        input_dim: int,
+        output_dim: int,
+        init: Initializer = Initializer(),
+        prior_scale: float = 1.0,
+    ) -> None:
+        super().__init__()
+        self.fc_raw: nn.Linear = init(nn.Linear(input_dim, output_dim))  # type: ignore
+        self.fc_prior: nn.Linear = init(nn.Linear(input_dim, output_dim))
+        self.prior_scale = prior_scale
+        self.input_dim = (input_dim,)
+        self.output_dim = output_dim
+
+    def forward(self, x: Tensor) -> Tensor:
+        with torch.no_grad():
+            prior = self.fc_prior(x)
+        return self.fc_raw(x).add_(prior.mul_(self.prior_scale))
 
 
 class CNNBody(NetworkBlock):

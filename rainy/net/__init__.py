@@ -3,9 +3,10 @@ from .block import (
     CNNBody,
     CNNBodyWithoutFc,
     FcBody,
-    ResNetBody,
     LinearHead,
     NetworkBlock,
+    ResNetBody,
+    RPFLinearHead,
 )
 from .block import calc_cnn_hidden, make_cnns
 from .deterministic import DeterministicPolicyNet, DDPGNet, SeparatedDDPGNet, SoftUpdate

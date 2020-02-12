@@ -83,8 +83,8 @@ class SharedBootQValueNet(DiscreteQFunction, nn.Module):
         return self.head[0].output_dim
 
 
-class PriorQValueNet(DiscreteQFunction, nn.Module):
-    """State -> [Value..]
+class RPFQValueNet(DiscreteQFunction, nn.Module):
+    """QValueNet with Randomized Prior function(https://arxiv.org/abs/1806.03335)
     """
 
     def __init__(
@@ -153,7 +153,7 @@ def rpf_fc_separated(
         for _ in range(n_ensembles):
             body = FcBody(state_dim[0], init=init, **kwargs)
             head = LinearHead(body.output_dim, action_dim, init=init)
-            prior_model = PriorQValueNet(body, head, prior_scale, init=init)
+            prior_model = RPFQValueNet(body, head, prior_scale, init=init)
             q_nets.append(prior_model)
         return SeparatedBootQValueNet(q_nets)
 
