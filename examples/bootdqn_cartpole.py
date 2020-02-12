@@ -1,13 +1,15 @@
-import click
 import os
+
+import click
+from torch import optim
+
+import rainy.utils.cli as cli
 from rainy import Config
 from rainy.agents import BootDQNAgent
 from rainy.envs import ClassicControl
 from rainy.lib import explore
 from rainy.net import bootstrap
 from rainy.replay import BootDQNReplayFeed, UniformReplayBuffer
-import rainy.utils.cli as cli
-from torch import optim
 
 
 def config(

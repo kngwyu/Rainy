@@ -1,10 +1,12 @@
 """Training/evaluation hooks which make visualization or custom logging easier
 """
 from abc import ABC
+from typing import Any, Dict
+
 import cv2
 import numpy as np
 from torch import Tensor
-from typing import Any, Dict
+
 from ..envs import EnvExt, EnvTransition
 from ..prelude import Action, State
 

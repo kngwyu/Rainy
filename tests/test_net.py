@@ -1,19 +1,20 @@
+from typing import Optional, Tuple
+
 import numpy as np
+import torch
+
 import pytest
 from rainy.net import (
-    actor_critic,
     CNNBody,
     CNNBodyWithoutFc,
     GruBlock,
     LstmBlock,
+    actor_critic,
     termination_critic,
 )
 from rainy.net.init import Initializer, kaiming_normal, kaiming_uniform
 from rainy.utils import Device
 from test_env import DummyEnv
-import torch
-from typing import Optional, Tuple
-
 
 ACTION_DIM = 10
 

@@ -3,16 +3,18 @@ This example needs rlpy3, which you can install by::
 
   pip3 install rlpy3 -U --pre
 """
-import click
 import os
+
+import click
+import torch
+from torch import optim
+
 import rainy
 from rainy.envs import ClassicControl, MultiProcEnv
 from rainy.lib.hooks import EvalHook
 from rainy.net import option_critic as oc
 from rainy.prelude import State
 from rainy.utils.cli import run_cli
-import torch
-from torch import optim
 from rlpy.gym import RLPyEnv
 
 

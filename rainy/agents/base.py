@@ -1,10 +1,7 @@
-from abc import ABC, abstractmethod
-import click
 import copy
-import numpy as np
+import warnings
+from abc import ABC, abstractmethod
 from pathlib import Path
-import torch
-from torch import nn, Tensor
 from typing import (
     Callable,
     ClassVar,
@@ -17,11 +14,16 @@ from typing import (
     Sequence,
     Tuple,
 )
-import warnings
+
+import click
+import numpy as np
+import torch
+from torch import Tensor, nn
+
 from ..config import Config
+from ..envs import EnvTransition, ParallelEnv
 from ..lib import mpi
 from ..net import DummyRnn, RnnState
-from ..envs import EnvTransition, ParallelEnv
 from ..prelude import Action, Array, State
 from ..replay import ReplayFeed
 

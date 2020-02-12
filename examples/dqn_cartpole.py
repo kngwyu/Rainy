@@ -1,9 +1,11 @@
-import click
 import os
+
+import click
+
+import rainy.utils.cli as cli
 from rainy import Config
 from rainy.agents import DQNAgent
 from rainy.envs import ClassicControl, MultiProcEnv
-import rainy.utils.cli as cli
 
 
 def config(

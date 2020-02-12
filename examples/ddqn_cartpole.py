@@ -1,8 +1,9 @@
 import os
+
+import rainy.utils.cli as cli
 from rainy import Config
 from rainy.agents import DoubleDQNAgent
 from rainy.envs import ClassicControl
-import rainy.utils.cli as cli
 
 
 def config(envname: str = "CartPole-v0") -> Config:

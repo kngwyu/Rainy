@@ -1,10 +1,12 @@
 import os
+
+from torch.optim import RMSprop
+
+import rainy.utils.cli as cli
 from rainy import Config, net
 from rainy.agents import DQNAgent
 from rainy.envs import Atari
 from rainy.lib.explore import EpsGreedy, LinearCooler
-import rainy.utils.cli as cli
-from torch.optim import RMSprop
 
 
 def config(envname: str = "Breakout") -> Config:

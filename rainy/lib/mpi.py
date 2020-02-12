@@ -1,7 +1,9 @@
+from typing import Tuple
+
 import torch
 from torch import Tensor
 from torch.optim import Optimizer
-from typing import Tuple
+
 from ..prelude import Array, Params
 
 try:

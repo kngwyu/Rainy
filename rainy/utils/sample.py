@@ -1,6 +1,8 @@
+from typing import Iterator
+
 import numpy as np
 from torch.utils.data.sampler import BatchSampler, Sampler, SubsetRandomSampler
-from typing import Iterator
+
 from ..prelude import Array
 
 

@@ -6,13 +6,14 @@ This module has an implementation of PPO, which is described in
 
 import torch
 from torch import Tensor
-from .a2c import A2CAgent
-from ..lib.rollout import RolloutSampler
-from ..lib import mpi
+
 from ..config import Config
 from ..envs import State
+from ..lib import mpi
+from ..lib.rollout import RolloutSampler
 from ..net import Policy
 from ..prelude import Array
+from .a2c import A2CAgent
 
 
 class PPOAgent(A2CAgent):

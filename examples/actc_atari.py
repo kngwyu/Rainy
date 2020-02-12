@@ -1,9 +1,11 @@
-import click
 import os
+
+import click
+from torch import optim
+
 import rainy
 from rainy.net import termination_critic as tc
 from rainy.utils.cli import run_cli
-from torch import optim
 
 
 def config(envname: str = "Breakout", num_options: int = 4) -> rainy.Config:

@@ -1,10 +1,10 @@
 import os
+
+import rainy.utils.cli as cli
 from rainy import Config
 from rainy.agents import ACKTRAgent
-import rainy.utils.cli as cli
 from rainy.envs import ClassicControl, MultiProcEnv
 from rainy.lib import kfac
-
 
 KFAC_KWARGS = {
     "tau": 12 * 20,

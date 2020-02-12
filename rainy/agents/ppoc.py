@@ -5,16 +5,18 @@ PPOC(Proximal Policy Option Critic), which is described in
   - https://arxiv.org/abs/1712.00004
 """
 
+from typing import NamedTuple, Optional, Tuple
+
 import torch
 from torch import BoolTensor, LongTensor, Tensor
-from typing import NamedTuple, Optional, Tuple
-from .aoc import AOCRolloutStorage, AOCAgent
-from ..lib.rollout import RolloutSampler
-from ..lib import mpi
+
 from ..config import Config
 from ..envs import ParallelEnv
+from ..lib import mpi
+from ..lib.rollout import RolloutSampler
 from ..net.policy import BernoulliPolicy, CategoricalPolicy, Policy
 from ..prelude import Action, Array, Index, State
+from .aoc import AOCAgent, AOCRolloutStorage
 
 
 class RolloutBatch(NamedTuple):

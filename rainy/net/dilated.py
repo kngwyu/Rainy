@@ -1,10 +1,12 @@
 """Dilated RNN implementation: WIP & Currently unused
 """
+from typing import Optional, Tuple
+
 import torch
 from torch import Tensor
-from typing import Optional, Tuple
-from .recurrent import RnnBlock, RS, _reshape_batch
+
 from ..utils import Device
+from .recurrent import RS, RnnBlock, _reshape_batch
 
 
 class DilatedRnnBlock(RnnBlock[RS]):

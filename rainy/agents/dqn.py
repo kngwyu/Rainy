@@ -8,16 +8,18 @@ Corresponding papers:
 """
 
 from copy import deepcopy
+from typing import Optional
+
 import numpy as np
 import torch
 from torch import Tensor
 from torch.nn import functional as F
-from typing import Optional
-from .base import DQNLikeAgent, Netout
+
 from ..config import Config
 from ..envs import ParallelEnv
 from ..prelude import Action, Array, State
 from ..replay import DQNReplayFeed
+from .base import DQNLikeAgent, Netout
 
 
 class DQNAgent(DQNLikeAgent):

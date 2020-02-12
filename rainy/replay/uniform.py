@@ -1,9 +1,11 @@
-import numpy as np
 from typing import Callable, Generic, List, NamedTuple, Tuple, Type
-from .array_deque import ArrayDeque
-from .base import ReplayFeed, ReplayBuffer
-from ..utils import sample_indices
+
+import numpy as np
+
 from ..prelude import Array, GenericNamedMeta, State
+from ..utils import sample_indices
+from .array_deque import ArrayDeque
+from .base import ReplayBuffer, ReplayFeed
 
 
 class UniformReplayBuffer(ReplayBuffer, Generic[ReplayFeed]):

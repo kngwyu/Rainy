@@ -3,18 +3,20 @@ This example needs rlpy3, which you can install by::
 
   pip3 install rlpy3 -U --pre
 """
+import os
+from typing import Tuple
+
 import click
 import numpy as np
-import os
+import torch
+from torch import Tensor, optim
+
 import rainy
-from rainy.envs import RLPyGridWorld, MultiProcEnv
+from rainy.envs import MultiProcEnv, RLPyGridWorld
 from rainy.lib.hooks import EvalHook
 from rainy.net import termination_critic as tc
 from rainy.prelude import State
 from rainy.utils.cli import run_cli
-import torch
-from torch import optim, Tensor
-from typing import Tuple
 from rlpy.gym import RLPyEnv
 
 

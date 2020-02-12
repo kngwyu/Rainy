@@ -3,11 +3,13 @@ Some hyper parametes are from OpenAI baselines:
 https://github.com/openai/baselines/blob/master/baselines/a2c/a2c.py
 """
 import os
+
+from torch.optim import RMSprop
+
+import rainy.utils.cli as cli
 from rainy import Config, net
 from rainy.agents import A2CAgent
 from rainy.envs import Atari, atari_parallel
-import rainy.utils.cli as cli
-from torch.optim import RMSprop
 
 
 def config(envname: str = "Breakout") -> Config:

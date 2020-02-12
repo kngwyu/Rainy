@@ -1,4 +1,5 @@
 import numpy as np
+
 from rainy.lib.explore import EpsGreedy, LinearCooler
 from rainy.net import value
 from rainy.utils import Device

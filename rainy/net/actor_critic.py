@@ -1,14 +1,16 @@
 from abc import ABC, abstractmethod
-import numpy as np
-from torch import nn, Tensor
 from typing import List, Optional, Sequence, Tuple, Type
-from .block import CNNBody, FcBody, ResNetBody, LinearHead, NetworkBlock
+
+import numpy as np
+from torch import Tensor, nn
+
+from ..prelude import ArrayLike
+from ..utils import Device
+from .block import CNNBody, FcBody, LinearHead, NetworkBlock, ResNetBody
 from .init import Initializer, orthogonal
 from .policy import CategoricalDist, Policy, PolicyDist
 from .prelude import NetFn
 from .recurrent import DummyRnn, RnnBlock, RnnState
-from ..prelude import ArrayLike
-from ..utils import Device
 
 
 class ActorCriticNet(nn.Module, ABC):

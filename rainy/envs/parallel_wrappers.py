@@ -1,8 +1,10 @@
-import numpy as np
 from typing import Any, Iterable, Optional, Tuple
-from .parallel import ParallelEnv, PEnvTransition
+
+import numpy as np
+
 from ..prelude import Action, Array, Self, State
 from ..utils import RunningMeanStd
+from .parallel import ParallelEnv, PEnvTransition
 
 
 class ParallelEnvWrapper(ParallelEnv[Action, State]):

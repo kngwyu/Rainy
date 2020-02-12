@@ -1,13 +1,15 @@
+from typing import Any, Callable, Container, Dict, List, Optional, Sequence
+
 from torch import nn
 from torch.optim import Optimizer, RMSprop
-from typing import Any, Callable, Container, Dict, List, Optional, Sequence
+
 from .envs import ClassicControl, DummyParallelEnv, EnvExt, EnvGen, ParallelEnv
-from .net import actor_critic, bootstrap, deterministic, option_critic, sac, value
-from .net.prelude import NetFn
-from .lib.explore import DummyCooler, Cooler, LinearCooler, Explorer, EpsGreedy
 from .lib import mpi
+from .lib.explore import Cooler, DummyCooler, EpsGreedy, Explorer, LinearCooler
 from .lib.hooks import EvalHook
 from .lib.kfac import KfacPreConditioner, PreConditioner
+from .net import actor_critic, bootstrap, deterministic, option_critic, sac, value
+from .net.prelude import NetFn
 from .prelude import Params
 from .replay import DQNReplayFeed, ReplayBuffer, UniformReplayBuffer
 from .utils import Device, ExperimentLogger

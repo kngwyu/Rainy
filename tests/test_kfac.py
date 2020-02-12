@@ -1,7 +1,9 @@
+import warnings
+
 import torch
 from torch import nn
+
 from rainy.lib.kfac import KfacPreConditioner, Layer
-import warnings
 
 
 class Flatten(nn.Module):

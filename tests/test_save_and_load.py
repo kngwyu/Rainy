@@ -1,9 +1,11 @@
+from pathlib import Path
+
+from torch.optim import Adam
+
+import pytest
 from rainy import Config
 from rainy.agents import PPOAgent
 from rainy.envs import MultiProcEnv
-from pathlib import Path
-import pytest
-from torch.optim import Adam
 
 LOG_DIR = Path("/tmp/rainy-test/")
 

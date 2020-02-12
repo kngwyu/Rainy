@@ -1,16 +1,18 @@
 import copy
 import itertools
-import torch
-from torch import nn, Tensor
 from typing import Iterable, List, Sequence, Tuple, Type
+
+import torch
+from torch import Tensor, nn
+
+from ..prelude import ArrayLike, Self
+from ..utils import Device
 from .block import FcBody, LinearHead, NetworkBlock
-from .init import Initializer, fanin_uniform, constant
+from .init import Initializer, constant, fanin_uniform
 from .misc import SoftUpdate
 from .policy import Policy, PolicyDist, TanhGaussianDist
 from .prelude import NetFn
 from .value import ContinuousQFunction
-from ..prelude import ArrayLike, Self
-from ..utils import Device
 
 
 class SACTarget(SoftUpdate):

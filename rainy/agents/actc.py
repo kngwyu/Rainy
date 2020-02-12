@@ -4,13 +4,15 @@ which is described in
 - The Termination Critic
   - https://arxiv.org/abs/1902.09996
 """
-import gym
+from typing import Optional, Tuple
+
 import numpy as np
 import torch
 from torch import BoolTensor, LongTensor, Tensor
 from torch.nn import functional as F
-from typing import Optional, Tuple
-from .base import A2CLikeAgent, Netout
+
+import gym
+
 from ..config import Config
 from ..lib.explore import EpsGreedy
 from ..lib.rollout import RolloutStorage
@@ -18,6 +20,7 @@ from ..net import OptionActorCriticNet, TerminationCriticNet
 from ..net.policy import BernoulliPolicy, Policy
 from ..prelude import Action, Array, State
 from ..utils import Device
+from .base import A2CLikeAgent, Netout
 
 
 class TCRolloutStorage(RolloutStorage[State]):

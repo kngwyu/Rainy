@@ -1,8 +1,9 @@
 from os.path import realpath
+
 import ppo_atari
 import rainy
-from rainy.envs import Atari, atari_parallel
 import rainy.utils.cli as cli
+from rainy.envs import Atari, atari_parallel
 
 
 def config(envname: str = "Breakout") -> rainy.Config:

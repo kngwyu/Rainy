@@ -1,10 +1,13 @@
-import gym
-from gym.wrappers import TimeLimit
-from gym.spaces import Box
-import numpy as np
 from typing import Tuple, Union
-from .atari_wrappers import LazyFrames
+
+import numpy as np
+
+import gym
+from gym.spaces import Box
+from gym.wrappers import TimeLimit
+
 from ..prelude import Array
+from .atari_wrappers import LazyFrames
 
 
 class TransposeObs(gym.ObservationWrapper):

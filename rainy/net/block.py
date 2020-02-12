@@ -1,10 +1,12 @@
 """Defines some reusable NN layers, called 'Block'
 """
 from abc import ABC
+from typing import List, Sequence, Tuple
+
 import numpy as np
 import torch
-from torch import nn, Tensor
-from typing import List, Sequence, Tuple
+from torch import Tensor, nn
+
 from .init import Initializer, orthogonal
 
 

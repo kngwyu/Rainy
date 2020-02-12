@@ -1,15 +1,18 @@
 from abc import ABC, abstractmethod
 from itertools import chain
-from rainy.utils import Device
-import torch
-from torch import nn, Tensor
 from typing import Iterable, List, Sequence, Tuple
+
+import torch
+from torch import Tensor, nn
+
+from rainy.utils import Device
+
+from ..prelude import ArrayLike
 from .block import FcBody, LinearHead, NetworkBlock
 from .init import Initializer, kaiming_uniform
 from .misc import SoftUpdate
 from .prelude import NetFn
 from .value import ContinuousQFunction
-from ..prelude import ArrayLike
 
 
 class DeterministicPolicyNet(ABC):

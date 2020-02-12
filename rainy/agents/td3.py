@@ -5,16 +5,18 @@ This module has an implementation of
   - https://arxiv.org/abs/1802.09477
 """
 from copy import deepcopy
+
 import numpy as np
 import torch
 from torch import Tensor
 from torch.nn import functional as F
-from .base import DQNLikeAgent
-from .ddpg import DDPGAgent
+
 from ..config import Config
 from ..prelude import Array
 from ..replay import DQNReplayFeed
 from ..utils.misc import clamp_actions_
+from .base import DQNLikeAgent
+from .ddpg import DDPGAgent
 
 
 class TD3Agent(DDPGAgent):

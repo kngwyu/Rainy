@@ -1,6 +1,7 @@
-from gym import spaces, logger
-from gym.envs.classic_control import CartPoleEnv
 import numpy as np
+
+from gym import logger, spaces
+from gym.envs.classic_control import CartPoleEnv
 
 F32_MAX = np.finfo(np.float32).max
 

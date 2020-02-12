@@ -1,6 +1,10 @@
-import numpy as np
-import gym
 from typing import Callable, Optional
+
+import numpy as np
+
+import gym
+
+from ..prelude import Array, Self, State
 from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
 from .deepsea import DeepSea as DeepSeaGymEnv
 from .ext import EnvExt, EnvSpec, EnvTransition  # noqa
@@ -19,7 +23,6 @@ from .parallel_wrappers import (  # noqa
     NormalizeReward,
     ParallelEnvWrapper,
 )
-from ..prelude import Array, Self, State
 
 
 class AtariConfig:

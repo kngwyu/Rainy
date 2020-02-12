@@ -1,9 +1,11 @@
 """From OpenAI baselines:
 https://github.com/openai/baselines/blob/master/baselines/common/running_mean_std.py
 """
+from typing import Sequence, Tuple
+
 import numpy as np
 import torch
-from typing import Sequence, Tuple
+
 from ..lib import mpi
 from ..prelude import Array, Self
 from ..utils import Device

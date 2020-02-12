@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
-import torch
-from torch import nn, Tensor
 from typing import Generic, Iterable, Optional, Tuple, TypeVar
-from .init import lstm_bias, Initializer
+
+import torch
+from torch import Tensor, nn
+
 from ..prelude import Index, Self
 from ..utils import Device
+from .init import Initializer, lstm_bias
 
 
 class RnnState(ABC):

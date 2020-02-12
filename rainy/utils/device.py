@@ -1,7 +1,9 @@
-import torch
-from torch import LongTensor, nn, Tensor
 from typing import List, Union
+
+import torch
 from numpy import ndarray
+from torch import LongTensor, Tensor, nn
+
 from ..lib import mpi
 from ..prelude import ArrayLike, Self
 
