@@ -1,4 +1,4 @@
-from typing import Any, Callable, Container, Dict, List, Optional, Sequence
+from typing import Any, Callable, Container, Dict, List, Optional, Sequence, Union
 
 from torch import nn
 from torch.optim import Optimizer, RMSprop
@@ -241,7 +241,10 @@ class Config:
         return "Config: " + str(dict(d))
 
     def ensure(
-        self, name: str, default_value: Any, allowed: Optional[Container] = None
+        self,
+        name: str,
+        default_value: Any,
+        allowed: Union[None, Container, Callable[[Any], bool]] = None,
     ) -> None:
         """Ensure default config has an attr.
         If it hasn't, set the default value.
@@ -259,7 +262,12 @@ class Config:
 
         if allowed is not None:
             value = getattr(self, name)
-            if value not in allowed:
+            if callable(allowed):
+                ok = allowed(value)
+            else:
+                ok = value in allowed
+
+            if not ok:
                 raise ValueError(
                     f"""Invalid value {value} as {name}.
                     Allowed values are {allowed}."""
