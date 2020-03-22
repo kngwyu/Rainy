@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 import pytest
@@ -72,3 +73,40 @@ def test_video_hook_pybullet() -> None:
     ag.close()
     videopath = c.logger.logdir.joinpath("HopperVideo-0.avi")
     assert videopath.exists()
+
+
+def test_image_hook_atari() -> None:
+    c = rainy.Config()
+    hook = lib.hooks.ImageWriterHook(
+        out_dir="/tmp/rainy-acvp/imagehook-atari", transpose=(2, 0, 1)
+    )
+    c.eval_hooks.append(hook)
+    c.set_net_fn("dqn", net.value.dqn_conv())
+    c.set_env(lambda: envs.Atari("Breakout"))
+    c.eval_env = envs.Atari("Breakout")
+    ag = agents.DQNAgent(c)
+    c.initialize_hooks()
+    _ = ag.eval_episode()
+    ag.close()
+    episodes = np.load(hook.out_dir.joinpath("ep1.npz"))
+    assert episodes["states"][0].shape == (3, 210, 160)
+    assert len(episodes["actions"].shape) == 1
+
+
+@pytest.mark.skipif(not HAS_PYBULLET, reason="PyBullet is an optional dependency")
+def test_state_hook_pybullet() -> None:
+    c = rainy.Config()
+    hook = lib.hooks.StateWriterHook(out_dir="/tmp/rainy-acvp/imagehook-pybullet")
+    c.eval_hooks.append(hook)
+    c.set_env(lambda: envs.PyBullet("Hopper"))
+    c.set_explorer(lambda: lib.explore.GaussianNoise())
+    c.set_explorer(lambda: lib.explore.Greedy(), key="eval")
+    c.set_optimizer(lambda params: torch.optim.Adam(params, lr=1e-3), key="actor")
+    c.set_optimizer(lambda params: torch.optim.Adam(params, lr=1e-3), key="critic")
+    ag = agents.DDPGAgent(c)
+    c.initialize_hooks()
+    _ = ag.eval_episode()
+    ag.close()
+    episodes = np.load(hook.out_dir.joinpath("ep1.npz"))
+    assert episodes["states"][0].shape == (15,)  # state space
+    assert episodes["actions"][0].shape == (3,)  # action space
