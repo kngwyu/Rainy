@@ -1,14 +1,15 @@
 """Training/evaluation hooks which make visualization or custom logging easier
 """
-from abc import ABC
-from typing import Any, Dict
+from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 import cv2
 import numpy as np
 from torch import Tensor
 
 from ..envs import EnvExt, EnvTransition
-from ..prelude import Action, State
+from ..prelude import Action, Array, State
 
 Agent, Config = Any, Any
 
@@ -90,3 +91,67 @@ class VideoWriterHook(EvalHook):
     def close(self) -> None:
         if self.writer is not None:
             self.writer.release()
+
+
+class _WriterHookImpl(EvalHook):
+    def __init__(self, out_dir: str = "dataset") -> None:
+        self.logdir = None
+        self.writer = None
+        self.episode_id = 0
+        self.total_steps = 0
+        self.out_dir = Path(out_dir)
+        if not self.out_dir.exists():
+            self.out_dir.mkdir(parents=True)
+        self._state_buffer = []
+        self._action_buffer = []
+
+    @abstractmethod
+    def _state(self, env: EnvExt, state: State) -> Array:
+        pass
+
+    def reset(self, _agent: Agent, env: EnvExt, initial_state: State) -> None:
+        self.episode_id += 1
+        self._state_buffer.append(self._state(env, initial_state))
+
+    def step(
+        self,
+        env: EnvExt,
+        action: Action,
+        transition: EnvTransition,
+        _net_outputs: Dict[str, Tensor],
+    ) -> None:
+        self._state_buffer.append(self._state(env, transition.state))
+        self._action_buffer.append(action)
+        if transition.terminal:
+            out = self.out_dir.joinpath(f"ep{self.episode_id}.npz")
+            states = np.stack(self._state_buffer)
+            actions = np.stack(self._action_buffer)
+            np.savez_compressed(out, states=states, actions=actions)
+            self._state_buffer.clear()
+            self._action_buffer.clear()
+
+
+class ImageWriterHook(_WriterHookImpl):
+    def __init__(
+        self, out_dir: str = "dataset", transpose: Optional[tuple] = None
+    ) -> None:
+        super().__init__(out_dir)
+        self._transpose = transpose
+
+    def _state(self, env: EnvExt, _state: State) -> Array:
+        image = env.render(mode="rgb_array")
+        return np.transpose(image, self._transpose)
+
+
+class StateWriterHook(_WriterHookImpl):
+    def __init__(
+        self, out_dir: str = "dataset", extract: bool = False,
+    ) -> None:
+        super().__init__(out_dir)
+        self._extract = extract
+
+    def _state(self, env: EnvExt, state: State) -> Array:
+        if self._extract:
+            return env.extract(state)
+        else:
+            return state
