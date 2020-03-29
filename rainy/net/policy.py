@@ -110,14 +110,14 @@ class BernoulliPolicy(Policy):
         return self.dist.entropy()
 
     def __getitem__(self, idx: Index) -> Self:
-        return BernoulliPolicy(logits=self.dist.logits[idx])
+        return self.__class__(logits=self.dist.logits[idx])
 
     def detach(self) -> Self:
-        return BernoulliPolicy(logits=self.dist.logits.detach())
+        return self.__class__(logits=self.dist.logits.detach())
 
     def merginalize(self, dim: int = -1) -> Self:
         merginal_logits = self.dist.logits.mean(dim=dim)
-        return BernoulliPolicy(logits=merginal_logits)
+        return self.__class__(logits=merginal_logits)
 
 
 class CategoricalPolicy(Policy):
@@ -138,14 +138,14 @@ class CategoricalPolicy(Policy):
         return self.dist.entropy()
 
     def __getitem__(self, idx: Index) -> Self:
-        return CategoricalPolicy(logits=self.dist.logits[idx])
+        return self.__class__(logits=self.dist.logits[idx])
 
     def detach(self) -> Self:
-        return CategoricalPolicy(logits=self.dist.logits.detach())
+        return self.__class__(logits=self.dist.logits.detach())
 
     def merginalize(self, dim: int = -1) -> Self:
         merginal_logits = self.dist.logits.mean(dim=dim)
-        return CategoricalPolicy(logits=merginal_logits)
+        return self.__class__(logits=merginal_logits)
 
 
 class GaussianPolicy(Policy):
@@ -166,10 +166,10 @@ class GaussianPolicy(Policy):
             return self.dist.log_prob(self.action()).sum(-1)
 
     def __getitem__(self, idx: Index) -> Self:
-        return GaussianPolicy(self.dist.mean[idx], self.dist.stddev[idx])
+        return self.__class__(self.dist.mean[idx], self.dist.stddev[idx])
 
     def detach(self) -> Self:
-        return GaussianPolicy(self.dist.mean.detach(), self.dist.stddev.detach())
+        return self.__class__(self.dist.mean.detach(), self.dist.stddev.detach())
 
 
 class TanhGaussianPolicy(GaussianPolicy):
@@ -203,12 +203,6 @@ class TanhGaussianPolicy(GaussianPolicy):
         log_n = self.dist.log_prob(pre_tanh).sum(-1)
         log_da_du = torch.log(1.0 - action ** 2 + self.epsilon).sum(-1)
         return log_n - log_da_du
-
-    def __getitem__(self, idx: Index) -> Self:
-        return TanhGaussianPolicy(self.dist.mean[idx], self.dist.stddev[idx])
-
-    def detach(self) -> Self:
-        return TanhGaussianPolicy(self.dist.mean.detach(), self.dist.stddev.detach())
 
 
 class PolicyDist(ABC, nn.Module):
