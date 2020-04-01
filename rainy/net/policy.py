@@ -84,13 +84,6 @@ class Policy(ABC):
     def detach(self) -> Self:
         pass
 
-    def merginalize(self, dim: int = -1) -> Self:
-        """
-        A special method for Option-Critic-like algorithms.
-        Returns π(s) when ``self`` represents π(s|o).
-        """
-        raise NotImplementedError(f"{type(self)} doesn't have merginalize!")
-
 
 class BernoulliPolicy(Policy):
     def __init__(self, *args, **kwargs) -> None:
@@ -115,10 +108,6 @@ class BernoulliPolicy(Policy):
     def detach(self) -> Self:
         return self.__class__(logits=self.dist.logits.detach())
 
-    def merginalize(self, dim: int = -1) -> Self:
-        merginal_logits = self.dist.logits.mean(dim=dim)
-        return self.__class__(logits=merginal_logits)
-
 
 class CategoricalPolicy(Policy):
     def __init__(self, *args, **kwargs) -> None:
@@ -142,10 +131,6 @@ class CategoricalPolicy(Policy):
 
     def detach(self) -> Self:
         return self.__class__(logits=self.dist.logits.detach())
-
-    def merginalize(self, dim: int = -1) -> Self:
-        merginal_logits = self.dist.logits.mean(dim=dim)
-        return self.__class__(logits=merginal_logits)
 
 
 class GaussianPolicy(Policy):

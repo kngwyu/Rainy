@@ -44,18 +44,6 @@ def test_getitem(policy: P.Policy) -> None:
 @pytest.mark.parametrize(
     "policy",
     [
-        P.BernoulliPolicy(logits=torch.randn(10, 4)),
-        P.CategoricalPolicy(logits=torch.randn(10, 10, 4)),
-    ],
-)
-def test_merginalize(policy: P.Policy) -> None:
-    sampled = policy.merginalize().sample()
-    assert tuple(sampled.shape) == (10,)
-
-
-@pytest.mark.parametrize(
-    "policy",
-    [
         P.GaussianPolicy(torch.zeros(10, requires_grad=True), torch.ones(10)),
         P.TanhGaussianPolicy(torch.zeros(10, requires_grad=True), torch.ones(10)),
     ],
