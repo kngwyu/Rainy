@@ -38,15 +38,15 @@ class ArrayDeque(Sequence):
         else:
             self.back[i - front_len] = item
 
-    def push_back(self, item: Any) -> None:
+    def push_back(self, item: Any) -> Optional[Any]:
         self.back.append(item)
         if self.capacity and len(self) > self.capacity:
-            self.pop_front()
+            return self.pop_front()
 
-    def push_front(self, item: Any) -> None:
+    def push_front(self, item: Any) -> Optional[Any]:
         self.front.append(item)
         if self.capacity and len(self) > self.capacity:
-            self.pop_back()
+            return self.pop_back()
 
     def pop_back(self) -> Any:
         if not self.back:
