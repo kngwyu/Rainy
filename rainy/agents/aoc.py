@@ -245,12 +245,14 @@ class AOCAgent(A2CLikeAgent[State]):
         masks = self.storage.batch_masks()
 
         opt_policy, opt_q, beta = self.net(self.storage.batch_states(self.penv))
+
+        term_prob = beta[self.batch_indices, prev_options].dist.probs
+        beta_loss = term_prob.mul(masks).mul(beta_adv).mean()
+
         policy = opt_policy[self.batch_indices, prev_options]
         policy.set_action(self.storage.batch_actions())
 
         policy_loss = -(policy.log_prob() * adv).mean()
-        term_prob = beta[self.batch_indices, prev_options].dist.probs
-        beta_loss = term_prob.mul(masks).mul(beta_adv).mean()
         value = opt_q[self.batch_indices, options]
         value_loss = (value - ret).pow(2).mean()
         entropy = policy.entropy().mean()

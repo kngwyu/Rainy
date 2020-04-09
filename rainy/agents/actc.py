@@ -348,9 +348,10 @@ class ACTCAgent(A2CLikeAgent[State]):
         self._backward(tc_loss, self.tc_optimizer, self.tc_net.parameters())
 
         policy, q = self.ac_net(x)
-        policy = policy[self.batch_indices, prev_options]
+        policy = policy[self.batch_indices, options]
         policy.set_action(self.storage.batch_actions())
         policy_loss = -(policy.log_prob() * self.storage.advs[:-1].flatten()).mean()
+
         value = q[self.batch_indices, options]
         value_loss = (value - self.storage.returns[:-1].flatten()).pow(2).mean()
         entropy = policy.entropy().mean()
