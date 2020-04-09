@@ -1,7 +1,7 @@
 """Defines some reusable NN layers, called 'Block'
 """
 from abc import ABC
-from typing import List, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -48,11 +48,15 @@ class RPFLinearHead(NetworkBlock):
         input_dim: int,
         output_dim: int,
         init: Initializer = Initializer(),
+        prior_init: Optional[Initializer] = None,
         prior_scale: float = 1.0,
     ) -> None:
         super().__init__()
         self.fc_raw: nn.Linear = init(nn.Linear(input_dim, output_dim))  # type: ignore
-        self.fc_prior: nn.Linear = init(nn.Linear(input_dim, output_dim))
+        if prior_init is None:
+            self.fc_prior: nn.Linear = init(nn.Linear(input_dim, output_dim))
+        else:
+            self.fc_prior: nn.Linear = prior_init(nn.Linear(input_dim, output_dim))
         self.prior_scale = prior_scale
         self.input_dim = (input_dim,)
         self.output_dim = output_dim
