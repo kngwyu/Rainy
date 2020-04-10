@@ -85,14 +85,24 @@ class AOCRolloutStorage(RolloutStorage[State]):
     ) -> None:
         self.returns[-1] = next_value
         rewards = self.device.tensor(self.rewards)
+        is_new_options = self.device.zeros((self.nworkers,), dtype=torch.bool)
         for i in reversed(range(self.nsteps)):
-            ret = gamma * self.masks[i + 1] * self.returns[i + 1] + rewards[i]
-            self.returns[i] = (
-                ret - self.is_new_options[i].float() * self.masks[i] * delib_cost
-            )
             value, opt = self.values[i], self.options[i + 1]
+            # CAUTION!!!
+            # This strategy can be applied only to ε-Greedy option selection!
+            eps = self.epsilons[i]
+            ret_i1 = torch.where(
+                is_new_options,
+                (1 - eps) * value.max(dim=-1)[0] + eps * value.mean(-1),
+                self.returns[i + 1],
+            )
+            ret_i = gamma * self.masks[i + 1] * ret_i1 + rewards[i]
+            self.returns[i] = (
+                ret_i - self.is_new_options[i].float() * self.masks[i] * delib_cost
+            )
             self.advs[i] = self.returns[i] - value[self.worker_indices, opt]
             self.beta_adv[i] = self._beta_adv(i, value, opt)
+            is_new_options = self.is_new_options[i + 1]
 
     def calc_gae_returns(
         self, next_v: Tensor, gamma: float, lambda_: float, delib_cost: float,
