@@ -97,8 +97,8 @@ class PPOCAgent(AOCAgent):
         surr2 = prob_ratio.clamp(1.0 - self.clip_eps, 1.0 + self.clip_eps) * advantages
         return -torch.min(surr1, surr2).mean()
 
-    def _value_loss(self, opt_q: Tensor, options: Tensor, returns: Tensor) -> Tensor:
-        value = opt_q[self.batch_indices, options]
+    def _value_loss(self, value: Tensor, options: Tensor, returns: Tensor) -> Tensor:
+        value = value[self.batch_indices, options]
         return (value - returns).pow(2).mean()
 
     @torch.no_grad()
@@ -127,13 +127,13 @@ class PPOCAgent(AOCAgent):
 
     @torch.no_grad()
     def actions(self, states: Array[State]) -> Tuple[Array[Action], dict]:
-        opt_policy, opt_q, beta, mu = self.net(self.penv.extract(states))
+        opt_policy, value, beta, mu = self.net(self.penv.extract(states))
         options, is_new_options = self._sample_options(mu, beta, self.prev_options)
         policy = opt_policy[self.worker_indices, options]
         actions = policy.action().squeeze().cpu().numpy()
         net_outputs = dict(
             policy=policy,
-            value=opt_q,
+            value=value,
             options=options,
             is_new_options=is_new_options,
             mu=mu,
@@ -164,15 +164,15 @@ class PPOCAgent(AOCAgent):
         p, v, b, pe, m, me = (0.0,) * 6
         for _ in range(self.config.ppo_epochs):
             for batch in sampler:
-                opt_policy, opt_q, beta, mu = self.net(batch.states)
+                opt_policy, value, beta, mu = self.net(batch.states)
                 # Policy loss
-                policy = opt_policy[self.batch_indices, batch.prev_options]
+                policy = opt_policy[self.batch_indices, batch.options]
                 policy.set_action(batch.actions)
                 policy_loss = self._proximal_policy_loss(
                     policy, batch.advantages, batch.old_log_probs
                 )
                 # Value loss
-                value_loss = self._value_loss(opt_q, batch.options, batch.returns)
+                value_loss = self._value_loss(value, batch.options, batch.returns)
                 # Beta loss
                 term_prob = beta[self.batch_indices, batch.prev_options].dist.probs
                 beta_adv = (

@@ -24,11 +24,11 @@ class OptionActorCriticNet(nn.Module, ABC):
     state_dim: Sequence[int]
 
     @abstractmethod
-    def opt_q(self, states: ArrayLike) -> Tensor:
+    def value(self, states: ArrayLike) -> Tensor:
         pass
 
     @abstractmethod
-    def opt_pi(self, states: ArrayLike) -> Policy:
+    def policy(self, states: ArrayLike) -> Policy:
         pass
 
     @abstractmethod
@@ -44,7 +44,7 @@ class SharedOACNet(OptionActorCriticNet):
         self,
         body: NetworkBlock,
         actor_head: NetworkBlock,
-        optq_head: NetworkBlock,
+        value_head: NetworkBlock,
         policy_dist: PolicyDist,
         device: Device = Device(),
     ) -> None:
@@ -52,19 +52,19 @@ class SharedOACNet(OptionActorCriticNet):
         self.has_mu = False
         self.body = body
         self.actor_head = actor_head
-        self.optq_head = optq_head
+        self.value_head = value_head
         self.policy_dist = policy_dist
-        self.num_options = optq_head.output_dim
+        self.num_options = value_head.output_dim
         self.action_dim = actor_head.output_dim // self.num_options
         self.device = device
         self.state_dim = self.body.input_dim
         self.to(device.unwrapped)
 
-    def opt_q(self, states: ArrayLike) -> Tensor:
+    def value(self, states: ArrayLike) -> Tensor:
         feature = self.body(self.device.tensor(states))
-        return self.optq_head(feature)
+        return self.value_head(feature)
 
-    def opt_pi(self, states: ArrayLike) -> Policy:
+    def policy(self, states: ArrayLike) -> Policy:
         feature = self.body(self.device.tensor(states))
         logits = self.actor_head(feature).view(-1, self.num_options, self.action_dim)
         return self.policy_dist(logits)
@@ -72,8 +72,8 @@ class SharedOACNet(OptionActorCriticNet):
     def forward(self, states: ArrayLike) -> Tuple[Policy, Tensor]:
         feature = self.body(self.device.tensor(states))
         logits = self.actor_head(feature).view(-1, self.num_options, self.action_dim)
-        opt_q = self.optq_head(feature)
-        return self.policy_dist(logits), opt_q
+        value = self.value_head(feature)
+        return self.policy_dist(logits), value
 
 
 def oac_conv_shared(
@@ -93,9 +93,9 @@ def oac_conv_shared(
             **cnn_args,
         )
         ac_head = LinearHead(body.output_dim, action_dim * num_options, policy_init())
-        optq_head = LinearHead(body.output_dim, num_options)
+        value_head = LinearHead(body.output_dim, num_options)
         dist = policy(action_dim, device)
-        return SharedOACNet(body, ac_head, optq_head, dist, device)
+        return SharedOACNet(body, ac_head, value_head, dist, device)
 
     return _net  # type: ignore
 
@@ -106,9 +106,9 @@ def oac_fc_shared(
     def _net(state_dim: Sequence[int], action_dim: int, device: Device) -> SharedOACNet:
         body = FcBody(state_dim[0], **fc_args)
         ac_head = LinearHead(body.output_dim, action_dim * num_options, policy_init())
-        optq_head = LinearHead(body.output_dim, num_options)
+        value_head = LinearHead(body.output_dim, num_options)
         dist = policy(action_dim, device)
-        return SharedOACNet(body, ac_head, optq_head, dist, device)
+        return SharedOACNet(body, ac_head, value_head, dist, device)
 
     return _net  # type: ignore
 

@@ -70,15 +70,15 @@ class AOCRolloutStorage(RolloutStorage[State]):
         batched = torch.cat(self.options, dim=0)
         return batched[: -self.nworkers], batched[self.nworkers :]
 
-    def _beta_adv_eps(self, i: int, opt_q: Tensor, options: LongTensor) -> Tensor:
+    def _beta_adv_eps(self, i: int, value: Tensor, options: LongTensor) -> Tensor:
         eps = self.epsilons[i]
-        v = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(dim=-1)
-        return opt_q[self.worker_indices, options] - v
+        v = (1 - eps) * value.max(dim=-1)[0] + eps * value.mean(dim=-1)
+        return value[self.worker_indices, options] - v
 
-    def _beta_adv_mu(self, i: int, opt_q: Tensor, options: LongTensor) -> Tensor:
+    def _beta_adv_mu(self, i: int, value: Tensor, options: LongTensor) -> Tensor:
         probs = self.option_mus[i].dist.probs
-        v = (opt_q * probs).sum(dim=-1)
-        return opt_q[self.worker_indices, options] - v
+        v = (value * probs).sum(dim=-1)
+        return value[self.worker_indices, options] - v
 
     def calc_ac_returns(
         self, next_value: Tensor, gamma: float, delib_cost: float
@@ -90,9 +90,9 @@ class AOCRolloutStorage(RolloutStorage[State]):
             self.returns[i] = (
                 ret - self.is_new_options[i].float() * self.masks[i] * delib_cost
             )
-            opt_q, opt = self.values[i], self.options[i + 1]
-            self.advs[i] = self.returns[i] - opt_q[self.worker_indices, opt]
-            self.beta_adv[i] = self._beta_adv(i, opt_q, opt)
+            value, opt = self.values[i], self.options[i + 1]
+            self.advs[i] = self.returns[i] - value[self.worker_indices, opt]
+            self.beta_adv[i] = self._beta_adv(i, value, opt)
 
     def calc_gae_returns(
         self, next_v: Tensor, gamma: float, lambda_: float, delib_cost: float,
@@ -102,8 +102,8 @@ class AOCRolloutStorage(RolloutStorage[State]):
         self.advs.fill_(0.0)
         value_i1 = next_v
         for i in reversed(range(self.nsteps)):
-            opt, opt_q = self.options[i + 1], self.values[i]
-            value_i = opt_q[self.worker_indices, opt]
+            opt, value = self.options[i + 1], self.values[i]
+            value_i = value[self.worker_indices, opt]
 
             # GAE
             gamma_i1 = gamma * self.masks[i + 1]
@@ -115,7 +115,7 @@ class AOCRolloutStorage(RolloutStorage[State]):
             value_i1 = value_i
 
             # β-advantage
-            self.beta_adv[i] = self._beta_adv(i, opt_q, opt)
+            self.beta_adv[i] = self._beta_adv(i, value, opt)
 
 
 class AOCAgent(A2CLikeAgent[State]):
@@ -154,7 +154,7 @@ class AOCAgent(A2CLikeAgent[State]):
 
     def _sample_options(
         self,
-        opt_q: Tensor,
+        value: Tensor,
         beta: BernoulliPolicy,
         prev_options: LongTensor,
         evaluate: bool = False,
@@ -167,15 +167,15 @@ class AOCAgent(A2CLikeAgent[State]):
         do_options_end = current_beta.action().bool()
         is_initial_states = (1.0 - self.storage.masks[-1]).bool()
         use_new_options = do_options_end | is_initial_states
-        epsgreedy_options = explorer.select_from_value(opt_q, same_device=True)
+        epsgreedy_options = explorer.select_from_value(value, same_device=True)
         options = torch.where(use_new_options, epsgreedy_options, prev_options)
         return options, use_new_options  # type: ignore
 
     @torch.no_grad()
     def _eval_policy(self, states: Array) -> Policy:
-        opt_policy, opt_q, beta = self.net(states)
+        opt_policy, value, beta = self.net(states)
         options, _ = self._sample_options(
-            opt_q, beta, self.eval_prev_options, evaluate=True
+            value, beta, self.eval_prev_options, evaluate=True
         )
         self.eval_prev_options = options
         return opt_policy[self.worker_indices, options]
@@ -195,19 +195,15 @@ class AOCAgent(A2CLikeAgent[State]):
     def prev_options(self) -> LongTensor:
         return self.storage.options[-1]  # type: ignore
 
-    @property
-    def prev_is_new_options(self) -> BoolTensor:
-        return self.storage.is_new_options[-1]  # type: ignore
-
     @torch.no_grad()
     def actions(self, states: Array[State]) -> Tuple[Array[Action], dict]:
-        opt_policy, opt_q, beta = self.net(self.penv.extract(states))
-        options, is_new_options = self._sample_options(opt_q, beta, self.prev_options)
+        opt_policy, value, beta = self.net(self.penv.extract(states))
+        options, is_new_options = self._sample_options(value, beta, self.prev_options)
         policy = opt_policy[self.worker_indices, options]
         actions = policy.action().squeeze().cpu().numpy()
         net_outputs = dict(
             policy=policy,
-            value=opt_q,
+            value=value,
             options=options,
             is_new_options=is_new_options,
             epsilon=1.0 if self.config.opt_avg_baseline else self.opt_explorer.epsilon,
@@ -216,11 +212,12 @@ class AOCAgent(A2CLikeAgent[State]):
 
     @torch.no_grad()
     def _next_value(self, states: Array[State]) -> Tensor:
-        opt_q = self.net.opt_q(self.penv.extract(states))
-        current_opt_q = opt_q[self.worker_indices, self.prev_options]
+        value, beta = self.net.value_and_beta(self.penv.extract(states))
+        beta = beta.dist.probs[self.worker_indices, self.prev_options]
+        value_with_current_opt = value[self.worker_indices, self.prev_options]
         eps = self.opt_explorer.epsilon
-        next_opt_q = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(-1)
-        return torch.where(self.prev_is_new_options, next_opt_q, current_opt_q)
+        value_with_epsg = (1 - eps) * value.max(dim=-1)[0] + eps * value.mean(-1)
+        return (1.0 - beta).mul_(value_with_current_opt).add_(beta * value_with_epsg)
 
     def train(self, last_states: Array[State]) -> None:
         next_v = self._next_value(last_states)
@@ -244,7 +241,7 @@ class AOCAgent(A2CLikeAgent[State]):
         ret = self.storage.returns[:-1].flatten()
         masks = self.storage.batch_masks()
 
-        opt_policy, opt_q, beta = self.net(self.storage.batch_states(self.penv))
+        opt_policy, value, beta = self.net(self.storage.batch_states(self.penv))
 
         term_prob = beta[self.batch_indices, prev_options].dist.probs
         beta_loss = term_prob.mul(masks).mul(beta_adv).mean()
@@ -253,7 +250,7 @@ class AOCAgent(A2CLikeAgent[State]):
         policy.set_action(self.storage.batch_actions())
 
         policy_loss = -(policy.log_prob() * adv).mean()
-        value = opt_q[self.batch_indices, options]
+        value = value[self.batch_indices, options]
         value_loss = (value - ret).pow(2).mean()
         entropy = policy.entropy().mean()
         loss = (

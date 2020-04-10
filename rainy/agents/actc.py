@@ -56,8 +56,8 @@ class TCRolloutStorage(RolloutStorage[State]):
             self.returns[i] = (
                 rewards[i] + gamma * self.masks[i + 1] * self.returns[i + 1]
             )
-            opt_q, opt = self.values[i], self.options[i + 1]
-            self.advs[i] = self.returns[i] - opt_q[self.worker_indices, opt]
+            value, opt = self.values[i], self.options[i + 1]
+            self.advs[i] = self.returns[i] - value[self.worker_indices, opt]
 
     def calc_p_target(self, beta_x: Tensor, beta_xf: Tensor) -> Tensor:
         res = self.device.zeros((self.nsteps, self.nworkers))
@@ -208,11 +208,11 @@ class ACTCAgent(A2CLikeAgent[State]):
         self._xs_reserved = self.tensor(self.option_initial_states)
 
     def _sample_options(
-        self, opt_q: Tensor, beta: BernoulliPolicy, evaluate: bool = False,
+        self, value: Tensor, beta: BernoulliPolicy, evaluate: bool = False,
     ) -> Tuple[LongTensor, BoolTensor]:
         """Sample options by ε-Greedy
         """
-        batch_size = opt_q.size(0)
+        batch_size = value.size(0)
         if evaluate:
             explorer = self.eval_opt_explorer
             masks = self._eval_masks[:batch_size]
@@ -225,17 +225,17 @@ class ACTCAgent(A2CLikeAgent[State]):
         do_options_end = current_beta.action().bool()
         is_initial_states = (1.0 - masks).bool()
         use_new_options = do_options_end | is_initial_states
-        epsgreedy_options = explorer.select_from_value(opt_q, same_device=True)
+        epsgreedy_options = explorer.select_from_value(value, same_device=True)
         options = torch.where(use_new_options, epsgreedy_options, prev_options)
         return options, use_new_options  # type: ignore
 
     @torch.no_grad()
     def _eval_policy(self, states: Array) -> Policy:
-        opt_policy, opt_q = self.ac_net(states)
+        opt_policy, value = self.ac_net(states)
         if self.eval_initial_states is None:
             self.eval_initial_states = states.copy()
         beta = self.tc_net.beta(self.eval_initial_states, states)
-        options, _ = self._sample_options(opt_q, beta, evaluate=True,)
+        options, _ = self._sample_options(value, beta, evaluate=True,)
         self.eval_prev_options = options
         return opt_policy[self.worker_indices, options]
 
@@ -261,15 +261,15 @@ class ACTCAgent(A2CLikeAgent[State]):
     @torch.no_grad()
     def actions(self, states: Array[State]) -> Tuple[Array[Action], dict]:
         x = self.penv.extract(states)
-        opt_policy, opt_q = self.ac_net(x)
+        opt_policy, value = self.ac_net(x)
         tc_output = self.tc_net(self.option_initial_states, x)
-        options, is_new_options = self._sample_options(opt_q, tc_output.beta)
+        options, is_new_options = self._sample_options(value, tc_output.beta)
         if self._do_xf_count:
             self._update_xf_count(is_new_options.cpu().numpy())
         policy = opt_policy[self.worker_indices, options]
         actions = policy.action().squeeze().cpu().numpy()
         net_outputs = dict(
-            policy=policy, value=opt_q, options=options, is_new_options=is_new_options,
+            policy=policy, value=value, options=options, is_new_options=is_new_options,
         )
         return actions, net_outputs
 
@@ -287,11 +287,11 @@ class ACTCAgent(A2CLikeAgent[State]):
 
     @torch.no_grad()
     def _next_value(self, states: Tensor) -> Tensor:
-        opt_q = self.ac_net.opt_q(states)
-        current_opt_q = opt_q[self.worker_indices, self.prev_options]
+        value = self.ac_net.value(states)
+        current_value = value[self.worker_indices, self.prev_options]
         eps = self.opt_explorer.epsilon
-        next_opt_q = (1 - eps) * opt_q.max(dim=-1)[0] + eps * opt_q.mean(-1)
-        return torch.where(self.prev_is_new_options, next_opt_q, current_opt_q)
+        next_value = (1 - eps) * value.max(dim=-1)[0] + eps * value.mean(-1)
+        return torch.where(self.prev_is_new_options, next_value, current_value)
 
     def train(self, last_states: Array[State]) -> None:
         """Train the agent using N step trajectory

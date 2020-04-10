@@ -65,8 +65,9 @@ class OptionVisualizeHook(EvalHook):
                 env.unwrapped.domain.show_heatmap(
                     beta[:, i],
                     "β(Xf)",
-                    normalize_method="uniform",
-                    cmap="PuOr",
+                    normalize_method="none",
+                    colorbar=True,
+                    cmap="YlGnBu",
                     nrows=2,
                     ncols=2,
                     index=i + 1,
@@ -80,7 +81,7 @@ class OptionVisualizeHook(EvalHook):
             for i in range(self.num_options):
                 env.unwrapped.domain.show_heatmap(
                     p[:, i],
-                    "P(Xs|Xf)",
+                    "P(Xs|Xf)(Xs=(0,0))",
                     normalize_method="uniform",
                     cmap="PuOr",
                     title=f"Option: {i}",
