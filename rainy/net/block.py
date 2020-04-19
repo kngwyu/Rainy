@@ -97,7 +97,7 @@ class CNNBody(NetworkBlock):
         return x
 
 
-class CNNBodyWithoutFc(NetworkBlock):
+class CNNBodyWithoutFC(NetworkBlock):
     """Almost the same as CNNBody, but has no FC layer
     """
 
@@ -119,6 +119,33 @@ class CNNBodyWithoutFc(NetworkBlock):
     def forward(self, x: Tensor) -> Tensor:
         for cnn in self.cnns:
             x = self.activator(cnn(x))
+        return x
+
+
+class BatchNormCNN(NetworkBlock):
+    def __init__(
+        self,
+        input_dim: Tuple[int, int, int],
+        cnn_params: Sequence[tuple] = [(8, 4), (4, 2), (3, 1)],
+        hidden_channels: Sequence[int] = (32, 64, 64),
+        output_dim: int = 512,
+        activator: nn.Module = nn.ReLU(inplace=True),
+        init: Initializer = Initializer(orthogonal(nonlinearity="relu")),
+    ) -> None:
+        super().__init__()
+        cnns, hidden = make_cnns(input_dim, cnn_params, hidden_channels)
+        self.cnns = init.make_list(cnns)
+        self.batch_norms = init.make_list(map(nn.BatchNorm2d, hidden_channels))
+        self.fc = init(nn.Linear(hidden, output_dim))
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.activator = activator
+
+    def forward(self, x: Tensor) -> Tensor:
+        for cnn, bn in zip(self.cnns, self.batch_norms):
+            x = self.activator(bn(cnn(x)))
+        x = x.view(x.size(0), -1)
+        x = self.activator(self.fc(x))
         return x
 
 
@@ -221,6 +248,30 @@ class FCBody(NetworkBlock):
     def forward(self, x: Tensor) -> Tensor:
         for layer in self.layers:
             x = self.activator(layer(x))
+        return x
+
+
+class BatchNormFC(NetworkBlock):
+    def __init__(
+        self,
+        input_dim: int,
+        units: List[int] = [64, 64],
+        activator: nn.Module = nn.ReLU(inplace=True),
+        init: Initializer = Initializer(),
+    ) -> None:
+        super().__init__()
+        self.input_dim = (input_dim,)
+        self.output_dim = units[-1]
+        dims = [input_dim] + units
+        self.fcs = init.make_list(
+            map(lambda i, o: nn.Linear(i, o), *zip(dims[:-1], dims[1:]))
+        )
+        self.batch_norms = init.make_list(map(nn.BatchNorm1d, units))
+        self.activator = activator
+
+    def forward(self, x: Tensor) -> Tensor:
+        for fc, bn in zip(self.fcs, self.batch_norms):
+            x = self.activator(bn(fc(x)))
         return x
 
 

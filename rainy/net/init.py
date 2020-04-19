@@ -99,7 +99,7 @@ class Initializer:
         return mod
 
     def __init_mod(self, mod: nn.Module) -> nn.Module:
-        if isinstance(mod, nn.BatchNorm2d):
+        if "BatchNorm" in mod.__class__.__name__:
             return self.__init_batch_norm(mod)
         for name, param in mod.named_parameters():
             if "weight" in name:

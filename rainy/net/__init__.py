@@ -1,5 +1,7 @@
 from .actor_critic import ActorCriticNet, SeparatedACNet, SharedACNet, policy_init
 from .block import (
+    BatchNormCNN,
+    BatchNormFC,
     CNNBody,
     CNNBodyWithoutFC,
     FCBody,
