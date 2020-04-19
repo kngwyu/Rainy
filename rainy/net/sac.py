@@ -7,7 +7,7 @@ from torch import Tensor, nn
 
 from ..prelude import ArrayLike, Self
 from ..utils import Device
-from .block import FcBody, LinearHead, NetworkBlock
+from .block import FCBody, LinearHead, NetworkBlock
 from .init import Initializer, constant, fanin_uniform
 from .misc import SoftUpdate
 from .policy import Policy, PolicyDist, TanhGaussianDist
@@ -108,9 +108,9 @@ def fc_separated(
     def _net(
         state_dim: Sequence[int], action_dim: int, device: Device
     ) -> SeparatedSACNet:
-        actor_body = FcBody(state_dim[0], units=actor_units, init=init)
-        critic1 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
-        critic2 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
+        actor_body = FCBody(state_dim[0], units=actor_units, init=init)
+        critic1 = FCBody(state_dim[0] + action_dim, units=critic_units, init=init)
+        critic2 = FCBody(state_dim[0] + action_dim, units=critic_units, init=init)
         policy = policy_type(action_dim)
         return SeparatedSACNet(
             actor_body, critic1, critic2, policy, device=device, init=init

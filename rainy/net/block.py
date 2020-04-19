@@ -201,7 +201,7 @@ class ResNetBody(NetworkBlock):
         return self.relu(x)
 
 
-class FcBody(NetworkBlock):
+class FCBody(NetworkBlock):
     def __init__(
         self,
         input_dim: int,

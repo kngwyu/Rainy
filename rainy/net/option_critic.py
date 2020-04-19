@@ -8,7 +8,7 @@ from torch import Tensor, nn
 from ..prelude import ArrayLike
 from ..utils import Device
 from .actor_critic import policy_init
-from .block import CNNBody, FcBody, LinearHead, NetworkBlock
+from .block import CNNBody, FCBody, LinearHead, NetworkBlock
 from .init import Initializer
 from .policy import (
     BernoulliDist,
@@ -163,7 +163,7 @@ def fc_shared(
     def _net(
         state_dim: Sequence[int], action_dim: int, device: Device
     ) -> SharedBodyOCNet:
-        body = FcBody(state_dim[0], **kwargs)
+        body = FCBody(state_dim[0], **kwargs)
         ac_head = LinearHead(body.output_dim, action_dim * num_options, policy_init())
         value_head = LinearHead(body.output_dim, num_options)
         beta_head = LinearHead(body.output_dim, num_options)

@@ -9,7 +9,7 @@ from torch.nn import functional as F
 
 from ..prelude import Array, ArrayLike
 from ..utils import Device
-from .block import FcBody, LinearHead, NetworkBlock
+from .block import FCBody, LinearHead, NetworkBlock
 from .init import Initializer, xavier_uniform
 from .prelude import NetFn
 from .value import DiscreteQFunction, DiscreteQValueNet
@@ -134,7 +134,7 @@ def fc_separated(n_ensembles: int, *args, **kwargs) -> NetFn:
     ) -> SeparatedBootQValueNet:
         q_nets = []
         for _ in range(n_ensembles):
-            body = FcBody(state_dim[0], *args, **kwargs)
+            body = FCBody(state_dim[0], *args, **kwargs)
             head = LinearHead(body.output_dim, action_dim)
             q_nets.append(DiscreteQValueNet(body, head, device=device))
         return SeparatedBootQValueNet(q_nets)
@@ -153,7 +153,7 @@ def rpf_fc_separated(
     ) -> SeparatedBootQValueNet:
         q_nets = []
         for _ in range(n_ensembles):
-            body = FcBody(state_dim[0], init=init, **kwargs)
+            body = FCBody(state_dim[0], init=init, **kwargs)
             head = LinearHead(body.output_dim, action_dim, init=init)
             prior_model = RPFQValueNet(body, head, prior_scale, init=init)
             q_nets.append(prior_model)

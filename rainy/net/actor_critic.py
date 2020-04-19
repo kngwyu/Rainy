@@ -6,7 +6,7 @@ from torch import Tensor, nn
 
 from ..prelude import ArrayLike
 from ..utils import Device
-from .block import CNNBody, FcBody, LinearHead, NetworkBlock, ResNetBody
+from .block import CNNBody, FCBody, LinearHead, NetworkBlock, ResNetBody
 from .init import Initializer, orthogonal
 from .policy import CategoricalDist, Policy, PolicyDist
 from .prelude import NetFn
@@ -238,7 +238,7 @@ def fc_shared(
     """
 
     def _net(state_dim: Sequence[int], action_dim: int, device: Device) -> SharedACNet:
-        body = FcBody(state_dim[0], **kwargs)
+        body = FCBody(state_dim[0], **kwargs)
         policy_dist = policy(action_dim, device)
         return _make_ac_shared(body, policy_dist, device, rnn)
 
@@ -257,8 +257,8 @@ def fc_separated(
     def _net(
         state_dim: Sequence[int], action_dim: int, device: Device
     ) -> SeparatedACNet:
-        actor_body = FcBody(state_dim[0], units=actor_units, init=init)
-        critic_body = FcBody(state_dim[0], units=critic_units, init=init)
+        actor_body = FCBody(state_dim[0], units=actor_units, init=init)
+        critic_body = FCBody(state_dim[0], units=critic_units, init=init)
         policy = policy_type(action_dim)
         return SeparatedACNet(actor_body, critic_body, policy, device=device, init=init)
 

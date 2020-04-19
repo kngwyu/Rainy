@@ -10,7 +10,7 @@ from torch import Tensor, nn
 from ..prelude import ArrayLike
 from ..utils import Device
 from .actor_critic import policy_init
-from .block import CNNBody, CNNBodyWithoutFc, FcBody, LinearHead, NetworkBlock
+from .block import CNNBody, CNNBodyWithoutFC, FCBody, LinearHead, NetworkBlock
 from .init import Initializer
 from .policy import BernoulliDist, BernoulliPolicy, CategoricalDist, Policy, PolicyDist
 from .prelude import NetFn
@@ -104,7 +104,7 @@ def oac_fc_shared(
     num_options: int = 4, policy: Type[PolicyDist] = CategoricalDist, **fc_args,
 ) -> NetFn:
     def _net(state_dim: Sequence[int], action_dim: int, device: Device) -> SharedOACNet:
-        body = FcBody(state_dim[0], **fc_args)
+        body = FCBody(state_dim[0], **fc_args)
         ac_head = LinearHead(body.output_dim, action_dim * num_options, policy_init())
         value_head = LinearHead(body.output_dim, num_options)
         dist = policy(action_dim, device)
@@ -201,8 +201,8 @@ def tc_conv_shared(
     def _net(
         state_dim: Tuple[int, int, int], _action_dim: int, device: Device
     ) -> SharedTCNet:
-        body1 = CNNBodyWithoutFc(state_dim, hidden_channels=hidden_channels, **cnn_args)
-        body2 = CNNBodyWithoutFc(state_dim, hidden_channels=hidden_channels, **cnn_args)
+        body1 = CNNBodyWithoutFC(state_dim, hidden_channels=hidden_channels, **cnn_args)
+        body2 = CNNBodyWithoutFC(state_dim, hidden_channels=hidden_channels, **cnn_args)
         return SharedTCNet(
             body1,
             body2,
@@ -222,8 +222,8 @@ def tc_fc_shared(
     **fc_args,
 ) -> NetFn:
     def _net(state_dim: Sequence[int], _action_dim: int, device: Device) -> SharedTCNet:
-        body1 = FcBody(state_dim[0], **fc_args)
-        body2 = FcBody(state_dim[0], **fc_args)
+        body1 = FCBody(state_dim[0], **fc_args)
+        body2 = FCBody(state_dim[0], **fc_args)
         return SharedTCNet(
             body1,
             body2,

@@ -8,7 +8,7 @@ from torch import Tensor, nn
 from rainy.utils import Device
 
 from ..prelude import ArrayLike
-from .block import FcBody, LinearHead, NetworkBlock
+from .block import FCBody, LinearHead, NetworkBlock
 from .init import Initializer, kaiming_uniform
 from .misc import SoftUpdate
 from .prelude import NetFn
@@ -117,8 +117,8 @@ def fc_seprated(
     def _net(
         state_dim: Sequence[int], action_dim: int, device: Device
     ) -> SeparatedDDPGNet:
-        actor_body = FcBody(state_dim[0], units=actor_units, init=init)
-        critic_body = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
+        actor_body = FCBody(state_dim[0], units=actor_units, init=init)
+        critic_body = FCBody(state_dim[0] + action_dim, units=critic_units, init=init)
         return SeparatedDDPGNet(
             actor_body,
             critic_body,
@@ -143,9 +143,9 @@ def td3_fc_seprated(
     def _net(
         state_dim: Sequence[int], action_dim: int, device: Device
     ) -> SeparatedTD3Net:
-        actor_body = FcBody(state_dim[0], units=actor_units, init=init)
-        critic1 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
-        critic2 = FcBody(state_dim[0] + action_dim, units=critic_units, init=init)
+        actor_body = FCBody(state_dim[0], units=actor_units, init=init)
+        critic1 = FCBody(state_dim[0] + action_dim, units=critic_units, init=init)
+        critic2 = FCBody(state_dim[0] + action_dim, units=critic_units, init=init)
         return SeparatedTD3Net(
             actor_body,
             critic1,

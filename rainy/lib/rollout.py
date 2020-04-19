@@ -76,7 +76,11 @@ class RolloutStorage(Generic[State]):
 
     def batch_states(self, penv: ParallelEnv) -> Tensor:
         states = [self.device.tensor(penv.extract(s)) for s in self.states[:-1]]
-        return torch.cat(states, dim=0)
+        return torch.cat(states)
+
+    def batch_states_all(self, penv: ParallelEnv) -> Tensor:
+        states = [self.device.tensor(penv.extract(s)) for s in self.states]
+        return torch.cat(states)
 
     def batch_actions(self) -> Tensor:
         return torch.cat([p.action() for p in self.policies])

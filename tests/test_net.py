@@ -6,7 +6,7 @@ import torch
 import pytest
 from rainy.net import (
     CNNBody,
-    CNNBodyWithoutFc,
+    CNNBodyWithoutFC,
     GruBlock,
     LstmBlock,
     actor_critic,
@@ -115,7 +115,7 @@ def test_convbody(
     assert x.size(0) == batch_size
     assert x.size(1) == conv.output_dim
 
-    without_fc = CNNBodyWithoutFc(input_dim, **kwargs)
+    without_fc = CNNBodyWithoutFC(input_dim, **kwargs)
     assert without_fc.output_dim == conv.fc.in_features
 
 

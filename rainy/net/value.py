@@ -6,7 +6,7 @@ from torch import Tensor, nn
 
 from ..prelude import Array, ArrayLike
 from ..utils import Device
-from .block import CNNBody, FcBody, LinearHead, NetworkBlock
+from .block import CNNBody, FCBody, LinearHead, NetworkBlock
 from .prelude import NetFn
 
 
@@ -89,7 +89,7 @@ def fc(*args, **kwargs) -> NetFn:
     def _net(
         state_dim: Sequence[int], action_dim: int, device: Device
     ) -> DiscreteQValueNet:
-        body = FcBody(state_dim[0], *args, **kwargs)
+        body = FCBody(state_dim[0], *args, **kwargs)
         head = LinearHead(body.output_dim, action_dim)
         return DiscreteQValueNet(body, head, device=device)
 
