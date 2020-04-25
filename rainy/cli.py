@@ -9,10 +9,6 @@ from .lib import mpi
 
 
 @click.group()
-@click.option(
-    "--envname", type=str, default=None, help="Name of environment passed to config_gen"
-)
-@click.option("--max-steps", type=int, default=None, help="Max steps of the training")
 @click.option("--model", type=str, default=None, help="Name of the save file")
 @click.option(
     "--action-file", type=str, default="actions.json", help="Name of the action file",
@@ -20,21 +16,13 @@ from .lib import mpi
 @click.pass_context
 def rainy_cli(
     ctx: click.Context,
-    envname: Optional[str],
-    max_steps: Optional[int],
     model: Optional[str],
     action_file: Optional[str],
     **kwargs,
 ) -> None:
-    if envname is not None:
-        kwargs["envname"] = envname
-    if max_steps is not None:
-        kwargs["max_steps"] = max_steps
     config = ctx.obj.config_gen(**kwargs)
     ag = ctx.obj.get_agent(config, **kwargs)
     ctx.obj.experiment = Experiment(ag, model, action_file)
-    if envname is not None:
-        ctx.obj.envname = envname
 
 
 @rainy_cli.command(help="Train agents")
@@ -60,7 +48,6 @@ def train(
     if script_path is not None:
         fingerprint = dict(
             comment="" if comment is None else comment,
-            envname=ctx.obj.envname,
             kwargs=ctx.obj.kwargs,
         )
         experiment.logger.setup_from_script_path(
@@ -148,7 +135,6 @@ class _CLIContext:
         self.agent_selector = agent_selector
         self.script_path = script_path
         self.experiment = None
-        self.envname = "Default"
         self.kwargs = {}
 
     def get_agent(self, config: Config, **kwargs) -> Agent:
