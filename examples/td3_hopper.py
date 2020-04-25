@@ -1,17 +1,16 @@
 import os
 
-import click
 from torch.optim import Adam
 
-import rainy.utils.cli as cli
-from rainy import Config
+import rainy
 from rainy.agents import TD3Agent
 from rainy.envs import PyBullet
 from rainy.lib import explore
 
 
-def config(envname: str = "Hopper", nworkers: int = 1) -> Config:
-    c = Config()
+@rainy.main(TD3Agent, os.path.realpath(__file__))
+def main(envname: str = "Hopper", nworkers: int = 1) -> rainy.Config:
+    c = rainy.Config()
     c.set_env(lambda: PyBullet(envname))
     c.max_steps = int(1e6)
     c.set_optimizer(lambda params: Adam(params, lr=1e-3), key="actor")
@@ -32,5 +31,4 @@ def config(envname: str = "Hopper", nworkers: int = 1) -> Config:
 
 
 if __name__ == "__main__":
-    options = [click.Option(["--nworkers"], type=int, default=1)]
-    cli.run_cli(config, TD3Agent, os.path.realpath(__file__), options)
+    main()

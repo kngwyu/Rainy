@@ -1,8 +1,8 @@
 from typing import Callable
 
+import pytest
 import torch
 
-import pytest
 from rainy.net import DilatedRnnBlock, GruBlock, LstmBlock, RnnBlock
 from rainy.utils import Device
 

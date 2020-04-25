@@ -1,8 +1,7 @@
 from typing import Callable, Optional
 
-import numpy as np
-
 import gym
+import numpy as np
 
 from ..prelude import Array, Self, State
 from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind

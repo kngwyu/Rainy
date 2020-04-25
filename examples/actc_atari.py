@@ -1,14 +1,13 @@
 import os
 
-import click
 from torch import optim
 
 import rainy
 from rainy.net import termination_critic as tc
-from rainy.utils.cli import run_cli
 
 
-def config(envname: str = "Breakout", num_options: int = 4) -> rainy.Config:
+@rainy.main(rainy.agents.ACTCAgent, os.path.realpath(__file__))
+def main(envname: str = "Breakout", num_options: int = 4) -> rainy.Config:
     c = rainy.Config()
 
     c.set_env(lambda: rainy.envs.Atari(envname, frame_stack=False))
@@ -34,7 +33,4 @@ def config(envname: str = "Breakout", num_options: int = 4) -> rainy.Config:
 
 
 if __name__ == "__main__":
-    options = [
-        click.Option(["--num-options"], type=int, default=4),
-    ]
-    run_cli(config, rainy.agents.ACTCAgent, os.path.realpath(__file__), options)
+    main()

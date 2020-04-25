@@ -234,9 +234,14 @@ class DQNLikeAgent(Agent, Generic[State, Action, ReplayFeed]):
         pass
 
     def store_transition(
-        self, state: State, action: Action, transition: EnvTransition,
+        self,
+        state: State,
+        action: Action,
+        next_state: State,
+        reward: float,
+        terminal: bool,
     ) -> None:
-        self.replay.append(state, action, *transition[:3])
+        self.replay.append(state, action, next_state, reward, terminal)
 
     @property
     def train_started(self) -> bool:
@@ -254,7 +259,7 @@ class DQNLikeAgent(Agent, Generic[State, Action, ReplayFeed]):
         while True:
             action = self.action(state)
             transition = self.env.step(action).map_r(lambda r: r * reward_scale)
-            self.store_transition(state, action, transition)
+            self.store_transition(state, action, *transition[:-1])  # Do not pass info
             if self.train_started and self.total_steps % self.config.update_freq == 0:
                 self.train(self.replay.sample(self.config.replay_batch_size))
                 self.update_steps += 1

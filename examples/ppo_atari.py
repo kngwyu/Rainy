@@ -2,17 +2,20 @@ import os
 
 from torch.optim import Adam
 
-import rainy.utils.cli as cli
-from rainy import Config, net
-from rainy.agents import PPOAgent
+import rainy
 from rainy.envs import Atari, atari_parallel
 
 
-def config(envname: str = "Breakout") -> Config:
-    c = Config()
+@rainy.main(rainy.agents.PPOAgent, script_path=os.path.realpath(__file__))
+def main(envname: str = "Breakout", use_rnn: bool = False,) -> rainy.Config:
+    c = rainy.Config()
     c.set_env(lambda: Atari(envname, frame_stack=False))
-    #  c.set_net_fn('actor-critic', net.actor_critic.conv_shared(rnn=net.GruBlock))
-    c.set_net_fn("actor-critic", net.actor_critic.conv_shared())
+    if use_rnn:
+        c.set_net_fn(
+            "actor-critic", rainy.net.actor_critic.conv_shared(rnn=net.GruBlock)
+        )
+    else:
+        c.set_net_fn("actor-critic", rainy.net.actor_critic.conv_shared())
     c.set_parallel_env(atari_parallel())
     c.set_optimizer(lambda params: Adam(params, lr=2.5e-4, eps=1.0e-4))
     c.max_steps = int(2e7)
@@ -36,4 +39,4 @@ def config(envname: str = "Breakout") -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, PPOAgent, script_path=os.path.realpath(__file__))
+    main()

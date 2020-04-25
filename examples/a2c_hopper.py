@@ -2,18 +2,18 @@ import os
 
 from torch.optim import Adam
 
-import rainy.utils.cli as cli
-from rainy import Config, net
+import rainy
 from rainy.agents import A2CAgent
 from rainy.envs import PyBullet, pybullet_parallel
 from rainy.net.policy import SeparateStdGaussianDist
 
 
-def config(envname: str = "Hopper") -> Config:
-    c = Config()
+@rainy.main(A2CAgent, script_path=os.path.realpath(__file__))
+def main(envname: str = "Hopper") -> rainy.Config:
+    c = rainy.Config()
     c.set_env(lambda: PyBullet(envname))
     c.set_net_fn(
-        "actor-critic", net.actor_critic.fc_shared(policy=SeparateStdGaussianDist)
+        "actor-critic", rainy.net.actor_critic.fc_shared(policy=SeparateStdGaussianDist)
     )
     c.set_parallel_env(pybullet_parallel())
     c.max_steps = int(1e6)
@@ -31,4 +31,4 @@ def config(envname: str = "Hopper") -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, A2CAgent, script_path=os.path.realpath(__file__))
+    main()

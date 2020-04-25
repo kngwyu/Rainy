@@ -1,14 +1,13 @@
 import os
 
-import click
 from torch.optim import Adam
 
 import rainy
 from rainy.envs import ClassicControl, MultiProcEnv
-from rainy.utils.cli import run_cli
 
 
-def config(
+@rainy.main(rainy.agents.A2CAgent, script_path=os.path.realpath(__file__))
+def main(
     envname: str = "CartPole-v0", rnn: bool = False, use_gae: bool = False
 ) -> rainy.Config:
     c = rainy.Config()
@@ -33,8 +32,4 @@ def config(
 
 
 if __name__ == "__main__":
-    options = [
-        click.Option(["--rnn"], is_flag=True),
-        click.Option(["--use-gae"], is_flag=True),
-    ]
-    run_cli(config, rainy.agents.A2CAgent, os.path.realpath(__file__), options)
+    main()

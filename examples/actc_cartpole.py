@@ -1,15 +1,14 @@
 import os
 
-import click
 from torch import optim
 
 import rainy
 from rainy.envs import ClassicControl, MultiProcEnv
 from rainy.net import termination_critic as tc
-from rainy.utils.cli import run_cli
 
 
-def config(envname: str = "CartPole-v0", num_options: int = 2) -> rainy.Config:
+@rainy.main(rainy.agents.ACTCAgent, os.path.realpath(__file__))
+def main(envname: str = "CartPole-v0", num_options: int = 2) -> rainy.Config:
     c = rainy.Config()
     c.set_env(lambda: ClassicControl(envname))
     c.max_steps = int(4e5)
@@ -34,7 +33,4 @@ def config(envname: str = "CartPole-v0", num_options: int = 2) -> rainy.Config:
 
 
 if __name__ == "__main__":
-    options = [
-        click.Option(["--num-options"], type=int, default=2),
-    ]
-    run_cli(config, rainy.agents.ACTCAgent, os.path.realpath(__file__), options)
+    main()

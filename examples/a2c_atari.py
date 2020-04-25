@@ -6,18 +6,18 @@ import os
 
 from torch.optim import RMSprop
 
-import rainy.utils.cli as cli
-from rainy import Config, net
+import rainy
 from rainy.agents import A2CAgent
 from rainy.envs import Atari, atari_parallel
 
 
-def config(envname: str = "Breakout") -> Config:
-    c = Config()
+@rainy.main(A2CAgent, script_path=os.path.realpath(__file__))
+def main(envname: str = "Breakout") -> rainy.Config:
+    c = rainy.Config()
     c.set_env(lambda: Atari(envname, frame_stack=False))
     c.set_optimizer(lambda params: RMSprop(params, lr=7e-4, alpha=0.99, eps=1e-5))
-    #  c.set_net_fn('actor-critic', net.actor_critic.conv_shared(rnn=net.GruBlock))
-    c.set_net_fn("actor-critic", net.actor_critic.conv_shared())
+    # c.set_net_fn('actor-critic', rainy.net.actor_critic.conv_shared(rnn=net.GruBlock))
+    c.set_net_fn("actor-critic", rainy.net.actor_critic.conv_shared())
     c.nworkers = 16
     c.nsteps = 5
     c.set_parallel_env(atari_parallel())
@@ -34,4 +34,4 @@ def config(envname: str = "Breakout") -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, A2CAgent, script_path=os.path.realpath(__file__))
+    main()

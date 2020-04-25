@@ -2,16 +2,16 @@
 """
 import os
 
-import click
 from torch.optim import RMSprop
 
-import rainy.utils.cli as cli
+import rainy
 from rainy import Config, net
 from rainy.agents import AOCAgent
 from rainy.envs import Atari, atari_parallel
 
 
-def config(
+@rainy.main(AOCAgent, os.path.realpath(__file__))
+def main(
     envname: str = "Breakout",
     num_options: int = 4,
     opt_delib_cost: float = 0.025,
@@ -40,10 +40,4 @@ def config(
 
 
 if __name__ == "__main__":
-    options = [
-        click.Option(["--num-options"], type=int, default=4),
-        click.Option(["--opt-delib-cost"], type=float, default=0.025),
-        click.Option(["--opt-beta-adv-merginal"], type=float, default=0.01),
-        click.Option(["--use-gae"], is_flag=True),
-    ]
-    cli.run_cli(config, AOCAgent, os.path.realpath(__file__), options=options)
+    main()

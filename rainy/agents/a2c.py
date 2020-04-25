@@ -74,7 +74,7 @@ class A2CAgent(A2CLikeAgent[State]):
     def actions(self, states: Array[State]) -> Tuple[Array[Action], dict]:
         policy, value, rnns = self.net(*self._network_in(states))
         actions = policy.action().squeeze().cpu().numpy()
-        return actions, dict(rnn_states=rnns, policy=policy, value=value)
+        return actions, dict(rnn_state=rnns, policy=policy, value=value)
 
     def _pre_backward(self, _policy: Policy, _value: torch.Tensor) -> None:
         pass

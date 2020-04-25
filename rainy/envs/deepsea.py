@@ -1,8 +1,7 @@
 from typing import List, Optional, Tuple, Union
 
-import numpy as np
-
 import gym
+import numpy as np
 from gym.utils import seeding
 
 

@@ -1,8 +1,7 @@
 from typing import Tuple, Union
 
-import numpy as np
-
 import gym
+import numpy as np
 from gym.spaces import Box
 from gym.wrappers import TimeLimit
 

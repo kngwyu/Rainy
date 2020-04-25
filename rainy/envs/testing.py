@@ -3,9 +3,8 @@
 from enum import Enum
 from typing import Sequence, Tuple
 
-import numpy as np
-
 import gym
+import numpy as np
 
 from ..prelude import Array
 from .ext import EnvExt

@@ -2,9 +2,8 @@
 """
 from typing import Callable, Generic, NamedTuple, Optional, Sequence
 
-import numpy as np
-
 import gym
+import numpy as np
 from gym import spaces
 
 from ..prelude import Action, Array, GenericNamedMeta, Self, State

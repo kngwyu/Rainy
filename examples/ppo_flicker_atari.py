@@ -2,12 +2,12 @@ from os.path import realpath
 
 import ppo_atari
 import rainy
-import rainy.utils.cli as cli
 from rainy.envs import Atari, atari_parallel
 
 
-def config(envname: str = "Breakout") -> rainy.Config:
-    c = ppo_atari.config(envname)
+@rainy.main(rainy.agents.PPOAgent, script_path=realpath(__file__))
+def main(envname: str = "Breakout") -> rainy.Config:
+    c = ppo_atari.main(envname)
     c.set_env(lambda: Atari(envname, flicker_frame=True, frame_stack=False))
     c.set_parallel_env(atari_parallel(frame_stack=False))
     c.set_net_fn(
@@ -18,4 +18,4 @@ def config(envname: str = "Breakout") -> rainy.Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, rainy.agents.PPOAgent, script_path=realpath(__file__))
+    main()
