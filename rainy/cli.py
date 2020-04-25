@@ -13,12 +13,6 @@ from .lib import mpi
     "--envname", type=str, default=None, help="Name of environment passed to config_gen"
 )
 @click.option("--max-steps", type=int, default=None, help="Max steps of the training")
-@click.option(
-    "--seed",
-    type=int,
-    default=None,
-    help="Random seed set before training. Left for backward comaptibility",
-)
 @click.option("--model", type=str, default=None, help="Name of the save file")
 @click.option(
     "--action-file", type=str, default="actions.json", help="Name of the action file",
@@ -28,7 +22,6 @@ def rainy_cli(
     ctx: click.Context,
     envname: Optional[str],
     max_steps: Optional[int],
-    seed: Optional[int],
     model: Optional[str],
     action_file: Optional[str],
     **kwargs,
@@ -38,7 +31,6 @@ def rainy_cli(
     if max_steps is not None:
         kwargs["max_steps"] = max_steps
     config = ctx.obj.config_gen(**kwargs)
-    config.seed = seed
     ag = ctx.obj.get_agent(config, **kwargs)
     ctx.obj.experiment = Experiment(ag, model, action_file)
     if envname is not None:
