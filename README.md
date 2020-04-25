@@ -8,7 +8,7 @@ Reinforcement learning utilities and algrithm implementations using PyTorch.
 ## Example
 Rainy has a `main` decorator which converts a function that returns `rainy.Config`
 to a CLI app.
-All arguments are re-interpreted as CLI arguments.
+All function arguments are re-interpreted as command line arguments.
 
 ```python:dqn.py
 import os
