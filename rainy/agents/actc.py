@@ -6,12 +6,11 @@ which is described in
 """
 from typing import Optional, Tuple
 
+import gym
 import numpy as np
 import torch
 from torch import BoolTensor, LongTensor, Tensor
 from torch.nn import functional as F
-
-import gym
 
 from ..config import Config
 from ..lib.explore import EpsGreedy

@@ -6,7 +6,6 @@ This example needs rlpy3, which you can install by::
 import os
 from typing import Tuple
 
-import click
 import numpy as np
 import torch
 from torch import Tensor, optim
@@ -16,7 +15,6 @@ from rainy.envs import MultiProcEnv, RLPyGridWorld
 from rainy.lib.hooks import EvalHook
 from rainy.net import termination_critic as tc
 from rainy.prelude import State
-from rainy.utils.cli import run_cli
 from rlpy.gym import RLPyEnv
 
 
@@ -121,7 +119,9 @@ class OptionVisualizeHook(EvalHook):
         return self.device.tensor(xs), self.device.tensor(np.stack(xf))
 
 
-def config(
+@rainy.main(rainy.agents.ACTCAgent, script_path=os.path.realpath(__file__))
+@rainy.option("--visualize-beta", "-VB", is_flag=True)
+def main(
     envname: str = "4Rooms",
     obs_type: str = "image",
     num_options: int = 4,
@@ -165,9 +165,4 @@ def config(
 
 
 if __name__ == "__main__":
-    options = [
-        click.Option(["--obs-type"], type=str, default="image"),
-        click.Option(["--num-options"], type=int, default=4),
-        click.Option(["--visualize-beta", "-VB"], is_flag=True),
-    ]
-    run_cli(config, rainy.agents.ACTCAgent, os.path.realpath(__file__), options)
+    main()

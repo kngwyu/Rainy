@@ -144,9 +144,7 @@ class ImageWriterHook(_WriterHookImpl):
 
 
 class StateWriterHook(_WriterHookImpl):
-    def __init__(
-        self, out_dir: str = "dataset", extract: bool = False,
-    ) -> None:
+    def __init__(self, out_dir: str = "dataset", extract: bool = False,) -> None:
         super().__init__(out_dir)
         self._extract = extract
 

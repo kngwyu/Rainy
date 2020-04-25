@@ -1,7 +1,7 @@
 import numpy as np
+import pytest
 import torch
 
-import pytest
 import rainy
 from rainy import agents, envs, lib, net, replay
 

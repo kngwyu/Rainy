@@ -1,7 +1,6 @@
 import numpy as np
-import torch
-
 import pytest
+import torch
 
 from ..utils import Device
 from .rms import RunningMeanStd, RunningMeanStdTorch

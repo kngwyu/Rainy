@@ -2,24 +2,23 @@
 """
 import os
 
-import click
 from torch.optim import RMSprop
 
-import rainy.utils.cli as cli
-from rainy import Config, net
+import rainy
 from rainy.agents import PPOCAgent
 from rainy.envs import Atari, atari_parallel
 
 
-def config(
+@rainy.main(PPOCAgent, os.path.realpath(__file__))
+def main(
     envname: str = "Breakout",
     num_options: int = 4,
     opt_delib_cost: float = 0.0,
     opt_beta_adv_merginal: float = 0.01,
     opt_avg_baseline: bool = False,
     proximal_update_for_mu: bool = False,
-) -> Config:
-    c = Config()
+) -> rainy.Config:
+    c = rainy.Config()
     c.set_env(lambda: Atari(envname, frame_stack=False))
     c.set_parallel_env(atari_parallel())
     c.set_optimizer(lambda params: RMSprop(params, lr=7e-4, alpha=0.99, eps=1e-5))
@@ -30,7 +29,7 @@ def config(
     c.opt_beta_adv_merginal = opt_beta_adv_merginal
     c.set_net_fn(
         "option-critic",
-        net.option_critic.conv_shared(num_options=num_options, has_mu=True),
+        rainy.net.option_critic.conv_shared(num_options=num_options, has_mu=True),
     )
     # PPO params
     c.nworkers = 8
@@ -51,11 +50,4 @@ def config(
 
 
 if __name__ == "__main__":
-    options = [
-        click.Option(["--num-options"], type=int, default=2),
-        click.Option(["--opt-delib-cost"], type=float, default=0.025),
-        click.Option(["--opt-beta-adv-merginal"], type=float, default=0.01),
-        click.Option(["--opt-avg-baseline"], is_flag=True),
-        click.Option(["--proximal-update-for-mu"], is_flag=True),
-    ]
-    cli.run_cli(config, PPOCAgent, os.path.realpath(__file__), options)
+    main()

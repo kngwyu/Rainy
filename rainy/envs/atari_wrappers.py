@@ -8,9 +8,8 @@ or so.
 from typing import Optional
 
 import cv2
-import numpy as np
-
 import gym
+import numpy as np
 from gym import spaces
 
 from ..prelude import Array

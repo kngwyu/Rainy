@@ -1,24 +1,23 @@
 import os
 
-import click
 from torch.optim import Adam
 
-import rainy.utils.cli as cli
-from rainy import Config, net
+import rainy
 from rainy.agents import PPOCAgent
 from rainy.envs import PyBullet, pybullet_parallel
 from rainy.net.policy import SeparateStdGaussianDist
 
 
-def config(
+@rainy.main(PPOCAgent, os.path.realpath(__file__))
+def main(
     envname: str = "Hopper",
     num_options: int = 2,
     opt_delib_cost: float = 0.0,
     opt_beta_adv_merginal: float = 0.01,
     opt_avg_baseline: bool = False,
     proximal_update_for_mu: bool = False,
-) -> Config:
-    c = Config()
+) -> rainy.Config:
+    c = rainy.Config()
     c.set_env(lambda: PyBullet(envname))
     c.set_parallel_env(pybullet_parallel(normalize_obs=True, normalize_reward=True))
     c.set_optimizer(lambda params: Adam(params, lr=3.0e-4, eps=1.0e-4))
@@ -29,7 +28,7 @@ def config(
     c.opt_beta_adv_merginal = opt_beta_adv_merginal
     c.set_net_fn(
         "option-critic",
-        net.option_critic.fc_shared(
+        rainy.net.option_critic.fc_shared(
             num_options=num_options, policy=SeparateStdGaussianDist, has_mu=True
         ),
     )
@@ -49,11 +48,4 @@ def config(
 
 
 if __name__ == "__main__":
-    options = [
-        click.Option(["--num-options"], type=int, default=2),
-        click.Option(["--opt-delib-cost"], type=float, default=0.0),
-        click.Option(["--opt-beta-adv-merginal"], type=float, default=0.01),
-        click.Option(["--opt-avg-baseline"], is_flag=True),
-        click.Option(["--proximal-update-for-mu"], is_flag=True),
-    ]
-    cli.run_cli(config, PPOCAgent, os.path.realpath(__file__), options)
+    main()

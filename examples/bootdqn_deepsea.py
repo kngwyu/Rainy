@@ -1,9 +1,8 @@
 import os
 
-import click
 from torch import optim
 
-import rainy.utils.cli as cli
+import rainy
 from rainy import Config
 from rainy.agents import BootDQNAgent
 from rainy.envs import DeepSea
@@ -12,7 +11,8 @@ from rainy.net import bootstrap
 from rainy.replay import BootDQNReplayFeed, UniformReplayBuffer
 
 
-def config(
+@rainy.main(BootDQNAgent, os.path.realpath(__file__))
+def main(
     max_steps: int = 100000,
     size: int = 20,
     rpf: bool = False,
@@ -40,9 +40,4 @@ def config(
 
 
 if __name__ == "__main__":
-    options = [
-        click.Option(["--rpf"], is_flag=True),
-        click.Option(["--replay-prob", "-RP"], type=float, default=0.5),
-        click.Option(["--prior-scale", "-PS"], type=float, default=1.0),
-    ]
-    cli.run_cli(config, BootDQNAgent, os.path.realpath(__file__), options)
+    main()

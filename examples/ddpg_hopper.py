@@ -1,16 +1,16 @@
 import os
 
-import click
 from torch.optim import Adam
 
-import rainy.utils.cli as cli
+import rainy
 from rainy import Config
 from rainy.agents import DDPGAgent
 from rainy.envs import PyBullet
 from rainy.lib import explore
 
 
-def config(envname: str = "Hopper", nworkers: int = 1) -> Config:
+@rainy.main(DDPGAgent, os.path.realpath(__file__))
+def main(envname: str = "Hopper", nworkers: int = 1) -> Config:
     c = Config()
     c.set_env(lambda: PyBullet(envname))
     c.max_steps = int(1e6)
@@ -29,5 +29,4 @@ def config(envname: str = "Hopper", nworkers: int = 1) -> Config:
 
 
 if __name__ == "__main__":
-    options = [click.Option(["--nworkers"], type=int, default=1)]
-    cli.run_cli(config, DDPGAgent, os.path.realpath(__file__), options)
+    main()

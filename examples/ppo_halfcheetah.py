@@ -2,18 +2,18 @@ import os
 
 from torch.optim import Adam
 
-import rainy.utils.cli as cli
-from rainy import Config, net
+import rainy
 from rainy.agents import PPOAgent
 from rainy.envs import PyBullet, pybullet_parallel
 from rainy.net.policy import SeparateStdGaussianDist
 
 
-def config(envname: str = "HalfCheetah") -> Config:
-    c = Config()
+@rainy.main(PPOAgent, script_path=os.path.realpath(__file__))
+def main(envname: str = "HalfCheetah") -> rainy.Config:
+    c = rainy.Config()
     c.set_env(lambda: PyBullet(envname))
     c.set_net_fn(
-        "actor-critic", net.actor_critic.fc_shared(policy=SeparateStdGaussianDist)
+        "actor-critic", rainy.net.actor_critic.fc_shared(policy=SeparateStdGaussianDist)
     )
     c.set_parallel_env(pybullet_parallel())
     c.set_optimizer(lambda params: Adam(params, lr=3.0e-4, eps=1.0e-4))
@@ -33,4 +33,4 @@ def config(envname: str = "HalfCheetah") -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, PPOAgent, script_path=os.path.realpath(__file__))
+    main()

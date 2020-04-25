@@ -1,12 +1,12 @@
 import os
 
-import rainy.utils.cli as cli
 from rainy import Config
 from rainy.agents import DoubleDQNAgent
 from rainy.envs import ClassicControl
 
 
-def config(envname: str = "CartPole-v0") -> Config:
+@rainy.main(DoubleDQNAgent, script_path=os.path.realpath(__file__))
+def main(envname: str = "CartPole-v0") -> Config:
     c = Config()
     c.set_env(lambda: ClassicControl(envname))
     c.max_steps = 100000

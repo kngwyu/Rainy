@@ -1,9 +1,9 @@
 from typing import Callable
 
+import pytest
 import torch
 from numpy.testing import assert_array_almost_equal as assert_array
 
-import pytest
 from rainy.net import policy as P
 
 

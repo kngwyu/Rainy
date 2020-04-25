@@ -1,17 +1,15 @@
 import os
 
-import click
-
-import rainy.utils.cli as cli
-from rainy import Config
+import rainy
 from rainy.agents import DQNAgent
 from rainy.envs import ClassicControl, MultiProcEnv
 
 
-def config(
+@rainy.main(agent=DQNAgent, script_path=os.path.realpath(__file__))
+def main(
     envname: str = "CartPole-v0", max_steps: int = 100000, nworkers: int = 1
-) -> Config:
-    c = Config()
+) -> rainy.Config:
+    c = rainy.Config()
     c.set_env(lambda: ClassicControl(envname))
     c.set_parallel_env(MultiProcEnv)
     c.max_steps = max_steps
@@ -22,5 +20,4 @@ def config(
 
 
 if __name__ == "__main__":
-    options = [click.Option(["--nworkers"], type=int, default=1)]
-    cli.run_cli(config, DQNAgent, os.path.realpath(__file__), options)
+    main()

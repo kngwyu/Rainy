@@ -1,7 +1,7 @@
 import numpy as np
+import pytest
 from numpy.testing import assert_array_almost_equal
 
-import pytest
 from rainy import envs
 from rainy.envs import DummyParallelEnv, FrameStackParallel, MultiProcEnv, ParallelEnv
 from rainy.envs.testing import DummyEnv, DummyEnvDeterministic, State

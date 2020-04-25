@@ -1,9 +1,9 @@
 from typing import Optional, Tuple
 
 import numpy as np
+import pytest
 import torch
 
-import pytest
 from rainy.net import (
     CNNBody,
     CNNBodyWithoutFC,

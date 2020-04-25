@@ -1,5 +1,4 @@
 import numpy as np
-
 from gym import logger, spaces
 from gym.envs.classic_control import CartPoleEnv
 

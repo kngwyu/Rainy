@@ -1,11 +1,11 @@
-from typing import Callable, List, Optional, Type
+from typing import Callable, Optional, Type
 
 import click
 
-from ..agents import Agent
-from ..config import Config
-from ..experiment import Experiment
-from ..lib import mpi
+from .agents import Agent
+from .config import Config
+from .experiment import Experiment
+from .lib import mpi
 
 
 @click.group()
@@ -13,12 +13,6 @@ from ..lib import mpi
     "--envname", type=str, default=None, help="Name of environment passed to config_gen"
 )
 @click.option("--max-steps", type=int, default=None, help="Max steps of the training")
-@click.option(
-    "--seed",
-    type=int,
-    default=None,
-    help="Random seed set before training. Left for backward comaptibility",
-)
 @click.option("--model", type=str, default=None, help="Name of the save file")
 @click.option(
     "--action-file", type=str, default="actions.json", help="Name of the action file",
@@ -28,7 +22,6 @@ def rainy_cli(
     ctx: click.Context,
     envname: Optional[str],
     max_steps: Optional[int],
-    seed: Optional[int],
     model: Optional[str],
     action_file: Optional[str],
     **kwargs,
@@ -38,7 +31,6 @@ def rainy_cli(
     if max_steps is not None:
         kwargs["max_steps"] = max_steps
     config = ctx.obj.config_gen(**kwargs)
-    config.seed = seed
     ag = ctx.obj.get_agent(config, **kwargs)
     ctx.obj.experiment = Experiment(ag, model, action_file)
     if envname is not None:
@@ -143,11 +135,6 @@ def random(
     ctx.obj.experiment.random(render, replay, pause)
 
 
-def _add_options(options: List[click.Command]) -> None:
-    for option in options:
-        rainy_cli.params.append(option)
-
-
 class _CLIContext:
     def __init__(
         self,
@@ -175,15 +162,43 @@ class _CLIContext:
             assert False, "Unreachable!"
 
 
-def run_cli(
-    config_gen: Callable[..., Config],
-    agent_cls: Optional[Type[Agent]] = None,
-    script_path: Optional[str] = None,
-    options: List[click.Command] = [],
-    agent_selector: Optional[Callable[..., Type[Agent]]] = None,
-) -> None:
-    if agent_cls is None and agent_selector is None:
-        raise ValueError("run_cli needs agent_cls or agent_selector!")
+def option(*param_decls, **attrs) -> callable:
+    def decorator(f):
+        option_attrs = attrs.copy()
+        if "help" in option_attrs:
+            import inspect
 
-    _add_options(options)
-    rainy_cli(obj=_CLIContext(config_gen, agent_cls, agent_selector, script_path))
+            option_attrs["help"] = inspect.cleandoc(option_attrs["help"])
+        option = click.Option(param_decls, **attrs)
+        rainy_cli.params.append(option)
+        return f
+
+    return decorator
+
+
+def main(
+    agent: Optional[Type[Agent]] = None,
+    script_path: Optional[str] = None,
+    agent_selector: Optional[Callable[..., Type[Agent]]] = None,
+):
+    def decorator(f):
+        if hasattr(f, "__annotations__"):
+            annon = f.__annotations__
+            used_names = [param.name for param in rainy_cli.params]
+            for name, value in zip(annon.keys(), f.__defaults__):
+                if name in used_names:
+                    continue
+                if annon[name] is bool and value is False:
+                    option = click.Option(
+                        ["--" + name.replace("_", "-")], is_flag=True,
+                    )
+                else:
+                    option = click.Option(
+                        ["--" + name.replace("_", "-")], type=annon[name], default=value
+                    )
+                rainy_cli.params.append(option)
+
+        rainy_cli(obj=_CLIContext(f, agent, agent_selector, script_path))
+        return f
+
+    return decorator

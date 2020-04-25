@@ -1,14 +1,13 @@
 import os
 
-import click
 from torch import optim
 
 import rainy
 from rainy.envs import ClassicControl, MultiProcEnv
-from rainy.utils.cli import run_cli
 
 
-def config(
+@rainy.main(rainy.agents.PPOCAgent, os.path.realpath(__file__))
+def main(
     envname: str = "CartPole-v0",
     num_options: int = 2,
     opt_delib_cost: float = 0.0,
@@ -40,11 +39,4 @@ def config(
 
 
 if __name__ == "__main__":
-    options = [
-        click.Option(["--num-options"], type=int, default=2),
-        click.Option(["--opt-delib-cost"], type=float, default=0.0),
-        click.Option(["--opt-beta-adv-merginal"], type=float, default=0.01),
-        click.Option(["--opt-avg-baseline"], is_flag=True),
-        click.Option(["--proximal-update-for-mu"], is_flag=True),
-    ]
-    run_cli(config, rainy.agents.PPOCAgent, os.path.realpath(__file__), options)
+    main()

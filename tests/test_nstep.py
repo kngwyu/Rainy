@@ -1,6 +1,6 @@
+import pytest
 import torch
 
-import pytest
 from rainy.agents.aoc import AOCRolloutStorage
 from rainy.envs import DummyParallelEnv, MultiProcEnv, ParallelEnv
 from rainy.lib.rollout import RolloutSampler, RolloutStorage

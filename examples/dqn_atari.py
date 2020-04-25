@@ -2,14 +2,15 @@ import os
 
 from torch.optim import RMSprop
 
-import rainy.utils.cli as cli
+import rainy
 from rainy import Config, net
 from rainy.agents import DQNAgent
 from rainy.envs import Atari
 from rainy.lib.explore import EpsGreedy, LinearCooler
 
 
-def config(envname: str = "Breakout") -> Config:
+@rainy.main(DQNAgent, script_path=os.path.realpath(__file__))
+def main(envname: str = "Breakout") -> Config:
     c = Config()
     c.set_env(lambda: Atari(envname))
     c.set_optimizer(
@@ -28,4 +29,4 @@ def config(envname: str = "Breakout") -> Config:
 
 
 if __name__ == "__main__":
-    cli.run_cli(config, DQNAgent, script_path=os.path.realpath(__file__))
+    main()
