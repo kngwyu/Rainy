@@ -6,7 +6,7 @@ from .base import A2CLikeAgent, Agent, DQNLikeAgent, EpisodeResult, Netout
 from .bootdqn import BootDQNAgent
 from .ddpg import DDPGAgent
 from .dqn import DoubleDQNAgent, DQNAgent
-from .ppo import PPOAgent
+from .ppo import PPOAgent, PPOLossMixIn
 from .ppoc import PPOCAgent
 from .sac import SACAgent
 from .td3 import TD3Agent

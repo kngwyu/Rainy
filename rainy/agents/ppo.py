@@ -3,7 +3,7 @@ This module has an implementation of PPO, which is described in
 - Proximal Policy Optimization Algorithms
   - URL: https://arxiv.org/abs/1707.06347
 """
-
+from abc import ABC
 import torch
 from torch import Tensor
 
@@ -16,18 +16,11 @@ from ..prelude import Array
 from .a2c import A2CAgent
 
 
-class PPOAgent(A2CAgent):
-    SAVED_MEMBERS = "net", "clip_eps", "clip_cooler", "optimizer"
+class PPOLossMixIn(ABC):
+    clip_eps: float
+    config: Config
 
-    def __init__(self, config: Config) -> None:
-        super().__init__(config)
-        self.clip_cooler = config.clip_cooler()
-        self.clip_eps = config.ppo_clip
-        self.num_updates = self.config.ppo_epochs * self.config.ppo_num_minibatches
-        mpi.setup_models(self.net)
-        self.optimizer = mpi.setup_optimizer(self.optimizer)
-
-    def _policy_loss(
+    def _proximal_policy_loss(
         self, policy: Policy, advantages: Tensor, old_log_probs: Tensor
     ) -> Tensor:
         prob_ratio = torch.exp(policy.log_prob() - old_log_probs)
@@ -48,6 +41,18 @@ class PPOAgent(A2CAgent):
         )
         clipped_loss = (value_clipped - returns).pow(2)
         return torch.max(unclipped_loss, clipped_loss).mean()
+
+
+class PPOAgent(A2CAgent, PPOLossMixIn):
+    SAVED_MEMBERS = "net", "clip_eps", "clip_cooler", "optimizer"
+
+    def __init__(self, config: Config) -> None:
+        super().__init__(config)
+        self.clip_cooler = config.clip_cooler()
+        self.clip_eps = config.ppo_clip
+        self.num_updates = self.config.ppo_epochs * self.config.ppo_num_minibatches
+        mpi.setup_models(self.net)
+        self.optimizer = mpi.setup_optimizer(self.optimizer)
 
     def train(self, last_states: Array[State]) -> None:
         with torch.no_grad():
@@ -70,7 +75,7 @@ class PPOAgent(A2CAgent):
             for batch in sampler:
                 policy, value, _ = self.net(batch.states, batch.rnn_init, batch.masks)
                 policy.set_action(batch.actions)
-                policy_loss = self._policy_loss(
+                policy_loss = self._proximal_policy_loss(
                     policy, batch.advantages, batch.old_log_probs
                 )
                 value_loss = self._value_loss(value, batch.values, batch.returns)

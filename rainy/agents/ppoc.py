@@ -17,6 +17,7 @@ from ..lib.rollout import RolloutSampler
 from ..net.policy import BernoulliPolicy, CategoricalPolicy, Policy
 from ..prelude import Action, Array, Index, State
 from .aoc import AOCAgent, AOCRolloutStorage
+from .ppo import PPOLossMixIn
 
 
 class RolloutBatch(NamedTuple):
@@ -66,7 +67,7 @@ class PPOCSampler(RolloutSampler):
         )
 
 
-class PPOCAgent(AOCAgent):
+class PPOCAgent(AOCAgent, PPOLossMixIn):
     SAVED_MEMBERS = "net", "clip_eps", "clip_cooler", "optimizer"
 
     def __init__(self, config: Config) -> None:
@@ -88,14 +89,6 @@ class PPOCAgent(AOCAgent):
 
     def _normal_policy_loss(self, policy: Policy, advantages: Tensor, *args,) -> Tensor:
         return -(policy.log_prob() * advantages).mean()
-
-    def _proximal_policy_loss(
-        self, policy: Policy, advantages: Tensor, old_log_probs: Tensor
-    ) -> Tensor:
-        prob_ratio = torch.exp(policy.log_prob() - old_log_probs)
-        surr1 = prob_ratio * advantages
-        surr2 = prob_ratio.clamp(1.0 - self.clip_eps, 1.0 + self.clip_eps) * advantages
-        return -torch.min(surr1, surr2).mean()
 
     def _value_loss(self, value: Tensor, options: Tensor, returns: Tensor) -> Tensor:
         value = value[self.batch_indices, options]
