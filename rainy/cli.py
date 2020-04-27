@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Type
+from typing import Callable, Optional, Type, Union
 
 import click
 
@@ -162,6 +162,37 @@ def option(*param_decls, **attrs) -> callable:
     return decorator
 
 
+def _is_optional(cls: type) -> bool:
+    if not hasattr(cls, "__origin__") or cls.__origin__ is not Union:
+        return False
+
+    if len(cls.__args__) != 2 or cls.__args__[1]() is not None:
+        raise TypeError(f"Invalid type for CLI arguments: {cls}")
+    return True
+
+
+def _annon_to_clargs(f: callable) -> None:
+    annon = f.__annotations__
+    used_names = [param.name for param in rainy_cli.params]
+    for name, value in zip(annon.keys(), f.__defaults__):
+        if name in used_names:
+            continue
+        cls = annon[name]
+        if cls is bool and value is False:
+            option = click.Option(
+                ["--" + name.replace("_", "-")], is_flag=True,
+            )
+        elif _is_optional(cls):
+            option = click.Option(
+                ["--" + name.replace("_", "-")], type=cls.__args__[0], default=value
+            )
+        else:
+            option = click.Option(
+                ["--" + name.replace("_", "-")], type=annon[name], default=value
+            )
+        rainy_cli.params.append(option)
+
+
 def main(
     agent: Optional[Type[Agent]] = None,
     script_path: Optional[str] = None,
@@ -169,20 +200,7 @@ def main(
 ):
     def decorator(f):
         if hasattr(f, "__annotations__"):
-            annon = f.__annotations__
-            used_names = [param.name for param in rainy_cli.params]
-            for name, value in zip(annon.keys(), f.__defaults__):
-                if name in used_names:
-                    continue
-                if annon[name] is bool and value is False:
-                    option = click.Option(
-                        ["--" + name.replace("_", "-")], is_flag=True,
-                    )
-                else:
-                    option = click.Option(
-                        ["--" + name.replace("_", "-")], type=annon[name], default=value
-                    )
-                rainy_cli.params.append(option)
+            _annon_to_clargs(f)
 
         rainy_cli(obj=_CLIContext(f, agent, agent_selector, script_path))
         return f
