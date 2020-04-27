@@ -136,6 +136,7 @@ class RLPyGridWorld(EnvExt):
     ALIASES = {
         "4Rooms": "RLPyGridWorld11x11-4Rooms-RandomGoal",
         "4RoomsExp": "RLPyFixedRewardGridWorld11x11-4Rooms",
+        "9RoomsExp": "RLPyFixedRewardGridWorld17x17-9Rooms",
     }
 
     def __init__(
