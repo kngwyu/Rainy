@@ -15,10 +15,7 @@ from .lib import mpi
 )
 @click.pass_context
 def rainy_cli(
-    ctx: click.Context,
-    model: Optional[str],
-    action_file: Optional[str],
-    **kwargs,
+    ctx: click.Context, model: Optional[str], action_file: Optional[str], **kwargs,
 ) -> None:
     config = ctx.obj.config_gen(**kwargs)
     ag = ctx.obj.get_agent(config, **kwargs)
@@ -47,8 +44,7 @@ def train(
     script_path = ctx.obj.script_path
     if script_path is not None:
         fingerprint = dict(
-            comment="" if comment is None else comment,
-            kwargs=ctx.obj.kwargs,
+            comment="" if comment is None else comment, kwargs=ctx.obj.kwargs,
         )
         experiment.logger.setup_from_script_path(
             script_path, dirname=logdir, fingerprint=fingerprint
@@ -179,9 +175,7 @@ def _annon_to_clargs(f: callable) -> None:
             continue
         cls = annon[name]
         if cls is bool and value is False:
-            option = click.Option(
-                ["--" + name.replace("_", "-")], is_flag=True,
-            )
+            option = click.Option(["--" + name.replace("_", "-")], is_flag=True,)
         elif _is_optional(cls):
             option = click.Option(
                 ["--" + name.replace("_", "-")], type=cls.__args__[0], default=value
