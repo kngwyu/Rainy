@@ -1,7 +1,7 @@
 """Networks for Option-Critic families.
 """
 from abc import ABC, abstractmethod
-from typing import Sequence, Tuple, Type
+from typing import Optional, Sequence, Tuple, Type
 
 from torch import Tensor, nn
 
@@ -53,22 +53,28 @@ class SharedBodyOCNet(OptionCriticNet):
     def __init__(
         self,
         body: NetworkBlock,
-        actor_head: NetworkBlock,
-        value_head: NetworkBlock,
-        beta_head: NetworkBlock,
+        action_dim: int,
+        num_options: int,
         policy_dist: PolicyDist,
+        init: Initializer = Initializer(),
+        beta_init: Optional[Initializer] = None,
+        policy_init: Initializer = policy_init(),
         device: Device = Device(),
     ) -> None:
         super().__init__()
         self.has_mu = False
         self.body = body
-        self.actor_head = actor_head
-        self.value_head = value_head
-        self.beta_head = beta_head
+        self.actor_head = LinearHead(
+            body.output_dim, num_options * action_dim, init=policy_init
+        )
+        self.value_head = LinearHead(body.output_dim, num_options, init=init)
+        self.beta_head = LinearHead(
+            body.output_dim, num_options, init=beta_init or init
+        )
         self.policy_dist = policy_dist
         self.beta_dist = BernoulliDist()
-        self.num_options = value_head.output_dim
-        self.action_dim = actor_head.output_dim // self.num_options
+        self.num_options = num_options
+        self.action_dim = action_dim
         self.device = device
         self.state_dim = self.body.input_dim
         self.to(device.unwrapped)
@@ -99,17 +105,22 @@ class SharedBodyOCNetWithMu(SharedBodyOCNet):
 
     def __init__(
         self,
-        body: NetworkBlock,
-        actor_head: NetworkBlock,
-        value_head: NetworkBlock,
-        beta_head: NetworkBlock,
-        policy_dist: PolicyDist,
-        mu_head: NetworkBlock,
+        *args,
+        init: Initializer = Initializer(),
+        beta_init: Optional[Initializer] = None,
+        policy_init: Initializer = policy_init(),
         device: Device = Device(),
     ) -> None:
-        super().__init__(body, actor_head, value_head, beta_head, policy_dist, device)
-        self.has_mu = True
-        self.mu_head = mu_head
+        super().__init__(
+            *args,
+            init=init,
+            beta_init=beta_init,
+            policy_init=policy_init,
+            device=device,
+        )
+        self.mu_head = LinearHead(
+            body.output_dim, self.action_dim * self.num_options, init=policy_init
+        )
         self.mu_dist = CategoricalDist(value_head.output_dim)
         self.to(device.unwrapped)
 
@@ -139,17 +150,14 @@ def conv_shared(
         body = CNNBody(
             state_dim, hidden_channels=hidden_channels, output_dim=feature_dim, **kwargs
         )
-        ac_head = LinearHead(body.output_dim, action_dim * num_options, policy_init())
-        value_head = LinearHead(body.output_dim, num_options)
-        beta_head = LinearHead(body.output_dim, num_options, init=beta_init)
         dist = policy(action_dim, device)
         if has_mu:
-            mu_head = LinearHead(body.output_dim, num_options, policy_init())
-            return SharedBodyOCNetWithMu(
-                body, ac_head, value_head, beta_head, dist, mu_head, device
-            )
+            cls = SharedBodyOCNetWithMu
         else:
-            return SharedBodyOCNet(body, ac_head, value_head, beta_head, dist, device)
+            cls = SharedBodyOCNet
+        return cls(
+            body, action_dim, num_options, dist, beta_init=beta_init, device=device
+        )
 
     return _net  # type: ignore
 
@@ -158,22 +166,20 @@ def fc_shared(
     num_options: int = 8,
     policy: Type[PolicyDist] = CategoricalDist,
     has_mu: bool = False,
+    beta_init: Initializer = Initializer(),
     **kwargs,
 ) -> NetFn:
     def _net(
         state_dim: Sequence[int], action_dim: int, device: Device
     ) -> SharedBodyOCNet:
         body = FCBody(state_dim[0], **kwargs)
-        ac_head = LinearHead(body.output_dim, action_dim * num_options, policy_init())
-        value_head = LinearHead(body.output_dim, num_options)
-        beta_head = LinearHead(body.output_dim, num_options)
         dist = policy(action_dim, device)
         if has_mu:
-            mu_head = LinearHead(body.output_dim, num_options, policy_init())
-            return SharedBodyOCNetWithMu(
-                body, ac_head, value_head, beta_head, dist, mu_head, device
-            )
+            cls = SharedBodyOCNetWithMu
         else:
-            return SharedBodyOCNet(body, ac_head, value_head, beta_head, dist, device)
+            cls = SharedBodyOCNet
+        return cls(
+            body, action_dim, num_options, dist, beta_init=beta_init, device=device
+        )
 
     return _net  # type: ignore

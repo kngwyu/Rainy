@@ -72,8 +72,10 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
 
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        if not self.net.has_mu:
-            raise ValueError("PPOCAgent needs option_policy μ!!!")
+        if not hasattr(self.net, "mu_head"):
+            import warnings
+
+            warnings.warn("PPOC net doesn't have mu_head")
         self.clip_cooler = config.clip_cooler()
         self.clip_eps = config.ppo_clip
         self.num_updates = self.config.ppo_epochs * self.config.ppo_num_minibatches

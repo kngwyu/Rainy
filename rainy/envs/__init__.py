@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 import gym
 import numpy as np
@@ -69,7 +69,11 @@ class AtariConfig:
 
 
 class Atari(EnvExt):
-    def __init__(self, name: str, cfg: AtariConfig = AtariConfig(), **kwargs) -> None:
+    def __init__(
+        self, name: str, cfg: Union[AtariConfig, str] = "deepmind", **kwargs
+    ) -> None:
+        if isinstance(cfg, str):
+            cfg = AtariConfig.from_style(cfg)
         cfg.__dict__.update(kwargs)
         env = make_atari(
             name,

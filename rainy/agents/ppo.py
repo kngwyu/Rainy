@@ -4,6 +4,7 @@ This module has an implementation of PPO, which is described in
   - URL: https://arxiv.org/abs/1707.06347
 """
 from abc import ABC
+
 import torch
 from torch import Tensor
 
