@@ -34,13 +34,13 @@ class PPOLossMixIn(ABC):
         OpenAI baselines says it reduces variability during Critic training...
         but I'm not sure.
         """
-        unclipped_loss = (value - returns).pow(2)
+        unclipped_loss = (value - returns).pow(2) * 0.5
         if not self.config.ppo_value_clip:
             return unclipped_loss.mean()
         value_clipped = old_value + (value - old_value).clamp(
             -self.clip_eps, self.clip_eps
         )
-        clipped_loss = (value_clipped - returns).pow(2)
+        clipped_loss = (value_clipped - returns).pow(2) * 0.5
         return torch.max(unclipped_loss, clipped_loss).mean()
 
 
