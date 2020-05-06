@@ -57,6 +57,7 @@ class SummarySetting(NamedTuple):
     indices: List[str]
     interval: int
     color: str
+    describe: bool
 
 
 class ExperimentLogger:
@@ -76,7 +77,7 @@ class ExperimentLogger:
 
         self._store: DefaultDict[str, LogStore] = defaultdict(LogStore)
         self._summary_setting: DefaultDict[str, SummarySetting] = defaultdict(
-            lambda: SummarySetting(["sec"], 1, "black")
+            lambda: SummarySetting(["sec"], 1, "black", True)
         )
         self._show_summary = show_summary
         self._closed = False
@@ -157,14 +158,19 @@ class ExperimentLogger:
             self._truncate_and_dump(name)
 
     def summary_setting(
-        self, name: str, indices: List[str], interval: int = 1, color: str = "black",
+        self,
+        name: str,
+        indices: List[str],
+        interval: int = 1,
+        color: str = "black",
+        describe: bool = True,
     ) -> None:
         if "sec" not in indices:
             indices.append("sec")
-        self._summary_setting[name] = SummarySetting(indices, interval, color)
+        self._summary_setting[name] = SummarySetting(indices, interval, color, describe)
 
     def show_summary(self, name: str) -> None:
-        indices, interval, color = self._summary_setting[name]
+        indices, interval, color, describe = self._summary_setting[name]
         df = self._store[name][-interval:].to_df()
         indices_df = df[indices]
         click.secho(
@@ -173,6 +179,8 @@ class ExperimentLogger:
         min_, max_ = indices_df.iloc[0], indices_df.iloc[-1]
         range_str = "\n".join([f"{idx}: {min_[idx]}-{max_[idx]}" for idx in indices])
         click.secho(range_str, bg="black", fg="white")
+        if not describe:
+            return
         df.drop(columns=indices, inplace=True)
         describe = df.describe()
         describe.drop(labels="count", inplace=True)
