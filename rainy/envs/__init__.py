@@ -202,6 +202,21 @@ class PyBullet(EnvExt):
             self._viewer.close()
 
 
+class Mujoco(EnvExt):
+    def __init__(self, name: str = "Hopper-v2", add_timestep: bool = False) -> None:
+        self.name = name
+        try:
+            import mujoco_py  # noqa
+        except ImportError:
+            raise ImportError("mujoco_py is not installed")
+        if "-v" not in name:
+            name += "-v2"
+        env = gym.make(name)
+        if add_timestep:
+            env = AddTimeStep(env)
+        super().__init__(RewardMonitor(env))
+
+
 def pybullet_parallel(
     normalize_obs: bool = True,
     normalize_reward: bool = True,
