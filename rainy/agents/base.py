@@ -21,7 +21,7 @@ import torch
 from torch import Tensor, nn
 
 from ..config import Config
-from ..envs import EnvTransition, ParallelEnv
+from ..envs import ParallelEnv
 from ..lib import mpi
 from ..net import DummyRnn, RnnState
 from ..prelude import Action, Array, State
@@ -207,11 +207,13 @@ class Agent(ABC):
         loss: Tensor,
         opt: torch.optim.Optimizer,
         params: Optional[Iterable[Tensor]] = None,
+        grad_clip: Optional[float] = None,
     ) -> None:
         opt.zero_grad()
         loss.backward()
-        if params is not None and self.config.grad_clip is not None:
-            nn.utils.clip_grad_norm_(params, self.config.grad_clip)
+        grad_clip = grad_clip or self.config.grad_clip
+        if params is not None and grad_clip is not None:
+            nn.utils.clip_grad_norm_(params, grad_clip)
         opt.step()
 
 
