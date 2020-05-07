@@ -92,9 +92,7 @@ class CNNBody(NetworkBlock):
     def forward(self, x: Tensor) -> Tensor:
         for cnn in self.cnns:
             x = self.activator(cnn(x))
-        x = x.view(x.size(0), -1)
-        x = self.activator(self.fc(x))
-        return x
+        return self.activator(self.fc(x.reshape(x.size(0), -1)))
 
 
 class CNNBodyWithoutFC(NetworkBlock):
@@ -144,9 +142,7 @@ class BatchNormCNN(NetworkBlock):
     def forward(self, x: Tensor) -> Tensor:
         for cnn, bn in zip(self.cnns, self.batch_norms):
             x = self.activator(bn(cnn(x)))
-        x = x.view(x.size(0), -1)
-        x = self.activator(self.fc(x))
-        return x
+        return self.activator(self.fc(x.reshape(x.size(0), -1)))
 
 
 class ResBlock(nn.Sequential):
@@ -224,8 +220,7 @@ class ResNetBody(NetworkBlock):
         for block in self.res_blocks:
             x = block(x)
         x = self.relu(x)
-        x = self.fc(x.view(x.size(0), -1))
-        return self.relu(x)
+        return self.relu(self.fc(x.reshape(x.size(0), -1)))
 
 
 class FCBody(NetworkBlock):
