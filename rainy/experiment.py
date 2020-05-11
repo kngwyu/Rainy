@@ -166,8 +166,20 @@ class Experiment:
             action_file = "eval-" + self._action_file.as_posix()
         else:
             action_file = None
-        res = self._eval_impl(render, replay, pause, action_file)
-        click.echo(res)
+        result = self._eval_impl(render, replay, pause, action_file)
+        click.secho("======Results======", bg="blue", fg="yellow")
+        if len(result) == 0:
+            click.echo(result[0])
+        else:
+            from rainy.utils import LogStore
+
+            eval_log = LogStore()
+            for res in result:
+                eval_log.submit(dict(rewards=res.return_, length=res.length))
+            df = eval_log.into_df()
+            click.echo(df)
+            click.secho("===Summary===", bg="blue", fg="white")
+            click.echo(df.describe())
         if render:
             click.pause("---Press any key to exit---")
         if replay:
