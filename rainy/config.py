@@ -173,6 +173,9 @@ class Config:
         self.__explore[key] = exp
 
     def optimizer(self, params: Params, key: Optional[str] = None) -> Optimizer:
+        if key not in self.__optim:
+            optims = list(self.__optim.keys())
+            raise KeyError(f"{key} is not found. Available optimizers are {optims}")
         return self.__optim[key](params)
 
     def set_optimizer(
