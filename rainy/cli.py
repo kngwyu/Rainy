@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Type, Union
+from typing import Callable, Optional, Tuple, Type, Union
 
 import click
 
@@ -167,22 +167,41 @@ def _is_optional(cls: type) -> bool:
     return True
 
 
+def _defaults(f: callable) -> Tuple[str]:
+    defaults = f.__defaults__
+    if defaults is None:
+        defaults = ()
+    if f.__kwdefaults__ is None:
+        return defaults
+    else:
+        return defaults + tuple(f.__kwdefaults__.values())
+
+
 def _annon_to_clargs(f: callable) -> None:
     annon = f.__annotations__
+    # Ignore return type
+    if "return" in annon:
+        del annon["return"]
+    defaults = _defaults(f)
+    has_default_min = len(annon) - len(defaults)
     used_names = [param.name for param in rainy_cli.params]
-    for name, value in zip(annon.keys(), f.__defaults__):
+    for i, name in enumerate(annon.keys()):
         if name in used_names:
             continue
         cls = annon[name]
+        if has_default_min <= i:
+            default = {"default": defaults[i - has_default_min]}
+        else:
+            default = {}
         if cls is bool and value is False:
             option = click.Option(["--" + name.replace("_", "-")], is_flag=True,)
         elif _is_optional(cls):
             option = click.Option(
-                ["--" + name.replace("_", "-")], type=cls.__args__[0], default=value
+                ["--" + name.replace("_", "-")], type=cls.__args__[0], **default,
             )
         else:
             option = click.Option(
-                ["--" + name.replace("_", "-")], type=annon[name], default=value
+                ["--" + name.replace("_", "-")], type=annon[name], **default,
             )
         rainy_cli.params.append(option)
 
