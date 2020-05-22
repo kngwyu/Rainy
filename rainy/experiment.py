@@ -105,8 +105,10 @@ class Experiment:
             if not IS_MPI_ROOT:
                 continue
 
+            # Evaluate the agent
             if self._has_period(steps, step_diff, self.config.eval_freq):
                 self.log_eval(episodes, eval_render)
+            # Save models
             if self._has_period(steps, step_diff, self.config.save_freq):
                 self._save(suffix=".{}".format(save_id))
                 save_id += 1
@@ -142,6 +144,15 @@ class Experiment:
             return True
         return False
 
+    def _retrain_impl(self, additional_steps: int, eval_render: bool = False) -> None:
+        self.ag.config.max_steps += additional_steps
+        save_files = list(self.logger.logdir.glob(self.SAVE_FILE_DEFAULT + ".*"))
+        if len(save_files) > 0:
+            save_id = len(save_files)
+        else:
+            save_id = 0
+        self.train(save_id, eval_render)
+
     def retrain(
         self, logdir_: str, additional_steps: int = 100, eval_render: bool = False
     ) -> None:
@@ -149,15 +160,9 @@ class Experiment:
         if not self._load_agent(logdir):
             raise ValueError("File'{}' does not exists".format(self._save_file_name))
         total_steps, episodes = self.logger.retrive(logdir)
-        save_files = list(logdir.glob(self.SAVE_FILE_DEFAULT + ".*"))
-        if len(save_files) > 0:
-            save_id = len(save_files)
-        else:
-            save_id = 0
         self.ag.total_steps = total_steps
-        self.ag.config.max_steps += additional_steps
         self.episode_offset = episodes
-        self.train(save_id, eval_render)
+        self._retrain_impl(eval_render)
 
     def evaluate(
         self, render: bool = False, replay: bool = False, pause: bool = False,

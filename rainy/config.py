@@ -107,6 +107,9 @@ class Config:
         self.episode_log_freq = 1000
         self.network_log_freq = 10000
 
+        # For domain adaptation
+        self.keep_logger = False
+
         # Evaluation hooks: Do some stuff with environment, when evaluating
         self.eval_hooks: List[EvalHook] = []
 

@@ -83,7 +83,8 @@ class Agent(ABC):
 
     def close(self) -> None:
         self.env.close()
-        self.logger.close()
+        if not self.config.keep_logger:
+            self.logger.close()
 
     def __eval_episode(
         self,
@@ -392,7 +393,8 @@ class A2CLikeAgent(Agent, Generic[State]):
     def close(self) -> None:
         self.env.close()
         self.penv.close()
-        self.logger.close()
+        if not self.config.keep_logger:
+            self.logger.close()
         if self.eval_penv is not None:
             self.eval_penv.close()
 
