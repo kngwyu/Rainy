@@ -191,8 +191,10 @@ def _annon_to_clargs(f: callable) -> None:
         cls = annon[name]
         if has_default_min <= i:
             default = {"default": defaults[i - has_default_min]}
+            value = defaults[i - has_default_min]
         else:
             default = {}
+            value = None
         if cls is bool and value is False:
             option = click.Option(["--" + name.replace("_", "-")], is_flag=True,)
         elif _is_optional(cls):

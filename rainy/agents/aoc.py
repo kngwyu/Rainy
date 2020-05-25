@@ -29,7 +29,7 @@ class AOCRolloutStorage(RolloutStorage[State]):
     ) -> None:
         super().__init__(nsteps, nworkers, device)
         self.options = [self.device.zeros(self.nworkers, dtype=torch.long)]
-        self.is_new_options = [self.device.ones(self.nworkers, dtype=torch.bool)]
+        self.opt_terminals = [self.device.ones(self.nworkers, dtype=torch.bool)]
         self.epsilons: List[float] = []
         self.option_mus: List[CategoricalPolicy] = []
         self.beta_adv = torch.zeros_like(self.batch_values)
@@ -43,7 +43,7 @@ class AOCRolloutStorage(RolloutStorage[State]):
     def reset(self) -> None:
         super().reset()
         self.options = [self.options[-1]]
-        self.is_new_options = [self.is_new_options[-1]]
+        self.opt_terminals = [self.opt_terminals[-1]]
         self.epsilons.clear()
         self.option_mus.clear()
 
@@ -51,14 +51,14 @@ class AOCRolloutStorage(RolloutStorage[State]):
         self,
         *args,
         options: LongTensor,
-        is_new_options: Tensor,
+        opt_terminals: Tensor,
         epsilon: Optional[float] = None,
         mu: Optional[CategoricalPolicy] = None,
         **kwargs,
     ) -> None:
         super().push(*args, **kwargs)
         self.options.append(options)
-        self.is_new_options.append(is_new_options)
+        self.opt_terminals.append(opt_terminals)
         if epsilon is None:
             self.epsilons.append(1.0)
         else:
@@ -85,24 +85,22 @@ class AOCRolloutStorage(RolloutStorage[State]):
     ) -> None:
         self.returns[-1] = next_value
         rewards = self.device.tensor(self.rewards)
-        is_new_options = self.device.zeros((self.nworkers,), dtype=torch.bool)
+        opt_terminals = self.device.zeros((self.nworkers,), dtype=torch.bool)
         for i in reversed(range(self.nsteps)):
             value, opt = self.values[i], self.options[i + 1]
             # CAUTION!!!
             # This strategy can be applied only to ε-Greedy option selection!
             eps = self.epsilons[i]
             ret_i1 = torch.where(
-                is_new_options,
+                opt_terminals,
                 (1 - eps) * value.max(dim=-1)[0] + eps * value.mean(-1),
                 self.returns[i + 1],
             )
             ret_i = gamma * self.masks[i + 1] * ret_i1 + rewards[i]
-            self.returns[i] = (
-                ret_i - self.is_new_options[i].float() * self.masks[i] * delib_cost
-            )
+            self.returns[i] = ret_i - self.opt_terminals[i + 1] * delib_cost
             self.advs[i] = self.returns[i] - value[self.worker_indices, opt]
             self.beta_adv[i] = self._beta_adv(i, value, opt)
-            is_new_options = self.is_new_options[i + 1]
+            opt_terminals = self.opt_terminals[i + 1]
 
     def calc_gae_returns(
         self, next_v: Tensor, gamma: float, lambda_: float, delib_cost: float,
@@ -119,7 +117,7 @@ class AOCRolloutStorage(RolloutStorage[State]):
             gamma_i1 = gamma * self.masks[i + 1]
             td_error = rewards[i] + gamma_i1 * value_i1 - value_i
             gamma_lambda_i = gamma * lambda_ * self.masks[i]
-            delib_cost_i = delib_cost * self.masks[i] * self.is_new_options[i].float()
+            delib_cost_i = self.opt_terminals[i + 1] * delib_cost
             self.advs[i] = td_error + gamma_lambda_i * self.advs[i + 1] - delib_cost_i
             self.returns[i] = self.advs[i] + value_i
             value_i1 = value_i
@@ -179,7 +177,7 @@ class AOCAgent(A2CLikeAgent[State]):
         use_new_options = do_options_end | is_initial_states
         epsgreedy_options = explorer.select_from_value(value, same_device=True)
         options = torch.where(use_new_options, epsgreedy_options, prev_options)
-        return options, use_new_options  # type: ignore
+        return options, do_options_end  # type: ignore
 
     @torch.no_grad()
     def _eval_policy(self, states: Array) -> Policy:
@@ -208,14 +206,14 @@ class AOCAgent(A2CLikeAgent[State]):
     @torch.no_grad()
     def actions(self, states: Array[State]) -> Tuple[Array[Action], dict]:
         opt_policy, value, beta = self.net(self.penv.extract(states))
-        options, is_new_options = self._sample_options(value, beta, self.prev_options)
+        options, opt_terminals = self._sample_options(value, beta, self.prev_options)
         policy = opt_policy[self.worker_indices, options]
         actions = policy.action().squeeze().cpu().numpy()
         net_outputs = dict(
             policy=policy,
             value=value,
             options=options,
-            is_new_options=is_new_options,
+            opt_terminals=opt_terminals,
             epsilon=1.0 if self.config.opt_avg_baseline else self.opt_explorer.epsilon,
         )
         return actions, net_outputs
