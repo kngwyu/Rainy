@@ -244,6 +244,7 @@ class TanhGaussianDist(GaussinanDist):
     def __init__(
         self,
         action_dim: int,
+        *args,
         logstd_range: Tuple[float, float] = (-20.0, 2.0),
         **kwargs,
     ) -> None:
