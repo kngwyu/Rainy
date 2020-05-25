@@ -117,10 +117,10 @@ class EnvExt(gym.Env, Generic[Action, State]):
         return EnvTransition(*self._env.step(action))
 
     def step_and_render(self, action: Action, render: bool = False) -> EnvTransition:
-        res = self._env.step(action)
+        res = self.step(action)
         if render:
             self.render()
-        return EnvTransition(*res)
+        return res
 
     def step_and_reset(self, action: Action) -> EnvTransition:
         transition = self.step(action)
