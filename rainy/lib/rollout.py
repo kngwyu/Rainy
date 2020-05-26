@@ -74,6 +74,17 @@ class RolloutStorage(Generic[State]):
         for value in self.additional_slots.values():
             value.clear()
 
+    def initialize(self) -> None:
+        self.masks = [self.device.zeros(self.nworkers)]
+        self.episode_steps = [self.device.zeros(self.nworkers)]
+        self.states.clear()
+        self.rnn_states.clear()
+        self.rewards.clear()
+        self.policies.clear()
+        self.values.clear()
+        for value in self.additional_slots.values():
+            value.clear()
+
     def batch_states(self, penv: ParallelEnv) -> Tensor:
         states = [self.device.tensor(penv.extract(s)) for s in self.states[:-1]]
         return torch.cat(states)
