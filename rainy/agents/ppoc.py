@@ -123,14 +123,14 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
     @torch.no_grad()
     def actions(self, states: Array[State]) -> Tuple[Array[Action], dict]:
         opt_policy, value, beta, mu = self.net(self.penv.extract(states))
-        options, is_new_options = self._sample_options(mu, beta, self.prev_options)
+        options, do_options_end = self._sample_options(mu, beta, self.prev_options)
         policy = opt_policy[self.worker_indices, options]
         actions = policy.action().squeeze().cpu().numpy()
         net_outputs = dict(
             policy=policy,
             value=value,
             options=options,
-            is_new_options=is_new_options,
+            opt_terminals=do_options_end,
             mu=mu,
         )
         return actions, net_outputs

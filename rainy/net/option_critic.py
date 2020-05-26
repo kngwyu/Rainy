@@ -105,23 +105,27 @@ class SharedBodyOCNetWithMu(SharedBodyOCNet):
 
     def __init__(
         self,
-        *args,
+        body: NetworkBlock,
+        action_dim: int,
+        num_options: int,
+        policy_dist: PolicyDist,
         init: Initializer = Initializer(),
         beta_init: Optional[Initializer] = None,
         policy_init: Initializer = policy_init(),
         device: Device = Device(),
     ) -> None:
         super().__init__(
-            *args,
+            body,
+            action_dim,
+            num_options,
+            policy_dist,
             init=init,
             beta_init=beta_init,
             policy_init=policy_init,
             device=device,
         )
-        self.mu_head = LinearHead(
-            body.output_dim, self.action_dim * self.num_options, init=policy_init
-        )
-        self.mu_dist = CategoricalDist(value_head.output_dim)
+        self.mu_head = LinearHead(body.output_dim, num_options, init=policy_init)
+        self.mu_dist = CategoricalDist(num_options)
         self.to(device.unwrapped)
 
     def forward(

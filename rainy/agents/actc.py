@@ -14,49 +14,29 @@ from torch.nn import functional as F
 
 from ..config import Config
 from ..lib.explore import EpsGreedy
-from ..lib.rollout import RolloutStorage
 from ..net import OptionActorCriticNet, TerminationCriticNet
 from ..net.policy import BernoulliPolicy, Policy
 from ..prelude import Action, Array, State
-from ..utils import Device
+from .aoc import AOCRolloutStorage
 from .base import A2CLikeAgent, Netout
 
 
-class TCRolloutStorage(RolloutStorage[State]):
-    def __init__(
-        self, nsteps: int, nworkers: int, device: Device, num_options: int,
-    ) -> None:
-        super().__init__(nsteps, nworkers, device)
-        self.options = [self.device.zeros(self.nworkers, dtype=torch.long)]
-        self.is_new_options = [self.device.ones(self.nworkers, dtype=torch.bool)]
-        self.noptions = num_options
-        self.worker_indices = self.device.indices(self.nworkers)
-
-    def reset(self) -> None:
-        super().reset()
-        self.options = [self.options[-1]]
-        self.is_new_options = [self.is_new_options[-1]]
-
-    def push(
-        self, *args, options: LongTensor, is_new_options: Tensor, **kwargs,
-    ) -> None:
-        super().push(*args, **kwargs)
-        self.options.append(options)
-        self.is_new_options.append(is_new_options)
-
-    def batch_options(self) -> Tuple[Tensor, Tensor]:
-        batched = torch.cat(self.options, dim=0)
-        return batched[: -self.nworkers], batched[self.nworkers :]
-
+class TCRolloutStorage(AOCRolloutStorage):
     def calc_ac_returns(self, next_value: Tensor, gamma: float) -> None:
         self.returns[-1] = next_value
         rewards = self.device.tensor(self.rewards)
+        opt_terminals = self.device.zeros((self.nworkers,), dtype=torch.bool)
         for i in reversed(range(self.nsteps)):
-            self.returns[i] = (
-                rewards[i] + gamma * self.masks[i + 1] * self.returns[i + 1]
-            )
             value, opt = self.values[i], self.options[i + 1]
+            eps = self.epsilons[i]
+            ret_i1 = torch.where(
+                opt_terminals,
+                (1 - eps) * value.max(dim=-1)[0] + eps * value.mean(-1),
+                self.returns[i + 1],
+            )
+            self.returns[i] = gamma * self.masks[i + 1] * ret_i1 + rewards[i]
             self.advs[i] = self.returns[i] - value[self.worker_indices, opt]
+            opt_terminals = self.opt_terminals[i + 1]
 
     def calc_p_target(self, beta_x: Tensor, beta_xf: Tensor) -> Tensor:
         res = self.device.zeros((self.nsteps, self.nworkers))
@@ -65,7 +45,7 @@ class TCRolloutStorage(RolloutStorage[State]):
         for i in reversed(range(self.nsteps)):
             p_x_xf = (1.0 - beta_x[i]).mul_(p_xiplus1_xf)
             p_x_x = beta_x[i]
-            res[i] = torch.where(self.is_new_options[i + 1], p_x_x, p_x_xf)
+            res[i] = torch.where(self.opt_terminals[i + 1], p_x_x, p_x_xf)
             p_xiplus1_xf = res[i]
         return res
 
@@ -75,8 +55,8 @@ class TCRolloutStorage(RolloutStorage[State]):
         xs_last = xs.view(self.nworkers, -1)
         res = []
         for i in range(self.nsteps):
-            is_new_options = self.is_new_options[i].unsqueeze(1)
-            xs_last = torch.where(is_new_options, states[i], xs_last)
+            opt_terminals = self.opt_terminals[i].unsqueeze(1)
+            xs_last = torch.where(opt_terminals, states[i], xs_last)
             res.append(xs_last)
         return torch.cat(res).view(self.nsteps * self.nworkers, *state_shape)
 
@@ -86,8 +66,8 @@ class TCRolloutStorage(RolloutStorage[State]):
         xf_last = xf.view(self.nworkers, -1)
         res = []
         for i in reversed(range(self.nsteps)):
-            is_new_options = self.is_new_options[i + 1].unsqueeze(1)
-            xf_last = torch.where(is_new_options, states[i], xf_last)
+            opt_terminals = self.opt_terminals[i + 1].unsqueeze(1)
+            xf_last = torch.where(opt_terminals, states[i], xf_last)
             res.append(xf_last)
         res.reverse()
         return torch.cat(res).view(self.nsteps * self.nworkers, *state_shape)
@@ -97,8 +77,8 @@ class TCRolloutStorage(RolloutStorage[State]):
         xf_last = self.states[-1]
         res = []
         for i in reversed(range(self.nsteps)):
-            is_new_options = self.is_new_options[i + 1].unsqueeze(1).cpu().numpy()
-            xf_last = np.where(is_new_options, states[i], xf_last)
+            opt_terminals = self.opt_terminals[i + 1].unsqueeze(1).cpu().numpy()
+            xf_last = np.where(opt_terminals, states[i], xf_last)
             res.append(xf_last)
         res.reverse()
         return np.concatenate(res)
@@ -175,12 +155,12 @@ class ACTCAgent(A2CLikeAgent[State]):
         self.eval_prev_options.fill_(0)
         self.eval_initial_states = None
 
-    def _update_xf_count(self, is_new_options: Array[bool]) -> None:
-        if not is_new_options.any():
+    def _update_xf_count(self, opt_terminals: Array[bool]) -> None:
+        if not opt_terminals.any():
             return
         prev_states = self.storage.states[-1]
-        xf = prev_states[is_new_options]
-        opt = self.prev_options.cpu().numpy()[is_new_options]
+        xf = prev_states[opt_terminals]
+        opt = self.prev_options.cpu().numpy()[opt_terminals]
         for op, shape in zip(opt, xf):
             self._xf_table[(op, *shape)] += 1
 
@@ -226,7 +206,7 @@ class ACTCAgent(A2CLikeAgent[State]):
         use_new_options = do_options_end | is_initial_states
         epsgreedy_options = explorer.select_from_value(value, same_device=True)
         options = torch.where(use_new_options, epsgreedy_options, prev_options)
-        return options, use_new_options  # type: ignore
+        return options, do_options_end  # type: ignore
 
     @torch.no_grad()
     def _eval_policy(self, states: Array) -> Policy:
@@ -254,30 +234,34 @@ class ACTCAgent(A2CLikeAgent[State]):
         return self.storage.options[-1]  # type: ignore
 
     @property
-    def prev_is_new_options(self) -> BoolTensor:
-        return self.storage.is_new_options[-1]  # type: ignore
+    def prev_opt_terminals(self) -> BoolTensor:
+        return self.storage.opt_terminals[-1]  # type: ignore
 
     @torch.no_grad()
     def actions(self, states: Array[State]) -> Tuple[Array[Action], dict]:
         x = self.penv.extract(states)
         opt_policy, value = self.ac_net(x)
         tc_output = self.tc_net(self.option_initial_states, x)
-        options, is_new_options = self._sample_options(value, tc_output.beta)
+        options, opt_terminals = self._sample_options(value, tc_output.beta)
         if self._do_xf_count:
-            self._update_xf_count(is_new_options.cpu().numpy())
+            self._update_xf_count(opt_terminals.cpu().numpy())
         policy = opt_policy[self.worker_indices, options]
         actions = policy.action().squeeze().cpu().numpy()
         net_outputs = dict(
-            policy=policy, value=value, options=options, is_new_options=is_new_options,
+            policy=policy,
+            value=value,
+            options=options,
+            opt_terminals=opt_terminals,
+            epsilon=1.0 if self.config.opt_avg_baseline else self.opt_explorer.epsilon,
         )
         return actions, net_outputs
 
     def _one_step(self, states: Array[State]) -> Array[State]:
         actions, net_outputs = self.actions(states)
         transition = self.penv.step(actions).map_r(lambda r: r * self.reward_scale)
-        is_new_options = net_outputs["is_new_options"].cpu().numpy()
+        opt_terminals = net_outputs["opt_terminals"].cpu().numpy()
         states = self.penv.extract(transition.states)
-        self.option_initial_states[is_new_options] = states[is_new_options]
+        self.option_initial_states[opt_terminals] = states[opt_terminals]
         self.storage.push(*transition[:3], **net_outputs)
         self.returns += transition.rewards
         self.episode_length += 1
@@ -290,7 +274,7 @@ class ACTCAgent(A2CLikeAgent[State]):
         current_value = value[self.worker_indices, self.prev_options]
         eps = self.opt_explorer.epsilon
         next_value = (1 - eps) * value.max(dim=-1)[0] + eps * value.mean(-1)
-        return torch.where(self.prev_is_new_options, next_value, current_value)
+        return torch.where(self.prev_opt_terminals, next_value, current_value)
 
     def train(self, last_states: Array[State]) -> None:
         """Train the agent using N step trajectory

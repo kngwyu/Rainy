@@ -47,6 +47,13 @@ class AOCRolloutStorage(RolloutStorage[State]):
         self.epsilons.clear()
         self.option_mus.clear()
 
+    def initialize(self) -> None:
+        super().reset()
+        self.options = [self.device.zeros(self.nworkers, dtype=torch.long)]
+        self.opt_terminals = [self.device.ones(self.nworkers, dtype=torch.bool)]
+        self.epsilons.clear()
+        self.option_mus.clear()
+
     def push(
         self,
         *args,
