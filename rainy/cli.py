@@ -144,6 +144,13 @@ class _CLIContext:
             assert False, "Unreachable!"
 
 
+def subcommand(*args, **kwargs) -> callable:
+    def decorator(f: callable) -> callable:
+        return rainy_cli.command(*args, **kwargs)(click.pass_context(f))
+
+    return decorator
+
+
 def option(*param_decls, **attrs) -> callable:
     def decorator(f):
         option_attrs = attrs.copy()
@@ -177,18 +184,18 @@ def _defaults(f: callable) -> Tuple[str]:
         return defaults + tuple(f.__kwdefaults__.values())
 
 
-def _annon_to_clargs(f: callable) -> None:
-    annon = f.__annotations__
+def _annot_to_clargs(f: callable) -> None:
+    annot = f.__annotations__
     # Ignore return type
-    if "return" in annon:
-        del annon["return"]
+    if "return" in annot:
+        del annot["return"]
     defaults = _defaults(f)
-    has_default_min = len(annon) - len(defaults)
+    has_default_min = len(annot) - len(defaults)
     used_names = [param.name for param in rainy_cli.params]
-    for i, name in enumerate(annon.keys()):
+    for i, name in enumerate(annot.keys()):
         if name in used_names:
             continue
-        cls = annon[name]
+        cls = annot[name]
         if has_default_min <= i:
             default = {"default": defaults[i - has_default_min]}
             value = defaults[i - has_default_min]
@@ -203,7 +210,7 @@ def _annon_to_clargs(f: callable) -> None:
             )
         else:
             option = click.Option(
-                ["--" + name.replace("_", "-")], type=annon[name], **default,
+                ["--" + name.replace("_", "-")], type=annot[name], **default,
             )
         rainy_cli.params.append(option)
 
@@ -215,7 +222,7 @@ def main(
 ):
     def decorator(f):
         if hasattr(f, "__annotations__"):
-            _annon_to_clargs(f)
+            _annot_to_clargs(f)
 
         rainy_cli(obj=_CLIContext(f, agent, agent_selector, script_path))
         return f
