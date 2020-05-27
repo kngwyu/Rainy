@@ -138,6 +138,7 @@ class RLPyGridWorld(EnvExt):
 
     # To make CLI options shorter, we have a set of aliases of environment.
     ALIASES = {
+        "2RoomsExp": "RLPyFixedRewardGridWorld9x11-2Rooms",
         "4Rooms": "RLPyGridWorld11x11-4Rooms-RandomGoal",
         "4RoomsExp": "RLPyFixedRewardGridWorld11x11-4Rooms",
         "4RoomsBer": "RLPyBernoulliGridWorld11x11-4Rooms",
