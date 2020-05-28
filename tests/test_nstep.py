@@ -54,7 +54,7 @@ def test_oc_storage() -> None:
         value = torch.rand(NWORKERS, NOPTIONS)
         policy = policy_dist(torch.rand(NWORKERS, ACTION_DIM))
         options = torch.randint(NOPTIONS, (NWORKERS,), device=storage.device.unwrapped)
-        is_new_options = torch.randint(
+        opt_terminals = torch.randint(
             2, (NWORKERS,), device=storage.device.unwrapped
         ).byte()
         storage.push(
@@ -62,7 +62,7 @@ def test_oc_storage() -> None:
             reward,
             done,
             options=options,
-            is_new_options=is_new_options,
+            opt_terminals=opt_terminals,
             value=value,
             policy=policy,
             epsilon=0.5,
