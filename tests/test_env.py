@@ -37,7 +37,9 @@ def test_penv(penv: ParallelEnv) -> None:
     ],
 )
 def test_frame_stack(penv: ParallelEnv, nstack: int) -> None:
+    unwrapped = penv
     penv = FrameStackParallel(penv, nstack=nstack)
+    assert penv.as_cls(unwrapped.__class__) is unwrapped
     penv.seed(np.arange(penv.nworkers))
     init = np.array(penv.reset())
     assert init.shape == (6, nstack, 16, 16)
@@ -61,3 +63,5 @@ def test_atari(style: str):
     assert atari.action_dim == 6
     s = atari.reset()
     assert s.shape == STATE_DIM
+    frame_stack = atari.as_cls("FrameStack")
+    assert isinstance(frame_stack, envs.atari_wrappers.FrameStack)

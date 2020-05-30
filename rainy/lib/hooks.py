@@ -153,3 +153,12 @@ class StateWriterHook(_WriterHookImpl):
             return env.extract(state)
         else:
             return state
+
+
+class CopyRmsHook(EvalHook):
+    def reset(self, agent: Agent, env: EnvExt, _: State) -> None:
+        if not hasattr(agent, "penv"):
+            raise NotImplementedError("CopyRmsHook is not implemented for single env")
+
+        rms = agent.penv.as_cls("NormalizeObs")
+        rms._rms.copyto(env.as_cls("NormalizeObsSingle")._rms)

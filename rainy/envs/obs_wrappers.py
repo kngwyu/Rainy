@@ -63,11 +63,11 @@ class AddTimeStep(gym.ObservationWrapper):
         return np.append(obs, self.env._elapsed_steps)
 
 
-class NormalizeObs(gym.ObservationWrapper):
+class NormalizeObsSingle(gym.ObservationWrapper):
     def __init__(self, env: gym.Env, obs_clip: float = 10.0) -> None:
-        super().__init__(penv)
+        super().__init__(env)
         self.obs_clip = obs_clip
-        self._rms = RunningMeanStd(shape=self.state_dim)
+        self._rms = RunningMeanStd(shape=self.observation_space.shape)
         self._training_mode = False
 
     def observation(self, obs: Array[float]) -> Array[float]:

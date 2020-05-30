@@ -1,6 +1,6 @@
 """Environment specifications:
 """
-from typing import Callable, Generic, NamedTuple, Optional, Sequence
+from typing import Callable, Generic, NamedTuple, Optional, Sequence, Type, Union
 
 import gym
 import numpy as np
@@ -61,17 +61,6 @@ class EnvSpec:
         return "EnvSpec(state_dim: {} action_space: {})".format(
             self.state_dim, self.action_space
         )
-
-
-def _use_reward_monitor(env: gym.Env) -> bool:
-    if not hasattr(env, "env"):
-        return False
-    parent = env.env
-
-    if isinstance(parent, RewardMonitor):
-        return True
-    else:
-        return _use_reward_monitor(parent)
 
 
 class EnvExt(gym.Env, Generic[Action, State]):
@@ -186,3 +175,29 @@ class EnvExt(gym.Env, Generic[Action, State]):
 
     def __repr__(self) -> str:
         return "EnvExt({})".format(self._env)
+
+    def as_cls(self, cls: Union[str, Type[Self]]) -> Optional[Self]:
+        if isinstance(cls, str):
+            return _as_class(self._env, lambda env: env.__class__.__name__ == cls)
+        else:
+            return _as_class(self._env, lambda env: isinstance(env, cls))
+
+
+def _as_class(env: gym.Env, query: [[gym.Env], bool]) -> Optional[gym.Env]:
+    if query(env):
+        return env
+    if not hasattr(env, "env"):
+        return None
+    parent = env.env
+    return _as_class(parent, query)
+
+
+def _use_reward_monitor(env: gym.Env) -> bool:
+    if not hasattr(env, "env"):
+        return False
+    parent = env.env
+
+    if isinstance(parent, RewardMonitor):
+        return True
+    else:
+        return _use_reward_monitor(parent)
