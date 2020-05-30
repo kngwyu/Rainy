@@ -88,7 +88,7 @@ class FrameStackParallel(ParallelEnvWrapper):
         return self.shape
 
 
-class NormalizeObs(ParallelEnvWrapper[Action, Array[float]]):
+class NormalizeObsParallel(ParallelEnvWrapper[Action, Array[float]]):
     def __init__(self, penv: ParallelEnv, obs_clip: float = 10.0) -> None:
         super().__init__(penv)
         self.obs_clip = obs_clip
@@ -120,7 +120,7 @@ class NormalizeObs(ParallelEnvWrapper[Action, Array[float]]):
         self._training_mode = train
 
 
-class NormalizeReward(ParallelEnvWrapper[Action, State]):
+class NormalizeRewardParallel(ParallelEnvWrapper[Action, State]):
     def __init__(
         self, penv: ParallelEnv, reward_clip: float = 10.0, gamma: float = 0.99
     ) -> None:

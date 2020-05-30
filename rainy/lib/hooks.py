@@ -160,5 +160,5 @@ class CopyRmsHook(EvalHook):
         if not hasattr(agent, "penv"):
             raise NotImplementedError("CopyRmsHook is not implemented for single env")
 
-        rms = agent.penv.as_cls("NormalizeObs")
-        rms._rms.copyto(env.as_cls("NormalizeObsSingle")._rms)
+        rms = agent.penv.as_cls("NormalizeObsParallel")
+        rms._rms.copyto(env.as_cls("NormalizeObs")._rms)
