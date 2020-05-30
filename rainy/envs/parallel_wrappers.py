@@ -1,4 +1,4 @@
-from typing import Any, Iterable, Optional, Tuple
+from typing import Any, Iterable, Optional, Tuple, Type, Union
 
 import numpy as np
 
@@ -36,13 +36,27 @@ class ParallelEnvWrapper(ParallelEnv[Action, State]):
     ) -> Array[Any]:
         return self.penv.do_any(function, args, kwargs)
 
+    def unwrapped(self) -> ParallelEnv:
+        return self.penv
+
+    def as_cls(self, cls: Union[str, Type[ParallelEnv]]) -> Optional[ParallelEnv]:
+        if isinstance(cls, str):
+            if self.__class__.__name__ == cls:
+                return self
+            else:
+                return self.penv.as_cls(cls)
+        elif isinstance(self, cls):
+            return self
+        else:
+            return self.penv.as_cls(cls)
+
 
 class FrameStackParallel(ParallelEnvWrapper):
     """Parallel version of atari_wrappers.FrameStack
     """
 
     def __init__(
-        self, penv: ParallelEnv, nstack: int = 4, dtype: type = np.float32
+        self, penv: ParallelEnv, nstack: int = 4, dtype: type = np.float32,
     ) -> None:
         super().__init__(penv)
         idx = 0
@@ -74,7 +88,7 @@ class FrameStackParallel(ParallelEnvWrapper):
         return self.shape
 
 
-class NormalizeObs(ParallelEnvWrapper[Action, Array[float]]):
+class NormalizeObsParallel(ParallelEnvWrapper[Action, Array[float]]):
     def __init__(self, penv: ParallelEnv, obs_clip: float = 10.0) -> None:
         super().__init__(penv)
         self.obs_clip = obs_clip
@@ -106,7 +120,7 @@ class NormalizeObs(ParallelEnvWrapper[Action, Array[float]]):
         self._training_mode = train
 
 
-class NormalizeReward(ParallelEnvWrapper[Action, State]):
+class NormalizeRewardParallel(ParallelEnvWrapper[Action, State]):
     def __init__(
         self, penv: ParallelEnv, reward_clip: float = 10.0, gamma: float = 0.99
     ) -> None:

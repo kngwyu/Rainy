@@ -1,7 +1,17 @@
 import multiprocessing as mp
 from abc import ABC, abstractmethod
 from multiprocessing.connection import Connection
-from typing import Any, Callable, Generic, Iterable, NamedTuple, Optional, Sequence
+from typing import (
+    Any,
+    Callable,
+    Generic,
+    Iterable,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Union,
+    Type,
+)
 
 import numpy as np
 from numpy import ndarray
@@ -80,6 +90,22 @@ class ParallelEnv(ABC, Generic[Action, State]):
 
     def set_mode(self, train: bool = False) -> None:
         pass
+
+    def unwrapped(self) -> Self:
+        return self
+
+    def as_cls(self, cls: Union[str, Type[Self]]) -> Optional[Self]:
+        """Get the specified class from the wrapper `self`
+        """
+        if isinstance(cls, str):
+            if self.__class__.__name__ == cls:
+                return self
+            else:
+                return None
+        elif isinstance(self, cls):
+            return self
+        else:
+            return None
 
 
 class MultiProcEnv(ParallelEnv):

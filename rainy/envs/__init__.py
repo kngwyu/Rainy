@@ -8,7 +8,7 @@ from .atari_wrappers import LazyFrames, make_atari, wrap_deepmind
 from .deepsea import DeepSea as DeepSeaGymEnv
 from .ext import EnvExt, EnvSpec, EnvTransition  # noqa
 from .monitor import RewardMonitor
-from .obs_wrappers import AddTimeStep, ScaleObs, TransposeObs  # noqa
+from .obs_wrappers import AddTimeStep, NormalizeObs, ScaleObs, TransposeObs  # noqa
 from .parallel import (  # noqa
     DummyParallelEnv,
     EnvGen,
@@ -18,8 +18,8 @@ from .parallel import (  # noqa
 )
 from .parallel_wrappers import (  # noqa
     FrameStackParallel,
-    NormalizeObs,
-    NormalizeReward,
+    NormalizeObsParallel,
+    NormalizeRewardParallel,
     ParallelEnvWrapper,
 )
 
@@ -228,9 +228,9 @@ def pybullet_parallel(
     def __wrap(env_gen: EnvGen, num_workers: int) -> ParallelEnv:
         penv: ParallelEnv = MultiProcEnv(env_gen, num_workers)
         if normalize_obs:
-            penv = NormalizeObs(penv, obs_clip=obs_clip)
+            penv = NormalizeObsParallel(penv, obs_clip=obs_clip)
         if normalize_reward:
-            penv = NormalizeReward(penv, reward_clip=reward_clip, gamma=gamma)
+            penv = NormalizeRewardParallel(penv, reward_clip=reward_clip, gamma=gamma)
         return penv
 
     return __wrap
