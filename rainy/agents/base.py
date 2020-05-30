@@ -160,6 +160,9 @@ class Agent(ABC):
         self.config.eval_env.save_history(fname)
         return res
 
+    def savedict_hook(self, save_dict: dict) -> None:
+        pass
+
     def save(self, filename: str, directory: Optional[Path] = None) -> None:
         if not mpi.IS_MPI_ROOT:
             return None
@@ -174,7 +177,11 @@ class Agent(ABC):
                 save_dict[member_str] = value
         if directory is None:
             directory = self.logger.logdir
+        self.savedict_hook(save_dict)
         torch.save(save_dict, directory.joinpath(filename))
+
+    def loaddict_hook(self, load_dict: dict) -> bool:
+        pass
 
     def load(self, filename: str, directory: Optional[Path] = None) -> bool:
         if not mpi.IS_MPI_ROOT:
@@ -201,6 +208,7 @@ class Agent(ABC):
                 mem.load_state_dict(saved_item)
             else:
                 setattr(self, member_str, saved_item)
+        self.loaddict_hook(saved_dict)
         return True
 
     def _backward(
@@ -412,3 +420,19 @@ class A2CLikeAgent(Agent, Generic[State]):
                 self.episode_results = []
             if self.total_steps >= max_steps:
                 break
+
+    def savedict_hook(self, save_dict: dict) -> None:
+        nobs = self.penv.as_cls("NormalizeObsParallel")
+        if nobs is not None:
+            save_dict["obs_rms"] = nobs._rms
+        nrew = self.penv.as_cls("NormalizeRewardParallel")
+        if nrew is not None:
+            save_dict["reward_rms"] = nrew._rms
+
+    def loaddict_hook(self, load_dict: dict) -> None:
+        if "obs_rms" in load_dict:
+            nobs = self.penv.as_cls("NormalizeObsParallel")
+            load_dict["obs_rms"].copyto(nobs._rms)
+        elif "reward_rms" in load_dict:
+            nrew = self.penv.as_cls("NormalizeRewardParallel")
+            load_dict["reward_rms"].copyto(nrew._rms)
