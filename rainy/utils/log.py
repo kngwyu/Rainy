@@ -22,7 +22,8 @@ class LogStore:
     def submit(self, d: Dict[str, Any]) -> int:
         res = 0
         for key, value in d.items():
-            self.inner[key].append(value)
+            # Convert return_ to return
+            self.inner[key.rstrip("_")].append(value)
             if res == 0:
                 res = len(self.inner[key])
         return res

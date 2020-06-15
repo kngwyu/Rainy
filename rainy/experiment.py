@@ -50,7 +50,7 @@ class Experiment:
                 episodes=episodes + i + self.episode_offset,
                 total_steps=self.ag.total_steps,
                 update_steps=self.ag.update_steps,
-                reward=res.return_,
+                return_=res.return_,
                 length=res.length,
             )
 
@@ -73,7 +73,7 @@ class Experiment:
                 "eval",
                 total_steps=self.ag.total_steps,
                 update_steps=self.ag.update_steps,
-                rewards=res.return_,
+                return_=res.return_,
                 length=res.length,
             )
 
