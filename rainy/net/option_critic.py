@@ -154,7 +154,7 @@ def conv_shared(
         body = CNNBody(
             state_dim, hidden_channels=hidden_channels, output_dim=feature_dim, **kwargs
         )
-        dist = policy(action_dim, device)
+        dist = policy(action_dim, device, noptions=num_options)
         if has_mu:
             cls = SharedBodyOCNetWithMu
         else:
@@ -177,7 +177,7 @@ def fc_shared(
         state_dim: Sequence[int], action_dim: int, device: Device
     ) -> SharedBodyOCNet:
         body = FCBody(state_dim[0], **kwargs)
-        dist = policy(action_dim, device)
+        dist = policy(action_dim, device, noptions=num_options)
         if has_mu:
             cls = SharedBodyOCNetWithMu
         else:

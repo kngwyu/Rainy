@@ -263,9 +263,23 @@ class SeparateStdGaussianDist(PolicyDist):
        independent with states, as a lernable parameter.
     """
 
-    def __init__(self, action_dim: int, device: Device) -> None:
+    def __init__(self, action_dim: int, device: Device, *args, **kwargs) -> None:
         super().__init__(action_dim)
         self.stddev = nn.Parameter(device.zeros(action_dim))
+
+    def forward(self, x: Tensor) -> Policy:
+        return GaussianPolicy(x, F.softplus(self.stddev))
+
+
+class PerOptionStdGaussianDist(PolicyDist):
+    """The same as `SeparateStdGaussianDist`
+    """
+
+    def __init__(
+        self, action_dim: int, device: Device, *args, noptions: int = 1, **kwargs
+    ) -> None:
+        super().__init__(action_dim)
+        self.stddev = nn.Parameter(device.zeros((noptions, action_dim)))
 
     def forward(self, x: Tensor) -> Policy:
         return GaussianPolicy(x, F.softplus(self.stddev))

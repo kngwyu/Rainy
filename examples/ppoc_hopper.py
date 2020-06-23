@@ -5,7 +5,7 @@ from torch.optim import Adam
 import rainy
 from rainy.agents import PPOCAgent
 from rainy.envs import PyBullet, pybullet_parallel
-from rainy.net.policy import SeparateStdGaussianDist
+from rainy.net.policy import PerOptionStdGaussianDist
 
 
 @rainy.main(PPOCAgent, os.path.realpath(__file__))
@@ -29,7 +29,7 @@ def main(
     c.set_net_fn(
         "option-critic",
         rainy.net.option_critic.fc_shared(
-            num_options=num_options, policy=SeparateStdGaussianDist, has_mu=True
+            num_options=num_options, policy=PerOptionStdGaussianDist, has_mu=True
         ),
     )
     # PPO params
