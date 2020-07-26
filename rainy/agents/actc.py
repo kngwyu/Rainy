@@ -219,7 +219,7 @@ class ACTCAgent(A2CLikeAgent[State]):
         return opt_policy[self.worker_indices, options]
 
     def eval_action(self, state: Array, net_outputs: Optional[Netout] = None) -> Action:
-        if len(state.shape) == len(self.ac_net.state_dim):
+        if state.ndim == len(self.ac_net.state_dim):
             # treat as batch_size == nworkers
             state = np.stack([state] * self.config.nworkers)
         policy = self._eval_policy(state)

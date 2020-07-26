@@ -47,7 +47,7 @@ class A2CAgent(A2CLikeAgent[State]):
         self.eval_rnns.fill_(0.0)
 
     def eval_action(self, state: Array, net_outputs: Optional[Netout] = None) -> Action:
-        if len(state.shape) == len(self.net.state_dim):
+        if state.ndim == len(self.net.state_dim):
             # treat as batch_size == 1
             state = np.stack([state])
         with torch.no_grad():
