@@ -3,7 +3,6 @@ import warnings
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import (
-    Any,
     Callable,
     ClassVar,
     Dict,
@@ -277,7 +276,7 @@ class DQNLikeAgent(Agent, Generic[State, Action, ReplayFeed]):
                 self.update_steps += 1
             # Set next state
             state = transition.state
-            # Update stats
+            # Update statistics
             self.total_steps += 1
             return_ += transition.reward
             episode_length += 1
