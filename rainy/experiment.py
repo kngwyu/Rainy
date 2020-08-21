@@ -84,11 +84,14 @@ class Experiment:
     def _save(self, suffix: str = "") -> None:
         self.ag.save(self._save_file_name + suffix, self.logger.logdir)
 
+    def _msg(self, msg: str) -> None:
+        click.secho("☔ " + msg + " ☔", bg="white", fg="black")
+
     def train(self, saveid_start: int = 0, eval_render: bool = False) -> None:
         if not self.logger.ready:
             self.logger.setup_logdir()
         logdir = self.logger.logdir.as_posix()
-        click.secho(f"Train stared :) Logdir: {logdir}", bg="white", fg="black")
+        self._msg(f"Train started (Logdir: {logdir})")
 
         episodes = 0
         steps = 0
@@ -138,11 +141,17 @@ class Experiment:
         self.ag.set_mode(train=True)
         return res
 
-    def _load_agent(self, logdir: Path) -> bool:
-        if logdir.exists():
-            self.ag.load(self._save_file_name, logdir)
-            return True
-        return False
+    def _load_agent(self, logdir_or_file: Path) -> Path:
+        if not logdir_or_file.exists():
+            return False
+        if logdir_or_file.is_file():
+            fullpath = logdir_or_file
+        else:
+            fullpath = logdir_or_file.joinpath(self._save_file_name)
+        if self.ag.load(fullpath):
+            return fullpath
+        else:
+            raise ValueError(f"Failed to load {fullpath}")
 
     def _retrain_impl(self, additional_steps: int, eval_render: bool = False) -> None:
         self.ag.config.max_steps += additional_steps
@@ -154,12 +163,14 @@ class Experiment:
         self.train(save_id, eval_render)
 
     def retrain(
-        self, logdir_: str, additional_steps: int = 100, eval_render: bool = False
+        self,
+        logdir_or_file: str,
+        additional_steps: int = 100,
+        eval_render: bool = False,
     ) -> None:
-        logdir = Path(logdir_)
-        if not self._load_agent(logdir):
-            raise ValueError("File'{}' does not exists".format(self._save_file_name))
-        total_steps, episodes = self.logger.retrive(logdir)
+        agent_file = self._load_agent(Path(logdir_or_file))
+        self._msg(f"Loaded {agent_file} for re-training")
+        total_steps, episodes = self.logger.retrive(agent_file.parent)
         self.ag.total_steps = total_steps
         self.episode_offset = episodes
         self._retrain_impl(eval_render)
@@ -172,7 +183,7 @@ class Experiment:
         else:
             action_file = None
         result = self._eval_impl(render, replay, pause, action_file)
-        click.secho("======Results======", bg="blue", fg="yellow")
+        click.secho("====== Results ======", bg="cyan", fg="black")
         if len(result) == 0:
             click.echo(result[0])
         else:
@@ -183,7 +194,7 @@ class Experiment:
                 eval_log.submit(dict(rewards=res.return_, length=res.length))
             df = eval_log.into_df()
             click.echo(df)
-            click.secho("===Summary===", bg="blue", fg="white")
+            click.secho("====== Summary ======", bg="cyan", fg="black")
             click.echo(df.describe())
         if render:
             click.pause("---Press any key to exit---")
@@ -196,14 +207,13 @@ class Experiment:
 
     def load_and_evaluate(
         self,
-        logdir_: str,
+        logdir_or_file: str,
         render: bool = False,
         replay: bool = False,
         pause: bool = False,
     ) -> None:
-        logdir = Path(logdir_)
-        if not self._load_agent(logdir):
-            raise ValueError("File'{}' does not exists".format(self._save_file_name))
+        agent_file = self._load_agent(Path(logdir_or_file))
+        self._msg(f"Loaded {agent_file} for evaluation")
         self.evaluate(render=render, replay=replay, pause=pause)
 
     def random(

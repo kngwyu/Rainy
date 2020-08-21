@@ -183,12 +183,9 @@ class Agent(ABC):
     def loaddict_hook(self, load_dict: dict) -> bool:
         pass
 
-    def load(self, filename: str, directory: Optional[Path] = None) -> bool:
+    def load(self, path: Path) -> bool:
         if not mpi.IS_MPI_ROOT:
             return False
-        if directory is None:
-            directory = self.logger.logdir
-        path = directory.joinpath(filename)
         if not path.exists():
             return False
         saved_dict = torch.load(path, map_location=self.config.device.unwrapped)

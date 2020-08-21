@@ -60,7 +60,7 @@ def train(
 
 @rainy_cli.command(help="Given a save file and restart training")
 @click.pass_context
-@click.argument("logdir", type=str)
+@click.argument("logdir-or-file", type=str)
 @click.option(
     "--additional-steps",
     type=int,
@@ -71,10 +71,10 @@ def train(
     "--eval-render", is_flag=True, help="Render the environment when evaluating"
 )
 def retrain(
-    ctx: click.Context, logdir: str, additional_steps: int, eval_render: bool
+    ctx: click.Context, logdir_or_file: str, additional_steps: int, eval_render: bool,
 ) -> None:
     experiment = ctx.obj.experiment
-    experiment.retrain(logdir, additional_steps, eval_render)
+    experiment.retrain(logdir_or_file, additional_steps, eval_render)
     if mpi.IS_MPI_ROOT:
         print(
             "random play: {}, trained: {}".format(
@@ -84,7 +84,7 @@ def retrain(
 
 
 @rainy_cli.command(help="Load a specified save file and evaluate the agent")
-@click.argument("logdir", type=str)
+@click.argument("logdir-or-file", type=str)
 @click.option("--save", is_flag=True, help="Save actions")
 @click.option("--render", is_flag=True, help="Render the agent")
 @click.option("--pause", is_flag=True, help="Pause before replay. Used for screencast")
@@ -95,10 +95,15 @@ def retrain(
 )
 @click.pass_context
 def eval(
-    ctx: click.Context, logdir: str, save: bool, render: bool, pause: bool, replay: bool
+    ctx: click.Context,
+    logdir_or_file: str,
+    save: bool,
+    render: bool,
+    pause: bool,
+    replay: bool,
 ) -> None:
     ctx.obj.experiment.config.save_eval_actions |= save
-    ctx.obj.experiment.load_and_evaluate(logdir, render, replay, pause)
+    ctx.obj.experiment.load_and_evaluate(logdir_or_file, render, replay, pause)
 
 
 @rainy_cli.command(help="Run the random agent and show its result")
