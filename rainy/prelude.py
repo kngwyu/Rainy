@@ -48,3 +48,7 @@ ArrayLike = Union[Array[Any], List[Any], Tensor]
 
 Action = TypeVar("Action", int, Array)
 State = TypeVar("State")
+
+
+DEFAULT_SAVEFILE_NAME = "rainy-agent.pth"
+DEFAULT_ACTIONFILE_NAME = "actions.json"

@@ -24,7 +24,7 @@ from ..config import Config
 from ..envs import ParallelEnv
 from ..lib import mpi
 from ..net import DummyRnn, RnnState
-from ..prelude import Action, Array, State
+from ..prelude import Action, Array, State, DEFAULT_SAVEFILE_NAME
 from ..replay import ReplayFeed
 
 Netout = Dict[str, Tensor]
@@ -183,11 +183,11 @@ class Agent(ABC):
     def loaddict_hook(self, load_dict: dict) -> bool:
         pass
 
-    def load(self, path: Path) -> bool:
-        if not mpi.IS_MPI_ROOT:
+    def load(self, path: Path = None) -> bool:
+        if not mpi.IS_MPI_ROOT or not path.exists():
             return False
-        if not path.exists():
-            return False
+        if path.is_dir():
+            path.joinpath(DEFAULT_SAVEFILE_NAME)
         saved_dict = torch.load(path, map_location=self.config.device.unwrapped)
         #  For backward compatibility, we need to check both index and name
         for idx, member_str in enumerate(self.SAVED_MEMBERS):

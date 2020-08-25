@@ -6,12 +6,10 @@ import click
 
 from .agents import Agent, DQNLikeAgent, DQNLikeParallel, EpisodeResult
 from .lib.mpi import IS_MPI_ROOT
+from .prelude import DEFAULT_ACTIONFILE_NAME, DEFAULT_SAVEFILE_NAME
 
 
 class Experiment:
-    SAVE_FILE_DEFAULT = "rainy-agent.pth"
-    ACTION_FILE_DEFAULT = "actions.json"
-
     def __init__(
         self,
         ag: Agent,
@@ -36,9 +34,9 @@ class Experiment:
             interval=ag.config.eval_times,
             color="green",
         )
-        action_file = action_file_name or self.ACTION_FILE_DEFAULT
+        action_file = action_file_name or DEFAULT_ACTIONFILE_NAME
         self._action_file = Path(action_file)
-        self._save_file_name = save_file_name or self.SAVE_FILE_DEFAULT
+        self._save_file_name = save_file_name or DEFAULT_SAVEFILE_NAME
         self._has_eval_parallel = hasattr(self.ag, "eval_parallel")
         self.episode_offset = 0
         self.config.initialize_hooks()
@@ -155,7 +153,7 @@ class Experiment:
 
     def _retrain_impl(self, additional_steps: int, eval_render: bool = False) -> None:
         self.ag.config.max_steps += additional_steps
-        save_files = list(self.logger.logdir.glob(self.SAVE_FILE_DEFAULT + ".*"))
+        save_files = list(self.logger.logdir.glob(self.save_file_name + ".*"))
         if len(save_files) > 0:
             save_id = len(save_files)
         else:

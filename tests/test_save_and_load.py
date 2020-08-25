@@ -40,7 +40,7 @@ def test_ppo_save() -> None:
     ppo.close()
     ppo = PPOAgent(config())
     path = ppo.config.logger.logdir.joinpath("ppo-agent.pth")
-    ppo.load(path.as_posix())
+    ppo.load(path)
     assert ppo.clip_eps == 0.2
     assert ppo.optimizer.param_groups[0]["lr"] == 1.0
     ppo.close()
@@ -58,7 +58,7 @@ def test_rms_save() -> None:
     ppo.close()
     ppo = PPOAgent(c)
     path = ppo.config.logger.logdir.joinpath("ppo-agent.pth")
-    ppo.load(path.as_posix())
+    ppo.load(path)
     mean = ppo.penv.as_cls("NormalizeObsParallel")._rms.mean.mean()
     assert 9.999 <= mean <= 10.001
     ppo.close()
