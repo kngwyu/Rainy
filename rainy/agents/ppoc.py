@@ -47,7 +47,7 @@ class PPOCSampler(RolloutSampler):
         )
         self.prev_options, self.options = storage.batch_options()
         self.beta_advantages = storage.beta_adv.flatten()
-        mu_logits = torch.cat([p.dist.logits for p in storage.option_mus])
+        mu_logits = torch.cat([p.dist.logits for p in storage.muos])
         mu = CategoricalPolicy(logits=mu_logits)
         mu.set_action(self.options)
         self.old_log_probs_mu = mu.log_prob()
@@ -92,18 +92,17 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
     def _normal_policy_loss(self, policy: Policy, advantages: Tensor, *args,) -> Tensor:
         return -(policy.log_prob() * advantages).mean()
 
-    def _value_loss(self, value: Tensor, options: Tensor, returns: Tensor) -> Tensor:
-        value = value[self.batch_indices, options]
-        return (value - returns).pow(2).mean()
+    def _value_loss(self, qo: Tensor, options: Tensor, returns: Tensor) -> Tensor:
+        return (qo[self.batch_indices, options] - returns).pow(2).mean()
 
     @torch.no_grad()
     def _eval_policy(self, states: Array) -> Policy:
-        opt_policy, _, beta, mu = self.net(states)
+        pio, _, beta, mu = self.net(states)
         options, _ = self._sample_options(
             mu, beta, self.eval_prev_options, deterministic=True
         )
         self.eval_prev_options = options
-        return opt_policy[self.worker_indices, options]
+        return pio[self.worker_indices, options]
 
     def _sample_options(
         self,
@@ -122,12 +121,12 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
 
     @torch.no_grad()
     def actions(self, states: Array[State]) -> Tuple[Array[Action], dict]:
-        opt_policy, value, beta, mu = self.net(self.penv.extract(states))
+        pio, value, beta, mu = self.net(self.penv.extract(states))
         options, do_options_end = self._sample_options(mu, beta, self.prev_options)
-        policy = opt_policy[self.worker_indices, options]
-        actions = policy.action().squeeze().cpu().numpy()
+        pi = pio[self.worker_indices, options]
+        actions = pi.action().squeeze().cpu().numpy()
         net_outputs = dict(
-            policy=policy,
+            policy=pi,
             value=value,
             options=options,
             opt_terminals=do_options_end,
@@ -136,17 +135,17 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
         return actions, net_outputs
 
     def train(self, last_states: Array[State]) -> None:
-        next_v = self._next_value(last_states)
+        next_qo = self._next_qo(last_states)
         if self.config.use_gae:
             self.storage.calc_gae_returns(
-                next_v,
+                next_qo,
                 self.config.discount_factor,
                 self.config.gae_lambda,
                 self.config.opt_delib_cost,
             )
         else:
             self.storage.calc_ac_returns(
-                next_v, self.config.discount_factor, self.config.opt_delib_cost
+                next_qo, self.config.discount_factor, self.config.opt_delib_cost
             )
 
         sampler = PPOCSampler(
@@ -159,15 +158,15 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
         p, v, b, pe, m, me = (0.0,) * 6
         for _ in range(self.config.ppo_epochs):
             for batch in sampler:
-                opt_policy, value, beta, mu = self.net(batch.states)
+                pio, qo, beta, mu = self.net(batch.states)
                 # Policy loss
-                policy = opt_policy[self.batch_indices, batch.options]
-                policy.set_action(batch.actions)
+                pi = pio[self.batch_indices, batch.options]
+                pi.set_action(batch.actions)
                 policy_loss = self._proximal_policy_loss(
-                    policy, batch.advantages, batch.old_log_probs
+                    pi, batch.advantages, batch.old_log_probs,
                 )
                 # Value loss
-                value_loss = self._value_loss(value, batch.options, batch.returns)
+                value_loss = self._value_loss(qo, batch.options, batch.returns)
                 # Beta loss
                 term_prob = beta[self.batch_indices, batch.prev_options].dist.probs
                 beta_adv = (
@@ -182,7 +181,7 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
                     mu, batch.beta_advantages, batch.old_log_probs_mu
                 )
                 # Entropy loss
-                pe_loss = policy.entropy().mean()
+                pe_loss = pi.entropy().mean()
                 me_loss = mu.entropy().mean()
                 self.optimizer.zero_grad()
                 (

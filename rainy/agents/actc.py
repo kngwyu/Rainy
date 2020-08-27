@@ -22,20 +22,17 @@ from .base import A2CLikeAgent, Netout
 
 
 class TCRolloutStorage(AOCRolloutStorage):
-    def calc_ac_returns(self, next_value: Tensor, gamma: float) -> None:
-        self.returns[-1] = next_value
+    def calc_ac_returns(self, next_qo: Tensor, gamma: float) -> None:
+        self.returns[-1] = next_qo
         rewards = self.device.tensor(self.rewards)
         opt_terminals = self.device.zeros((self.nworkers,), dtype=torch.bool)
         for i in reversed(range(self.nsteps)):
-            value, opt = self.values[i], self.options[i + 1]
+            qo, opt = self.values[i], self.options[i + 1]
             eps = self.epsilons[i]
-            ret_i1 = torch.where(
-                opt_terminals,
-                (1 - eps) * value.max(dim=-1)[0] + eps * value.mean(-1),
-                self.returns[i + 1],
-            )
+            vo = (1 - eps) * qo.max(dim=-1)[0] + eps * qo.mean(-1)
+            ret_i1 = torch.where(opt_terminals, vo, self.returns[i + 1],)
             self.returns[i] = gamma * self.masks[i + 1] * ret_i1 + rewards[i]
-            self.advs[i] = self.returns[i] - value[self.worker_indices, opt]
+            self.advs[i] = self.returns[i] - qo[self.worker_indices, opt]
             opt_terminals = self.opt_terminals[i + 1]
 
     def calc_p_target(self, beta_x: Tensor, beta_xf: Tensor) -> Tensor:
@@ -187,11 +184,11 @@ class ACTCAgent(A2CLikeAgent[State]):
         self._xs_reserved = self.tensor(self.option_initial_states)
 
     def _sample_options(
-        self, value: Tensor, beta: BernoulliPolicy, evaluate: bool = False,
+        self, qo: Tensor, beta: BernoulliPolicy, evaluate: bool = False,
     ) -> Tuple[LongTensor, BoolTensor]:
         """Sample options by ε-Greedy
         """
-        batch_size = value.size(0)
+        batch_size = qo.size(0)
         if evaluate:
             explorer = self.eval_opt_explorer
             masks = self._eval_masks[:batch_size]
@@ -204,17 +201,17 @@ class ACTCAgent(A2CLikeAgent[State]):
         do_options_end = current_beta.action().bool()
         is_initial_states = (1.0 - masks).bool()
         use_new_options = do_options_end | is_initial_states
-        epsgreedy_options = explorer.select_from_value(value, same_device=True)
+        epsgreedy_options = explorer.select_from_value(qo, same_device=True)
         options = torch.where(use_new_options, epsgreedy_options, prev_options)
         return options, do_options_end  # type: ignore
 
     @torch.no_grad()
     def _eval_policy(self, states: Array) -> Policy:
-        opt_policy, value = self.ac_net(states)
+        opt_policy, qo = self.ac_net(states)
         if self.eval_initial_states is None:
             self.eval_initial_states = states.copy()
         beta = self.tc_net.beta(self.eval_initial_states, states)
-        options, _ = self._sample_options(value, beta, evaluate=True,)
+        options, _ = self._sample_options(qo, beta, evaluate=True,)
         self.eval_prev_options = options
         return opt_policy[self.worker_indices, options]
 
@@ -240,16 +237,16 @@ class ACTCAgent(A2CLikeAgent[State]):
     @torch.no_grad()
     def actions(self, states: Array[State]) -> Tuple[Array[Action], dict]:
         x = self.penv.extract(states)
-        opt_policy, value = self.ac_net(x)
+        opt_policy, qo = self.ac_net(x)
         tc_output = self.tc_net(self.option_initial_states, x)
-        options, opt_terminals = self._sample_options(value, tc_output.beta)
+        options, opt_terminals = self._sample_options(qo, tc_output.beta)
         if self._do_xf_count:
             self._update_xf_count(opt_terminals.cpu().numpy())
         policy = opt_policy[self.worker_indices, options]
         actions = policy.action().squeeze().cpu().numpy()
         net_outputs = dict(
             policy=policy,
-            value=value,
+            value=qo,
             options=options,
             opt_terminals=opt_terminals,
             epsilon=1.0 if self.config.opt_avg_baseline else self.opt_explorer.epsilon,
@@ -269,12 +266,12 @@ class ACTCAgent(A2CLikeAgent[State]):
         return transition.states
 
     @torch.no_grad()
-    def _next_value(self, states: Tensor) -> Tensor:
-        value = self.ac_net.value(states)
-        current_value = value[self.worker_indices, self.prev_options]
+    def _next_qo(self, states: Tensor) -> Tensor:
+        qo = self.ac_net.qo(states)
+        qo_current = qo[self.worker_indices, self.prev_options]
         eps = self.opt_explorer.epsilon
-        next_value = (1 - eps) * value.max(dim=-1)[0] + eps * value.mean(-1)
-        return torch.where(self.prev_opt_terminals, next_value, current_value)
+        vo = (1 - eps) * qo.max(dim=-1)[0] + eps * qo.mean(-1)
+        return torch.where(self.prev_opt_terminals, vo, qo_current)
 
     def train(self, last_states: Array[State]) -> None:
         """Train the agent using N step trajectory
@@ -282,7 +279,7 @@ class ACTCAgent(A2CLikeAgent[State]):
         # N: Number of Steps W: Number of workers O: Number of options
         N, W = self.config.nsteps, self.config.nworkers
         last_states = self.tensor(self.penv.extract(last_states))
-        next_v = self._next_value(last_states)
+        next_v = self._next_qo(last_states)
         self.storage.calc_ac_returns(next_v, self.config.discount_factor)
 
         prev_options, options = self.storage.batch_options()  # NW
@@ -330,13 +327,13 @@ class ACTCAgent(A2CLikeAgent[State]):
         tc_loss = beta_loss + p_loss + pmu_loss * 0.5 + baseline_loss
         self._backward(tc_loss, self.tc_optimizer, self.tc_net.parameters())
 
-        policy, q = self.ac_net(x)
+        policy, qo = self.ac_net(x)
         policy = policy[self.batch_indices, options]
         policy.set_action(self.storage.batch_actions())
         policy_loss = -(policy.log_prob() * self.storage.advs[:-1].flatten()).mean()
 
-        value = q[self.batch_indices, options]
-        value_loss = (value - self.storage.returns[:-1].flatten()).pow(2).mean()
+        qo_ = qo[self.batch_indices, options]
+        value_loss = (qo_ - self.storage.returns[:-1].flatten()).pow(2).mean()
         entropy = policy.entropy().mean()
 
         ac_loss = (
@@ -348,7 +345,7 @@ class ACTCAgent(A2CLikeAgent[State]):
 
         self.network_log(
             policy_loss=policy_loss.item(),
-            value=value.detach_().mean().item(),
+            value=qo_.detach_().mean().item(),
             value_loss=value_loss.item(),
             beta=beta_x.dist.probs.detach_().mean().item(),
             pmu=p_mu_xf.mean().item(),

@@ -31,7 +31,7 @@ class AOCRolloutStorage(RolloutStorage[State]):
         self.options = [self.device.zeros(self.nworkers, dtype=torch.long)]
         self.opt_terminals = [self.device.ones(self.nworkers, dtype=torch.bool)]
         self.epsilons: List[float] = []
-        self.option_mus: List[CategoricalPolicy] = []
+        self.muos: List[CategoricalPolicy] = []
         self.beta_adv = torch.zeros_like(self.batch_values)
         self.noptions = num_options
         self.worker_indices = self.device.indices(self.nworkers)
@@ -45,92 +45,81 @@ class AOCRolloutStorage(RolloutStorage[State]):
         self.options = [self.options[-1]]
         self.opt_terminals = [self.opt_terminals[-1]]
         self.epsilons.clear()
-        self.option_mus.clear()
+        self.muos.clear()
 
     def initialize(self) -> None:
         super().reset()
         self.options = [self.device.zeros(self.nworkers, dtype=torch.long)]
         self.opt_terminals = [self.device.ones(self.nworkers, dtype=torch.bool)]
         self.epsilons.clear()
-        self.option_mus.clear()
+        self.muos.clear()
 
     def push(
         self,
         *args,
         options: LongTensor,
         opt_terminals: Tensor,
-        epsilon: Optional[float] = None,
+        epsilon: float = 1.0,
         mu: Optional[CategoricalPolicy] = None,
         **kwargs,
     ) -> None:
         super().push(*args, **kwargs)
         self.options.append(options)
         self.opt_terminals.append(opt_terminals)
-        if epsilon is None:
-            self.epsilons.append(1.0)
-        else:
-            self.epsilons.append(epsilon)
+        self.epsilons.append(epsilon)
         if mu is not None:
-            self.option_mus.append(mu)
+            self.muos.append(mu)
 
     def batch_options(self) -> Tuple[Tensor, Tensor]:
         batched = torch.cat(self.options, dim=0)
         return batched[: -self.nworkers], batched[self.nworkers :]
 
-    def _beta_adv_eps(self, i: int, value: Tensor, options: LongTensor) -> Tensor:
+    def _beta_adv_eps(self, i: int, qo: Tensor, options: LongTensor) -> Tensor:
         eps = self.epsilons[i]
-        v = (1 - eps) * value.max(dim=-1)[0] + eps * value.mean(dim=-1)
-        return value[self.worker_indices, options] - v
+        vo = (1 - eps) * qo.max(dim=-1)[0] + eps * qo.mean(dim=-1)
+        return qo[self.worker_indices, options] - vo
 
-    def _beta_adv_mu(self, i: int, value: Tensor, options: LongTensor) -> Tensor:
-        probs = self.option_mus[i].dist.probs
-        v = (value * probs).sum(dim=-1)
-        return value[self.worker_indices, options] - v
+    def _beta_adv_mu(self, i: int, qo: Tensor, options: LongTensor) -> Tensor:
+        probs = self.muos[i].dist.probs
+        uo = torch.einsum("bo,bo->b", qo, probs)
+        return qo[self.worker_indices, options] - uo
 
-    def calc_ac_returns(
-        self, next_value: Tensor, gamma: float, delib_cost: float
-    ) -> None:
-        self.returns[-1] = next_value
+    def calc_ac_returns(self, next_qo: Tensor, gamma: float, delib_cost: float) -> None:
+        self.returns[-1] = next_qo
         rewards = self.device.tensor(self.rewards)
         opt_terminals = self.device.zeros((self.nworkers,), dtype=torch.bool)
         for i in reversed(range(self.nsteps)):
-            value, opt = self.values[i], self.options[i + 1]
-            # CAUTION!!!
-            # This strategy can be applied only to ε-Greedy option selection!
+            qo, opt = self.values[i], self.options[i + 1]
             eps = self.epsilons[i]
-            ret_i1 = torch.where(
-                opt_terminals,
-                (1 - eps) * value.max(dim=-1)[0] + eps * value.mean(-1),
-                self.returns[i + 1],
-            )
+            # CAUTION: this can be only applied to ε-Greedy option selection
+            vo = (1 - eps) * qo.max(dim=-1)[0] + eps * qo.mean(-1)
+            ret_i1 = torch.where(opt_terminals, vo, self.returns[i + 1])
             ret_i = gamma * self.masks[i + 1] * ret_i1 + rewards[i]
             self.returns[i] = ret_i - self.opt_terminals[i + 1] * delib_cost
-            self.advs[i] = self.returns[i] - value[self.worker_indices, opt]
-            self.beta_adv[i] = self._beta_adv(i, value, opt)
+            self.advs[i] = self.returns[i] - qo[self.worker_indices, opt]
+            self.beta_adv[i] = self._beta_adv(i, qo, opt)
             opt_terminals = self.opt_terminals[i + 1]
 
     def calc_gae_returns(
-        self, next_v: Tensor, gamma: float, lambda_: float, delib_cost: float,
+        self, next_qo: Tensor, gamma: float, lambda_: float, delib_cost: float,
     ) -> None:
-        self.returns[-1] = next_v
+        self.returns[-1] = next_qo
         rewards = self.device.tensor(self.rewards)
         self.advs.fill_(0.0)
-        value_i1 = next_v
+        qo_i1 = next_qo
         for i in reversed(range(self.nsteps)):
-            opt, value = self.options[i + 1], self.values[i]
-            value_i = value[self.worker_indices, opt]
-
+            opt, qo = self.options[i + 1], self.values[i]
+            qo_i = qo[self.worker_indices, opt]
             # GAE
             gamma_i1 = gamma * self.masks[i + 1]
-            td_error = rewards[i] + gamma_i1 * value_i1 - value_i
+            td_error = rewards[i] + gamma_i1 * qo_i1 - qo_i
             gamma_lambda_i = gamma * lambda_ * self.masks[i]
             delib_cost_i = self.opt_terminals[i + 1] * delib_cost
             self.advs[i] = td_error + gamma_lambda_i * self.advs[i + 1] - delib_cost_i
-            self.returns[i] = self.advs[i] + value_i
-            value_i1 = value_i
-
+            self.returns[i] = self.advs[i] + qo_i
+            qo_i1 = qo_i
             # β-advantage
-            self.beta_adv[i] = self._beta_adv(i, value, opt)
+            self.beta_adv[i] = self._beta_adv(i, qo, opt)
 
 
 class AOCAgent(A2CLikeAgent[State]):
@@ -158,7 +147,7 @@ class AOCAgent(A2CLikeAgent[State]):
         ):
             return ValueError("Currently only Epsilon Greedy is supported as Explorer")
         self.eval_prev_options: LongTensor = config.device.zeros(
-            config.nworkers, dtype=torch.long
+            config.nworkers, dtype=torch.long,
         )
 
     def _reset(self, initial_states: Array[State]) -> None:
@@ -169,31 +158,28 @@ class AOCAgent(A2CLikeAgent[State]):
 
     def _sample_options(
         self,
-        value: Tensor,
+        qo: Tensor,
         beta: BernoulliPolicy,
         prev_options: LongTensor,
         evaluate: bool = False,
     ) -> Tuple[LongTensor, BoolTensor]:
-        if evaluate:
-            explorer = self.eval_opt_explorer
-        else:
-            explorer = self.opt_explorer
+        explorer = self.eval_opt_explorer if evaluate else self.opt_explorer
         current_beta = beta[self.worker_indices, prev_options]
         do_options_end = current_beta.action().bool()
         is_initial_states = (1.0 - self.storage.masks[-1]).bool()
         use_new_options = do_options_end | is_initial_states
-        epsgreedy_options = explorer.select_from_value(value, same_device=True)
+        epsgreedy_options = explorer.select_from_value(qo, same_device=True)
         options = torch.where(use_new_options, epsgreedy_options, prev_options)
         return options, do_options_end  # type: ignore
 
     @torch.no_grad()
     def _eval_policy(self, states: Array) -> Policy:
-        opt_policy, value, beta = self.net(states)
+        pio, qo, beta = self.net(states)
         options, _ = self._sample_options(
-            value, beta, self.eval_prev_options, evaluate=True
+            qo, beta, self.eval_prev_options, evaluate=True,
         )
         self.eval_prev_options = options
-        return opt_policy[self.worker_indices, options]
+        return pio[self.worker_indices, options]
 
     def eval_action(self, state: Array, net_outputs: Optional[Netout] = None) -> Action:
         if state.ndim == len(self.net.state_dim):
@@ -212,13 +198,13 @@ class AOCAgent(A2CLikeAgent[State]):
 
     @torch.no_grad()
     def actions(self, states: Array[State]) -> Tuple[Array[Action], dict]:
-        opt_policy, value, beta = self.net(self.penv.extract(states))
-        options, opt_terminals = self._sample_options(value, beta, self.prev_options)
-        policy = opt_policy[self.worker_indices, options]
-        actions = policy.action().squeeze().cpu().numpy()
+        pio, qo, beta = self.net(self.penv.extract(states))
+        options, opt_terminals = self._sample_options(qo, beta, self.prev_options)
+        pi = pio[self.worker_indices, options]
+        actions = pi.action().squeeze().cpu().numpy()
         net_outputs = dict(
-            policy=policy,
-            value=value,
+            policy=pi,
+            value=qo,
             options=options,
             opt_terminals=opt_terminals,
             epsilon=1.0 if self.config.opt_avg_baseline else self.opt_explorer.epsilon,
@@ -226,26 +212,27 @@ class AOCAgent(A2CLikeAgent[State]):
         return actions, net_outputs
 
     @torch.no_grad()
-    def _next_value(self, states: Array[State]) -> Tensor:
-        value, beta = self.net.value_and_beta(self.penv.extract(states))
+    def _next_qo(self, states: Array[State]) -> Tensor:
+        qo, beta = self.net.qo_and_beta(self.penv.extract(states))
         beta = beta.dist.probs[self.worker_indices, self.prev_options]
-        value_with_current_opt = value[self.worker_indices, self.prev_options]
+        qo_current = qo[self.worker_indices, self.prev_options]
         eps = self.opt_explorer.epsilon
-        value_with_epsg = (1 - eps) * value.max(dim=-1)[0] + eps * value.mean(-1)
-        return (1.0 - beta).mul_(value_with_current_opt).add_(beta * value_with_epsg)
+        vo = (1 - eps) * qo.max(dim=-1)[0] + eps * qo.mean(-1)
+        # Next value = (1.0 - β) Qo(s, o) + β Vo(s)
+        return (1.0 - beta) * qo_current + beta * vo
 
     def train(self, last_states: Array[State]) -> None:
-        next_v = self._next_value(last_states)
+        next_qo = self._next_qo(last_states)
         if self.config.use_gae:
             self.storage.calc_gae_returns(
-                next_v,
+                next_qo,
                 self.config.discount_factor,
                 self.config.gae_lambda,
                 self.config.opt_delib_cost,
             )
         else:
             self.storage.calc_ac_returns(
-                next_v, self.config.discount_factor, self.config.opt_delib_cost
+                next_qo, self.config.discount_factor, self.config.opt_delib_cost,
             )
 
         prev_options, options = self.storage.batch_options()
@@ -255,19 +242,18 @@ class AOCAgent(A2CLikeAgent[State]):
         )
         ret = self.storage.returns[:-1].flatten()
         masks = self.storage.batch_masks()
-
-        opt_policy, value, beta = self.net(self.storage.batch_states(self.penv))
-
+        pio, qo, beta = self.net(self.storage.batch_states(self.penv))
+        # β loss
         term_prob = beta[self.batch_indices, prev_options].dist.probs
         beta_loss = term_prob.mul(masks).mul(beta_adv).mean()
-
-        policy = opt_policy[self.batch_indices, prev_options]
-        policy.set_action(self.storage.batch_actions())
-
-        policy_loss = -(policy.log_prob() * adv).mean()
-        value = value[self.batch_indices, options]
-        value_loss = (value - ret).pow(2).mean()
-        entropy = policy.entropy().mean()
+        # π loss
+        pi = pio[self.batch_indices, prev_options]
+        policy_loss = -(pi.log_prob(self.storage.batch_actions()) * adv).mean()
+        # V loss
+        qo_ = qo[self.batch_indices, options]
+        value_loss = (qo_ - ret).pow(2).mean()
+        # H(π) bonus
+        entropy = pi.entropy().mean()
         loss = (
             policy_loss
             + beta_loss
@@ -277,7 +263,7 @@ class AOCAgent(A2CLikeAgent[State]):
         self._backward(loss, self.optimizer, self.net.parameters())
         self.network_log(
             policy_loss=policy_loss.item(),
-            value=value.detach_().mean().item(),
+            value=qo_.detach_().mean().item(),
             value_loss=value_loss.item(),
             beta=beta.dist.probs.detach_().mean().item(),
             beta_loss=beta_loss.item(),

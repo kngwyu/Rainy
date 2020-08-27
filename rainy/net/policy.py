@@ -20,9 +20,7 @@ class Policy(ABC):
         self._baction: Optional[Tensor] = None
 
     def action(self) -> Tensor:
-        """
-        Sample actions.
-        If this policy already has cached actions, return them.
+        """ Sample actions or returns cached actions.
         """
         if self._action is None:
             self._action = self.sample()
@@ -30,30 +28,30 @@ class Policy(ABC):
         return self._action.squeeze(dim=0)
 
     def baction(self) -> Tensor:
-        """Sample 'backwardable' actions by PyTorch's ``rsample``.
+        """ Sample 'backwardable' actions by PyTorch's ``rsample``.
         """
         if self._baction is None:
             self._baction = self.rsample()
         return self._baction.squeeze(dim=0)
 
     def set_action(self, action: Tensor) -> None:
-        """Set action cache explicitly.
+        """ Set cached actions.
         """
         self._action = action
 
     @torch.no_grad()
     def sample(self) -> Tensor:
-        """Sample actions with ``requires_grad=True``.
+        """ Sample actions with ``requires_grad=True``.
         """
         return self.dist.sample()
 
     def rsample(self) -> Tensor:
-        """Sampling by reparameterization trick. Returned tensor is backwardable.
+        """ Sample with reparameterization trick. Returned tensor is backwardable.
         """
         return self.dist.rsample()
 
     def eval_action(self, deterministic: bool = False, to_numpy: bool = True) -> Array:
-        """Sample actions for evaluation with no action cache set.
+        """ Sample actions for evaluation without setting cached actions.
         """
         if deterministic:
             act = self.best_action()
@@ -73,7 +71,9 @@ class Policy(ABC):
         pass
 
     @abstractmethod
-    def log_prob(self, use_baction: bool = False) -> Tensor:
+    def log_prob(
+        self, action: Optional[Tensor] = None, use_baction: bool = False,
+    ) -> Tensor:
         pass
 
     @abstractmethod
@@ -93,11 +93,12 @@ class BernoulliPolicy(Policy):
     def best_action(self) -> Tensor:
         return self.dist.probs > 0.5
 
-    def log_prob(self, use_baction: bool = False) -> Tensor:
-        if use_baction:
-            return self.dist.log_prob(self.baction())
-        else:
-            return self.dist.log_prob(self.action())
+    def log_prob(
+        self, action: Optional[Tensor] = None, use_baction: bool = False,
+    ) -> Tensor:
+        if action is None:
+            action = self.bactions() if use_baction else self.action()
+        return self.dist.log_prob(action)
 
     def entropy(self) -> Tensor:
         return self.dist.entropy()
@@ -117,11 +118,12 @@ class CategoricalPolicy(Policy):
     def best_action(self) -> Tensor:
         return self.dist.probs.argmax(dim=-1)
 
-    def log_prob(self, use_baction: bool = False) -> Tensor:
-        if use_baction:
-            return self.dist.log_prob(self.baction())
-        else:
-            return self.dist.log_prob(self.action())
+    def log_prob(
+        self, action: Optional[Tensor] = None, use_baction: bool = False,
+    ) -> Tensor:
+        if action is None:
+            action = self.bactions() if use_baction else self.action()
+        return self.dist.log_prob(action)
 
     def entropy(self) -> Tensor:
         return self.dist.entropy()
@@ -144,11 +146,12 @@ class GaussianPolicy(Policy):
     def entropy(self) -> Tensor:
         return self.dist.entropy().sum(-1)
 
-    def log_prob(self, use_baction: bool = False) -> Tensor:
-        if use_baction:
-            return self.dist.log_prob(self.baction()).sum(-1)
-        else:
-            return self.dist.log_prob(self.action()).sum(-1)
+    def log_prob(
+        self, action: Optional[Tensor] = None, use_baction: bool = False,
+    ) -> Tensor:
+        if action is None:
+            action = self.bactions() if use_baction else self.action()
+        return self.dist.log_prob(action).sum(-1)
 
     def __getitem__(self, idx: Index) -> Self:
         return self.__class__(self.dist.mean[idx], self.dist.stddev[idx])
@@ -176,11 +179,11 @@ class TanhGaussianPolicy(GaussianPolicy):
     def best_action(self) -> Tensor:
         return torch.tanh(self.dist.mean)
 
-    def log_prob(self, use_baction: bool = False) -> Tensor:
-        if use_baction:
-            action = self._baction
-        else:
-            action = self.action()
+    def log_prob(
+        self, action: Optional[Tensor] = None, use_baction: bool = False,
+    ) -> Tensor:
+        if action is None:
+            action = self._baction if use_baction else self.action()
         if self._pre_tanh is None:
             pre_tanh = torch.log((1.0 + action) / (1.0 - action)) / 2
         else:

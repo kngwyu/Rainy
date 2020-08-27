@@ -30,24 +30,26 @@ class OptionCriticNet(nn.Module, ABC):
     state_dim: Sequence[int]
 
     @abstractmethod
-    def value(self, states: ArrayLike) -> Tensor:
+    def qo(self, states: ArrayLike) -> Tensor:
+        """ Returns Qo(states, ・), of which the shape is batch_size x n_options.
+        """
         pass
 
     @abstractmethod
     def beta(self, states: ArrayLike) -> BernoulliPolicy:
+        """ Returns β(states, ・), of which the shape is batch_size x n_options.
+        """
         pass
 
     @abstractmethod
-    def value_and_beta(self, states: ArrayLike) -> Tuple[Tensor, BernoulliPolicy]:
-        pass
-
-    @abstractmethod
-    def forward(self, states: ArrayLike) -> Tuple[Policy, Tensor, BernoulliPolicy]:
+    def qo_and_beta(self, states: ArrayLike) -> Tuple[Tensor, BernoulliPolicy]:
+        """ Returns Qo(states, ・) and β(states, ・).
+        """
         pass
 
 
 class SharedBodyOCNet(OptionCriticNet):
-    """An Option Critic Net with shared body and separate π/β/Value heads
+    """ OptionCriticNet with shared body and separate π, Qo and β heads.
     """
 
     def __init__(
@@ -67,7 +69,7 @@ class SharedBodyOCNet(OptionCriticNet):
         self.actor_head = LinearHead(
             body.output_dim, num_options * action_dim, init=policy_init
         )
-        self.value_head = LinearHead(body.output_dim, num_options, init=init)
+        self.qo_head = LinearHead(body.output_dim, num_options, init=init)
         self.beta_head = LinearHead(
             body.output_dim, num_options, init=beta_init or init
         )
@@ -79,28 +81,31 @@ class SharedBodyOCNet(OptionCriticNet):
         self.state_dim = self.body.input_dim
         self.to(device.unwrapped)
 
-    def value(self, states: ArrayLike) -> Tensor:
+    def qo(self, states: ArrayLike) -> Tensor:
         feature = self.body(self.device.tensor(states))
-        return self.value_head(feature)
+        return self.qo_head(feature)
 
     def beta(self, states: ArrayLike) -> BernoulliPolicy:
         feature = self.body(self.device.tensor(states))
         return self.beta_dist(self.beta_head(feature))
 
-    def value_and_beta(self, states: ArrayLike) -> Tuple[Tensor, BernoulliPolicy]:
+    def qo_and_beta(self, states: ArrayLike) -> Tuple[Tensor, BernoulliPolicy]:
         feature = self.body(self.device.tensor(states))
-        return self.value_head(feature), self.beta_dist(self.beta_head(feature))
+        return self.qo_head(feature), self.beta_dist(self.beta_head(feature))
 
     def forward(self, states: ArrayLike) -> Tuple[Policy, Tensor, BernoulliPolicy]:
+        """ Returns π(states), Qo(states, ・) and β(states, ・).
+        """
         feature = self.body(self.device.tensor(states))
         policy = self.actor_head(feature).view(-1, self.num_options, self.action_dim)
-        value = self.value_head(feature)
+        qo = self.qo_head(feature)
         beta = self.beta_dist(self.beta_head(feature))
-        return self.policy_dist(policy), value, beta
+        return self.policy_dist(policy), qo, beta
 
 
 class SharedBodyOCNetWithMu(SharedBodyOCNet):
-    """An Option Critic Net with option policy
+    """
+    OptionCriticNet with shared body and separate π, Qo, β and μ heads.
     """
 
     def __init__(
@@ -131,12 +136,14 @@ class SharedBodyOCNetWithMu(SharedBodyOCNet):
     def forward(
         self, states: ArrayLike
     ) -> Tuple[Policy, Tensor, BernoulliPolicy, CategoricalPolicy]:
+        """ Returns π(states), Qo(states, ・), β(states, ・) and μ(states).
+        """
         feature = self.body(self.device.tensor(states))
         policy = self.actor_head(feature).view(-1, self.num_options, self.action_dim)
-        value = self.value_head(feature)
+        qo = self.qo_head(feature)
         beta = self.beta_dist(self.beta_head(feature))
         mu = self.mu_dist(self.mu_head(feature))
-        return self.policy_dist(policy), value, beta, mu
+        return self.policy_dist(policy), qo, beta, mu
 
 
 def conv_shared(
