@@ -98,10 +98,10 @@ class A2CAgent(A2CLikeAgent[State]):
             self.storage.rnn_states[0],
             self.storage.batch_masks(),
         )
-        policy.set_action(self.storage.batch_actions())
 
         advantage = self.storage.returns[:-1].flatten() - value
-        policy_loss = -(policy.log_prob() * advantage.detach()).mean()
+        actions = self.storage.batch_actions()
+        policy_loss = -(policy.log_prob(actions) * advantage.detach()).mean()
         value_loss = advantage.pow(2).mean()
         entropy_loss = policy.entropy().mean()
         self._pre_backward(policy, value)
