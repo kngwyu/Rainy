@@ -84,8 +84,8 @@ class AOCRolloutStorage(RolloutStorage[State]):
         uo = torch.einsum("bo,bo->b", qo, probs)
         return qo[self.worker_indices, options] - uo
 
-    def calc_ac_returns(self, next_qo: Tensor, gamma: float, delib_cost: float) -> None:
-        self.returns[-1] = next_qo
+    def calc_ac_returns(self, next_uo: Tensor, gamma: float, delib_cost: float) -> None:
+        self.returns[-1] = next_uo
         rewards = self.device.tensor(self.rewards)
         opt_terminals = self.device.zeros((self.nworkers,), dtype=torch.bool)
         for i in reversed(range(self.nsteps)):
@@ -101,12 +101,12 @@ class AOCRolloutStorage(RolloutStorage[State]):
             opt_terminals = self.opt_terminals[i + 1]
 
     def calc_gae_returns(
-        self, next_qo: Tensor, gamma: float, lambda_: float, delib_cost: float,
+        self, next_uo: Tensor, gamma: float, lambda_: float, delib_cost: float,
     ) -> None:
-        self.returns[-1] = next_qo
+        self.returns[-1] = next_uo
         rewards = self.device.tensor(self.rewards)
         self.advs.fill_(0.0)
-        qo_i1 = next_qo
+        qo_i1 = next_uo
         for i in reversed(range(self.nsteps)):
             opt, qo = self.options[i + 1], self.values[i]
             qo_i = qo[self.worker_indices, opt]
@@ -212,27 +212,27 @@ class AOCAgent(A2CLikeAgent[State]):
         return actions, net_outputs
 
     @torch.no_grad()
-    def _next_qo(self, states: Array[State]) -> Tensor:
+    def _next_uo(self, states: Array[State]) -> Tensor:
         qo, beta = self.net.qo_and_beta(self.penv.extract(states))
         beta = beta.dist.probs[self.worker_indices, self.prev_options]
         qo_current = qo[self.worker_indices, self.prev_options]
         eps = self.opt_explorer.epsilon
         vo = (1 - eps) * qo.max(dim=-1)[0] + eps * qo.mean(-1)
-        # Next value = (1.0 - β) Qo(s, o) + β Vo(s)
+        # Uo(s, o) = (1.0 - β) Qo(s, o) + β Vo(s)
         return (1.0 - beta) * qo_current + beta * vo
 
     def train(self, last_states: Array[State]) -> None:
-        next_qo = self._next_qo(last_states)
+        next_uo = self._next_uo(last_states)
         if self.config.use_gae:
             self.storage.calc_gae_returns(
-                next_qo,
+                next_uo,
                 self.config.discount_factor,
                 self.config.gae_lambda,
                 self.config.opt_delib_cost,
             )
         else:
             self.storage.calc_ac_returns(
-                next_qo, self.config.discount_factor, self.config.opt_delib_cost,
+                next_uo, self.config.discount_factor, self.config.opt_delib_cost,
             )
 
         prev_options, options = self.storage.batch_options()

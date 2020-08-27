@@ -22,8 +22,8 @@ from .base import A2CLikeAgent, Netout
 
 
 class TCRolloutStorage(AOCRolloutStorage):
-    def calc_ac_returns(self, next_qo: Tensor, gamma: float) -> None:
-        self.returns[-1] = next_qo
+    def calc_ac_returns(self, next_uo: Tensor, gamma: float) -> None:
+        self.returns[-1] = next_uo
         rewards = self.device.tensor(self.rewards)
         opt_terminals = self.device.zeros((self.nworkers,), dtype=torch.bool)
         for i in reversed(range(self.nsteps)):
@@ -266,12 +266,13 @@ class ACTCAgent(A2CLikeAgent[State]):
         return transition.states
 
     @torch.no_grad()
-    def _next_qo(self, states: Tensor) -> Tensor:
+    def _next_uo(self, states: Tensor, beta_next: Tensor) -> Tensor:
         qo = self.ac_net.qo(states)
         qo_current = qo[self.worker_indices, self.prev_options]
         eps = self.opt_explorer.epsilon
         vo = (1 - eps) * qo.max(dim=-1)[0] + eps * qo.mean(-1)
-        return torch.where(self.prev_opt_terminals, vo, qo_current)
+        # Uo(s, o) = (1.0 - β) Qo(s, o) + β Vo(s)
+        return (1.0 - beta_next) * qo_current + beta_next * vo
 
     def train(self, last_states: Array[State]) -> None:
         """Train the agent using N step trajectory
@@ -279,8 +280,6 @@ class ACTCAgent(A2CLikeAgent[State]):
         # N: Number of Steps W: Number of workers O: Number of options
         N, W = self.config.nsteps, self.config.nworkers
         last_states = self.tensor(self.penv.extract(last_states))
-        next_v = self._next_qo(last_states)
-        self.storage.calc_ac_returns(next_v, self.config.discount_factor)
 
         prev_options, options = self.storage.batch_options()  # NW
         x = self.storage.batch_states(self.penv)  # NW
@@ -314,6 +313,9 @@ class ACTCAgent(A2CLikeAgent[State]):
             beta_adv_raw = calc_beta_adv(p_mu_x.detach(), p_x_xs, p_mu_xf_avg, p_xf_xs)
         p_mu_xf = p_mu_xf[self.batch_indices, prev_options]
         baseline = baseline[self.batch_indices, prev_options]
+
+        next_uo = self._next_uo(last_states, beta_xf[-self.config.nworkers :])
+        self.storage.calc_ac_returns(next_uo, self.config.discount_factor)
 
         beta_adv = beta_adv_raw - baseline.detach()
         beta_loss = -(beta_x.dist.logits * beta_x.dist.probs.detach() * beta_adv).mean()

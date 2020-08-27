@@ -135,17 +135,17 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
         return actions, net_outputs
 
     def train(self, last_states: Array[State]) -> None:
-        next_qo = self._next_qo(last_states)
+        next_uo = self._next_uo(last_states)
         if self.config.use_gae:
             self.storage.calc_gae_returns(
-                next_qo,
+                next_uo,
                 self.config.discount_factor,
                 self.config.gae_lambda,
                 self.config.opt_delib_cost,
             )
         else:
             self.storage.calc_ac_returns(
-                next_qo, self.config.discount_factor, self.config.opt_delib_cost
+                next_uo, self.config.discount_factor, self.config.opt_delib_cost
             )
 
         sampler = PPOCSampler(
