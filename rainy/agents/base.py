@@ -183,26 +183,34 @@ class Agent(ABC):
     def loaddict_hook(self, load_dict: dict) -> bool:
         pass
 
+    def loadmember_hook(self, member_str: str, saved_item: dict) -> None:
+        pass
+
     def load(self, path: Path = None) -> bool:
         if not mpi.IS_MPI_ROOT or not path.exists():
             return False
         if path.is_dir():
             path.joinpath(DEFAULT_SAVEFILE_NAME)
         saved_dict = torch.load(path, map_location=self.config.device.unwrapped)
-        #  For backward compatibility, we need to check both index and name
-        for idx, member_str in enumerate(self.SAVED_MEMBERS):
-            if idx in saved_dict:
-                saved_item = saved_dict[idx]
-            elif member_str in saved_dict:
+        for member_str in self.SAVED_MEMBERS:
+            if member_str in saved_dict:
                 saved_item = saved_dict[member_str]
             else:
                 warnings.warn("Member {} wasn't loaded".format(member_str))
                 continue
+            self.loadmember_hook(member_str, saved_item)
             mem = getattr(self, member_str)
-            if isinstance(mem, nn.DataParallel):
-                mem.module.load_state_dict(saved_item)
-            elif hasattr(mem, "state_dict"):
-                mem.load_state_dict(saved_item)
+            is_dataparallel = isinstance(mem, nn.DataParallel)
+            if is_dataparallel or hasattr(mem, "state_dict"):
+                try:
+                    if is_dataparallel:
+                        mem.module.load_state_dict(saved_item)
+                    else:
+                        mem.load_state_dict(saved_item)
+                except Exception as e:
+                    import warnings
+
+                    warnings.warn(f"Error ({e}) occured while loading {mem}")
             else:
                 setattr(self, member_str, saved_item)
         self.loaddict_hook(saved_dict)
