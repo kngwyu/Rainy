@@ -17,6 +17,23 @@ from rainy.prelude import State
 from rlpy.gym import RLPyEnv
 
 
+def _to_np(batch_size: int, env: RLPyEnv) -> callable:
+    ngoals = env.domain.num_goals
+
+    if ngoals > 0:
+
+        def to_np(tensor):
+            shape = batch_size // ngoals, ngoals, *tensor.shape[1:]
+            return tensor.view(shape).mean(1).cpu().numpy()
+
+    else:
+
+        def to_np(tensor):
+            return tensor.cpu().numpy()
+
+    return to_np
+
+
 class OptionVisualizeHook(EvalHook):
     def __init__(
         self, num_options: int, vis_beta: bool = True, vis_pi: bool = True,
@@ -29,42 +46,34 @@ class OptionVisualizeHook(EvalHook):
     def setup(self, config: rainy.Config) -> None:
         self.device = config.device
 
+    def _vis_beta(self, beta, domain):
+        for i in range(self.num_options):
+            domain.show_heatmap(
+                beta[:, i],
+                "β(Xf)",
+                normalize_method="none",
+                colorbar=True,
+                cmap="YlGnBu",
+                nrows=2,
+                ncols=2,
+                index=i + 1,
+                ticks=False,
+                title=f"Option: {i}",
+                cmap_vmin=0.0,
+                legend=i == 1,
+            )
+
     def reset(
         self, agent: rainy.agents.Agent, env: rainy.envs.EnvExt, initial_state: State
     ) -> None:
         states = self._all_states(env.unwrapped, initial_state, env.extract)
+        to_np = _to_np(states.size(0), env.unwrapped)
 
-        if initial_state.shape[0] == 3:
-
-            def to_np(tensor):
-                ngoals = env.unwrapped.domain.num_goals
-                shape = states.size(0) // ngoals, ngoals, *tensor.shape[1:]
-                return tensor.view(shape).mean(1).cpu().numpy()
-
-        else:
-
-            def to_np(tensor):
-                return tensor.cpu().numpy()
-
-        if self.vis_beta or self.vis_p:
-            with torch.no_grad():
-                pi, q, beta = agent.net(states)
+        with torch.no_grad():
+            pi, q, beta = agent.net(states)
 
         if self.vis_beta:
-            beta = to_np(beta.dist.probs)
-            for i in range(self.num_options):
-                env.unwrapped.domain.show_heatmap(
-                    beta[:, i],
-                    "β(Xf)",
-                    normalize_method="uniform",
-                    cmap="PuOr",
-                    nrows=2,
-                    ncols=2,
-                    index=i + 1,
-                    ticks=False,
-                    title=f"Option: {i}",
-                    legend=self.initial and i == 1,
-                )
+            self._vis_beta(to_np(beta.dist.probs), env.unwrapped.domain)
 
         if self.vis_pi:
             pi = to_np(pi.dist.probs)

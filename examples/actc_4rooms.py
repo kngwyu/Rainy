@@ -18,6 +18,23 @@ from rainy.prelude import State
 from rlpy.gym import RLPyEnv
 
 
+def _to_np(batch_size: int, env: RLPyEnv) -> callable:
+    ngoals = env.domain.num_goals
+
+    if ngoals > 0:
+
+        def to_np(tensor):
+            shape = batch_size // ngoals, ngoals, *tensor.shape[1:]
+            return tensor.view(shape).mean(1).cpu().numpy()
+
+    else:
+
+        def to_np(tensor):
+            return tensor.cpu().numpy()
+
+    return to_np
+
+
 class OptionVisualizeHook(EvalHook):
     def __init__(
         self,
@@ -35,44 +52,35 @@ class OptionVisualizeHook(EvalHook):
     def setup(self, config: rainy.Config) -> None:
         self.device = config.device
 
+    def _vis_beta(self, beta, domain):
+        for i in range(self.num_options):
+            domain.show_heatmap(
+                beta[:, i],
+                "β(Xf)",
+                normalize_method="none",
+                colorbar=True,
+                cmap="YlGnBu",
+                nrows=2,
+                ncols=2,
+                index=i + 1,
+                ticks=False,
+                title=f"Option: {i}",
+                cmap_vmin=0.0,
+                legend=self.initial and i == 1,
+            )
+
     def reset(
-        self, agent: rainy.agents.Agent, env: rainy.envs.EnvExt, initial_state: State
+        self, agent: rainy.agents.Agent, env: rainy.envs.EnvExt, initial_state: State,
     ) -> None:
-        random_goal = initial_state.shape[0] == 3
         xs, xf = self._xs_xf(env.unwrapped, initial_state, env.extract)
+        to_np = _to_np(xf.size(0), env.unwrapped)
 
-        if random_goal:
-
-            def to_np(tensor):
-                ngoals = env.unwrapped.domain.num_goals
-                shape = xs.size(0) // ngoals, ngoals, *tensor.shape[1:]
-                return tensor.view(shape).mean(1).cpu().numpy()
-
-        else:
-
-            def to_np(tensor):
-                return tensor.cpu().numpy()
-
-        if self.vis_beta or self.vis_p:
-            with torch.no_grad():
-                beta, p, _, _ = agent.tc_net(xs, xf)
+        with torch.no_grad():
+            beta, p, _, _ = agent.tc_net(xs, xf)
 
         if self.vis_beta:
             beta = to_np(beta.dist.probs)
-            for i in range(self.num_options):
-                env.unwrapped.domain.show_heatmap(
-                    beta[:, i],
-                    "β(Xf)",
-                    normalize_method="none",
-                    colorbar=True,
-                    cmap="YlGnBu",
-                    nrows=2,
-                    ncols=2,
-                    index=i + 1,
-                    ticks=False,
-                    title=f"Option: {i}",
-                    legend=self.initial and i == 1,
-                )
+            self._vis_beta(beta, env.unwrapped.domain)
 
         if self.vis_p:
             p = to_np(p)
