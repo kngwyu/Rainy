@@ -163,34 +163,42 @@ class AOCAgent(A2CLikeAgent[State]):
         prev_options: LongTensor,
         evaluate: bool = False,
     ) -> Tuple[LongTensor, BoolTensor]:
+        batch_size = qo.size(0)
         explorer = self.eval_opt_explorer if evaluate else self.opt_explorer
-        current_beta = beta[self.worker_indices, prev_options]
-        do_options_end = current_beta.action().bool()
-        is_initial_states = (1.0 - self.storage.masks[-1]).bool()
-        use_new_options = do_options_end | is_initial_states
         epsgreedy_options = explorer.select_from_value(qo, same_device=True)
+        current_beta = beta[self.worker_indices[:batch_size], prev_options]
+        do_options_end = current_beta.action().bool()
+        if evaluate:
+            use_new_options = do_options_end
+        else:
+            is_initial_states = (1.0 - self.storage.masks[-1]).bool()
+            use_new_options = do_options_end | is_initial_states
         options = torch.where(use_new_options, epsgreedy_options, prev_options)
         return options, do_options_end  # type: ignore
 
     @torch.no_grad()
-    def _eval_policy(self, states: Array) -> Policy:
+    def _eval_policy(self, states: Array) -> Tuple[Policy, Tensor]:
+        batch_size = states.shape[0]
         pio, qo, beta = self.net(states)
         options, _ = self._sample_options(
-            qo, beta, self.eval_prev_options, evaluate=True,
+            qo, beta, self.eval_prev_options[:batch_size], evaluate=True,
         )
-        self.eval_prev_options = options
-        return pio[self.worker_indices, options]
+        self.eval_prev_options[:batch_size] = options
+        return pio, options
 
     def eval_action(self, state: Array, net_outputs: Optional[Netout] = None) -> Action:
         if state.ndim == len(self.net.state_dim):
             # treat as batch_size == nworkers
             state = np.stack([state] * self.config.nworkers)
-        policy = self._eval_policy(state)
-        return policy[0].eval_action(self.config.eval_deterministic)
+        pio, options = self._eval_policy(state)
+        cond_pio = pio[0, options[0]]
+        return cond_pio.eval_action(self.config.eval_deterministic)
 
     def eval_action_parallel(self, states: Array) -> Array[Action]:
-        policy = self._eval_policy(states)
-        return policy.eval_action(self.config.eval_deterministic)
+        batch_size = states.shape[0]
+        pio, options = self._eval_policy(states)
+        cond_pio = pio[self.config.device.indices(batch_size), options]
+        return cond_pio.eval_action(self.config.eval_deterministic)
 
     @property
     def prev_options(self) -> LongTensor:
