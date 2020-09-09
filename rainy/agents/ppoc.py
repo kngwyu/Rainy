@@ -97,25 +97,29 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
 
     @torch.no_grad()
     def _eval_policy(self, states: Array) -> Policy:
+        batch_size = states.shape[0]
         pio, _, beta, mu = self.net(states)
         options, _ = self._sample_options(
-            mu, beta, self.eval_prev_options, deterministic=True
+            mu, beta, self.eval_prev_options[:batch_size], evaluation_phase=True,
         )
-        self.eval_prev_options = options
-        return pio[self.worker_indices, options]
+        self.eval_prev_options[:batch_size] = options
+        return pio, options
 
     def _sample_options(
         self,
         mu: CategoricalPolicy,
         beta: BernoulliPolicy,
         prev_options: LongTensor,
-        deterministic: bool = False,
+        evaluation_phase: bool = False,
     ) -> Tuple[LongTensor, BoolTensor]:
-        current_beta = beta[self.worker_indices, prev_options]
+        current_beta = beta[self.worker_indices[:prev_options.size(0)], prev_options]
         do_options_end = current_beta.action().bool()
-        is_initial_states = (1.0 - self.storage.masks[-1]).bool()
-        use_new_options = do_options_end | is_initial_states
-        sampled_options = mu.eval_action(deterministic=deterministic, to_numpy=False)
+        if evaluation_phase:
+            use_new_options = do_options_end
+        else:
+            is_initial_states = (1.0 - self.storage.masks[-1]).bool()
+            use_new_options = do_options_end | is_initial_states
+        sampled_options = mu.eval_action(deterministic=evaluation_phase, to_numpy=False)
         options = torch.where(use_new_options, sampled_options, prev_options)
         return options, use_new_options  # type: ignore
 

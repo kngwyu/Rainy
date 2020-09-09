@@ -161,14 +161,14 @@ class AOCAgent(A2CLikeAgent[State]):
         qo: Tensor,
         beta: BernoulliPolicy,
         prev_options: LongTensor,
-        evaluate: bool = False,
+        evaluation_phase: bool = False,
     ) -> Tuple[LongTensor, BoolTensor]:
         batch_size = qo.size(0)
-        explorer = self.eval_opt_explorer if evaluate else self.opt_explorer
+        explorer = self.eval_opt_explorer if evaluation_phase else self.opt_explorer
         epsgreedy_options = explorer.select_from_value(qo, same_device=True)
         current_beta = beta[self.worker_indices[:batch_size], prev_options]
         do_options_end = current_beta.action().bool()
-        if evaluate:
+        if evaluation_phase:
             use_new_options = do_options_end
         else:
             is_initial_states = (1.0 - self.storage.masks[-1]).bool()
@@ -181,7 +181,7 @@ class AOCAgent(A2CLikeAgent[State]):
         batch_size = states.shape[0]
         pio, qo, beta = self.net(states)
         options, _ = self._sample_options(
-            qo, beta, self.eval_prev_options[:batch_size], evaluate=True,
+            qo, beta, self.eval_prev_options[:batch_size], evaluation_phase=True,
         )
         self.eval_prev_options[:batch_size] = options
         return pio, options
@@ -191,6 +191,8 @@ class AOCAgent(A2CLikeAgent[State]):
             # treat as batch_size == nworkers
             state = np.stack([state] * self.config.nworkers)
         pio, options = self._eval_policy(state)
+        if net_outputs is not None:
+            net_outputs["options"] = self.eval_prev_options
         cond_pio = pio[0, options[0]]
         return cond_pio.eval_action(self.config.eval_deterministic)
 
