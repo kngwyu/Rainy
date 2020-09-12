@@ -11,7 +11,7 @@ from ..utils import Device
 
 
 class Policy(ABC):
-    """Represents parameterized stochastic policies.
+    """ Represents parameterized stochastic policies.
     """
 
     def __init__(self, dist: Distribution) -> None:
@@ -208,7 +208,7 @@ class PolicyDist(ABC, nn.Module):
 
 
 class BernoulliDist(PolicyDist):
-    """Bernoulli policy with no learnable parameter
+    """ Bernoulli policy with no learnable parameter
     """
 
     def __init__(self, action_dim: int = 1, *args, **kwargs) -> None:
@@ -219,7 +219,7 @@ class BernoulliDist(PolicyDist):
 
 
 class CategoricalDist(PolicyDist):
-    """Categorical policy with no learnable parameter
+    """ Categorical policy with no learnable parameter
     """
 
     def forward(self, x: Tensor) -> Policy:
@@ -227,7 +227,7 @@ class CategoricalDist(PolicyDist):
 
 
 class GaussinanDist(PolicyDist):
-    """Gaussian policy which takes both mean and stdev as inputs
+    """ Gaussian policy which takes both mean and stdev as inputs.
     """
 
     @property
@@ -241,7 +241,7 @@ class GaussinanDist(PolicyDist):
 
 
 class TanhGaussianDist(GaussinanDist):
-    """Tanh clipped Gaussian policy
+    """ Tanh clipped Gaussian policy.
     """
 
     def __init__(
@@ -262,8 +262,8 @@ class TanhGaussianDist(GaussinanDist):
 
 
 class SeparateStdGaussianDist(PolicyDist):
-    """Gaussian policy which takes only mean as an input, and has a standard deviation
-       independent with states, as a lernable parameter.
+    """ Gaussian policy which takes only mean as an input, and has a standard deviation
+        independent with states, as a lernable parameter.
     """
 
     def __init__(self, action_dim: int, device: Device, *args, **kwargs) -> None:
@@ -275,7 +275,7 @@ class SeparateStdGaussianDist(PolicyDist):
 
 
 class PerOptionStdGaussianDist(PolicyDist):
-    """The same as `SeparateStdGaussianDist`
+    """ The same as `SeparateStdGaussianDist`, but has a dimention for options
     """
 
     def __init__(
