@@ -81,6 +81,11 @@ class Agent(ABC):
         kwargs["update_steps"] = self.update_steps
         self.logger.submit("network", **kwargs)
 
+    def initialize_rollouts(self) -> None:
+        """ This function must be called when train re-started in a different env.
+        """
+        self.storage.initialize()
+
     def close(self) -> None:
         self.env.close()
         if not self.config.keep_logger:
@@ -403,11 +408,12 @@ class A2CLikeAgent(Agent, Generic[State]):
         self._report_reward(transition.terminals, transition.infos)
         return transition.states
 
+    def initialize_rollouts(self) -> None:
+        self.storage.initialize()
+
     def close(self) -> None:
-        self.env.close()
+        super().close()
         self.penv.close()
-        if not self.config.keep_logger:
-            self.logger.close()
         if self.eval_penv is not None:
             self.eval_penv.close()
 

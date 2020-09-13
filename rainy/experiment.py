@@ -153,7 +153,8 @@ class Experiment:
 
     def _retrain_impl(self, additional_steps: int, eval_render: bool = False) -> None:
         self.ag.config.max_steps += additional_steps
-        save_files = list(self.logger.logdir.glob(self.save_file_name + ".*"))
+        self.ag.initialize_rollouts()
+        save_files = list(self.logger.logdir.glob(self._save_file_name + ".*"))
         if len(save_files) > 0:
             save_id = len(save_files)
         else:

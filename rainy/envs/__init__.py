@@ -164,6 +164,7 @@ class RLPyGridWorld(EnvExt):
         obs_fn, obs_space = gridworld_obs(self.domain, mode=obs_type)
         super().__init__(env, obs_space.shape)
         self.obs_fn = obs_fn
+        self.obs_type = obs_type
 
     def extract(self, state: Array[int]) -> Array[float]:
         return self.obs_fn(self.domain, state[:2].astype(int))

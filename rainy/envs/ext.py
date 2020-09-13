@@ -76,32 +76,27 @@ class EnvExt(gym.Env, Generic[Action, State]):
         self.spec = EnvSpec(obs_shape, self._env.action_space, use_reward_monitor)
 
     def close(self):
+        """ Inherited from gym.Env.
         """
-        Inherited from gym.Env.
-        """
-        self._env.close
+        self._env.close()
 
     def reset(self) -> State:
-        """
-        Inherited from gym.Env.
+        """ Inherited from gym.Env.
         """
         return self._env.reset()
 
     def render(self, mode: str = "human") -> Optional[Array]:
-        """
-        Inherited from gym.Env.
+        """ Inherited from gym.Env.
         """
         return self._env.render(mode=mode)
 
     def seed(self, seed: int) -> None:
-        """
-        Inherited from gym.Env.
+        """ Inherited from gym.Env.
         """
         self._env.seed(seed)
 
     def step(self, action: Action) -> EnvTransition:
-        """
-        Inherited from gym.Env.
+        """ Inherited from gym.Env.
         """
         return EnvTransition(*self._env.step(action))
 
@@ -120,8 +115,7 @@ class EnvExt(gym.Env, Generic[Action, State]):
 
     @property
     def unwrapped(self) -> gym.Env:
-        """
-        Inherited from gym.Env.
+        """ Inherited from gym.Env.
         """
         return self._env.unwrapped
 
@@ -143,7 +137,7 @@ class EnvExt(gym.Env, Generic[Action, State]):
 
     @property
     def use_reward_monitor(self) -> bool:
-        """Atari wrappers need RewardMonitor for evaluation.
+        """ Atari wrappers need RewardMonitor for evaluation.
         """
         return self.spec.use_reward_monitor
 

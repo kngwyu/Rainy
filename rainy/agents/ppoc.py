@@ -112,7 +112,7 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
         prev_options: LongTensor,
         evaluation_phase: bool = False,
     ) -> Tuple[LongTensor, BoolTensor]:
-        current_beta = beta[self.worker_indices[:prev_options.size(0)], prev_options]
+        current_beta = beta[self.worker_indices[: prev_options.size(0)], prev_options]
         do_options_end = current_beta.action().bool()
         if evaluation_phase:
             use_new_options = do_options_end
