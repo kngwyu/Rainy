@@ -1,5 +1,6 @@
 import copy
 import warnings
+
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import (
@@ -213,8 +214,6 @@ class Agent(ABC):
                     else:
                         mem.load_state_dict(saved_item)
                 except Exception as e:
-                    import warnings
-
                     warnings.warn(f"Error ({e}) occured while loading {mem}")
             else:
                 setattr(self, member_str, saved_item)
