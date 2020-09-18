@@ -81,8 +81,8 @@ class AOCRolloutStorage(RolloutStorage[State]):
 
     def _beta_adv_mu(self, i: int, qo: Tensor, options: LongTensor) -> Tensor:
         probs = self.muos[i].dist.probs
-        uo = torch.einsum("bo,bo->b", qo, probs)
-        return qo[self.worker_indices, options] - uo
+        vo = torch.einsum("bo,bo->b", qo, probs)
+        return qo[self.worker_indices, options] - vo
 
     def calc_ac_returns(self, next_uo: Tensor, gamma: float, delib_cost: float) -> None:
         self.returns[-1] = next_uo
@@ -94,10 +94,10 @@ class AOCRolloutStorage(RolloutStorage[State]):
             # CAUTION: this can be only applied to ε-Greedy option selection
             vo = (1 - eps) * qo.max(dim=-1)[0] + eps * qo.mean(-1)
             ret_i1 = torch.where(opt_terminals, vo, self.returns[i + 1])
-            ret_i = gamma * self.masks[i + 1] * ret_i1 + rewards[i]
-            self.returns[i] = ret_i - self.opt_terminals[i + 1] * delib_cost
+            self.returns[i] = gamma * self.masks[i + 1] * ret_i1 + rewards[i]
             self.advs[i] = self.returns[i] - qo[self.worker_indices, opt]
-            self.beta_adv[i] = self._beta_adv(i, qo, opt)
+            delib_cost_i = self.opt_terminals[i + 1] * delib_cost
+            self.beta_adv[i] = self._beta_adv(i, qo, opt) + delib_cost_i
             opt_terminals = self.opt_terminals[i + 1]
 
     def calc_gae_returns(
@@ -114,12 +114,12 @@ class AOCRolloutStorage(RolloutStorage[State]):
             gamma_i1 = gamma * self.masks[i + 1]
             td_error = rewards[i] + gamma_i1 * qo_i1 - qo_i
             gamma_lambda_i = gamma * lambda_ * self.masks[i]
-            delib_cost_i = self.opt_terminals[i + 1] * delib_cost
-            self.advs[i] = td_error + gamma_lambda_i * self.advs[i + 1] - delib_cost_i
+            self.advs[i] = td_error + gamma_lambda_i * self.advs[i + 1]
             self.returns[i] = self.advs[i] + qo_i
             qo_i1 = qo_i
             # β-advantage
-            self.beta_adv[i] = self._beta_adv(i, qo, opt)
+            delib_cost_i = self.opt_terminals[i + 1] * delib_cost
+            self.beta_adv[i] = self._beta_adv(i, qo, opt) + delib_cost_i
 
 
 class AOCAgent(A2CLikeAgent[State]):
