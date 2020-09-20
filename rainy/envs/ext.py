@@ -73,7 +73,7 @@ class EnvExt(gym.Env, Generic[Action, State]):
                     f"Failed detect state dimension from {env.obs_shape}!"
                 )
         use_reward_monitor = _use_reward_monitor(env)
-        self.spec = EnvSpec(obs_shape, self._env.action_space, use_reward_monitor)
+        self._spec = EnvSpec(obs_shape, self._env.action_space, use_reward_monitor)
 
     def close(self):
         """ Inherited from gym.Env.
@@ -125,7 +125,7 @@ class EnvExt(gym.Env, Generic[Action, State]):
         Extended method.
         Returns a ndim of action space.
         """
-        return self.spec.action_dim
+        return self._spec.action_dim
 
     @property
     def state_dim(self) -> Sequence[int]:
@@ -133,13 +133,13 @@ class EnvExt(gym.Env, Generic[Action, State]):
         Extended method.
         Returns a shape of observation space.
         """
-        return self.spec.state_dim
+        return self._spec.state_dim
 
     @property
     def use_reward_monitor(self) -> bool:
         """ Atari wrappers need RewardMonitor for evaluation.
         """
-        return self.spec.use_reward_monitor
+        return self._spec.use_reward_monitor
 
     @property
     def observation_space(self) -> gym.Space:

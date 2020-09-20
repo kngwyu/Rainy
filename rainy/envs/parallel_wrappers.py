@@ -11,7 +11,7 @@ class ParallelEnvWrapper(ParallelEnv[Action, State]):
     def __init__(self, penv: ParallelEnv) -> None:
         self.penv = penv
         self.nworkers = penv.nworkers
-        self.spec = self.penv.spec
+        self._spec = self.penv._spec
 
     def close(self) -> None:
         self.penv.close()

@@ -142,7 +142,7 @@ class Agent(ABC):
         self, render: bool = False, pause: bool = False
     ) -> EpisodeResult:
         def act(_state, *args) -> Action:
-            return self.config.eval_env.spec.random_action()
+            return self.config.eval_env._spec.random_action()
 
         return self.__eval_episode(act, render, pause)
 
@@ -150,7 +150,7 @@ class Agent(ABC):
         self, fname: str, render: bool = False, pause: bool = False
     ) -> EpisodeResult:
         def act(_state, *args) -> Action:
-            return self.config.eval_env.spec.random_action()
+            return self.config.eval_env._spec.random_action()
 
         res = self.__eval_episode(act, render, pause)
         self.config.eval_env.save_history(fname)

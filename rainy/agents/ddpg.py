@@ -49,8 +49,8 @@ class DDPGAgent(DQNLikeAgent):
                 action = self.net.action(state)
             action = self.explorer.add_noise(action).cpu().numpy()
         else:
-            action = self.env.spec.random_action()
-        return self.env.spec.clip_action(action)
+            action = self.env._spec.random_action()
+        return self.env._spec.clip_action(action)
 
     def batch_actions(self, states: Array[State], penv: ParallelEnv) -> Array[Action]:
         if self.train_started:
@@ -59,8 +59,8 @@ class DDPGAgent(DQNLikeAgent):
                 action = self.net.action(states)
             action = self.explorer.add_noise(action).cpu().numpy()
         else:
-            action = self.env.spec.random_actions(states.shape[0])
-        return self.env.spec.clip_action(action)
+            action = self.env._spec.random_actions(states.shape[0])
+        return self.env._spec.clip_action(action)
 
     @torch.no_grad()
     def _q_next(self, next_states: Array) -> Tensor:

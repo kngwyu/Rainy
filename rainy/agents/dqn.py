@@ -28,7 +28,7 @@ class DQNAgent(DQNLikeAgent):
 
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        if not self.env.spec.is_discrete():
+        if not self.env._spec.is_discrete():
             raise RuntimeError("DQN only supports discrete action space.")
         self.net = config.net("dqn")
         self.target_net = deepcopy(self.net)
@@ -51,14 +51,14 @@ class DQNAgent(DQNLikeAgent):
         if self.train_started:
             return self.policy.select_action(self.env.extract(state), self.net).item()
         else:
-            return self.env.spec.random_action()
+            return self.env._spec.random_action()
 
     def batch_actions(self, states: Array[State], penv: ParallelEnv) -> Array[Action]:
         if self.train_started:
             states = penv.extract(states)
             return self.policy.select_action(states, self.net).squeeze_().numpy()
         else:
-            return self.env.spec.random_actions(states.shape[0])
+            return self.env._spec.random_actions(states.shape[0])
 
     @torch.no_grad()
     def _q_next(self, next_states: Array) -> Tensor:

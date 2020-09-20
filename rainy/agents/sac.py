@@ -92,8 +92,8 @@ class SACAgent(DQNLikeAgent):
                 policy = self.net.policy(state)
                 action = policy.action().cpu().numpy()
         else:
-            action = self.env.spec.random_action()
-        return self.env.spec.clip_action(action)
+            action = self.env._spec.random_action()
+        return self.env._spec.clip_action(action)
 
     def batch_actions(self, states: Array[State], penv: ParallelEnv) -> Array[Action]:
         if self.train_started:
@@ -102,8 +102,8 @@ class SACAgent(DQNLikeAgent):
                 policy = self.net.policy(states)
                 action = policy.action().cpu().numpy()
         else:
-            action = self.env.spec.random_actions(states.shape[0])
-        return self.env.spec.clip_action(action)
+            action = self.env._spec.random_actions(states.shape[0])
+        return self.env._spec.clip_action(action)
 
     def _logpi_and_q(self, states: Tensor, policy: Policy) -> Tuple[Tensor, Tensor]:
         actions = policy.baction()

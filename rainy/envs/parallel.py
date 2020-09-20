@@ -56,15 +56,15 @@ class ParallelEnv(ABC, Generic[Action, State]):
 
     @property
     def action_dim(self) -> int:
-        return self.spec.action_dim
+        return self._spec.action_dim
 
     @property
     def state_dim(self) -> Sequence[int]:
-        return self.spec.state_dim
+        return self._spec.state_dim
 
     @property
     def use_reward_monitor(self) -> bool:
-        return self.spec.use_reward_monitor
+        return self._spec.use_reward_monitor
 
     @abstractmethod
     def extract(self, states: Iterable[State]) -> Array:
@@ -113,7 +113,7 @@ class MultiProcEnv(ParallelEnv):
         assert nworkers >= 2
         envs = [env_gen() for _ in range(nworkers)]
         self.to_array = envs[0].extract
-        self.spec = envs[0].spec
+        self._spec = envs[0]._spec
         self.envs = [_ProcHandler(i, envs[i]) for i in range(nworkers)]
         self.nworkers = nworkers
 
@@ -219,7 +219,7 @@ class _ProcWorker(mp.Process):
 class DummyParallelEnv(ParallelEnv):
     def __init__(self, env_gen: EnvGen, nworkers: int) -> None:
         self.envs = [env_gen() for _ in range(nworkers)]
-        self.spec = self.envs[0].spec
+        self._spec = self.envs[0]._spec
         self.nworkers = nworkers
 
     def close(self) -> None:

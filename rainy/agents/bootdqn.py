@@ -25,7 +25,7 @@ class BootDQNAgent(DQNLikeAgent):
 
     def __init__(self, config: Config) -> None:
         super().__init__(config)
-        if not self.env.spec.is_discrete():
+        if not self.env._spec.is_discrete():
             raise RuntimeError("DQN only supports discrete action space.")
         self.net = config.net("bootdqn")
         self.target_net = copy.deepcopy(self.net)
@@ -50,7 +50,7 @@ class BootDQNAgent(DQNLikeAgent):
                 qs = self.net.q_i_s(self.active_head, self.env.extract(state)).detach()
             return self.policy.select_from_value(qs).item()
         else:
-            return self.env.spec.random_action()
+            return self.env._spec.random_action()
 
     def store_transition(
         self,
