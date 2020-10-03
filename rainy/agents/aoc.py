@@ -107,6 +107,8 @@ class AOCRolloutStorage(RolloutStorage[State]):
         rewards = self.device.tensor(self.rewards)
         self.advs.fill_(0.0)
         qo_i1 = next_uo
+        opt_terminals = self.device.zeros((self.nworkers), dtype=torch.bool)
+        adv_zeros = self.device.zeros((self.nworkers))
         for i in reversed(range(self.nsteps)):
             opt, qo = self.options[i + 1], self.values[i]
             qo_i = qo[self.worker_indices, opt]
@@ -114,12 +116,14 @@ class AOCRolloutStorage(RolloutStorage[State]):
             gamma_i1 = gamma * self.masks[i + 1]
             td_error = rewards[i] + gamma_i1 * qo_i1 - qo_i
             gamma_lambda_i = gamma * lambda_ * self.masks[i]
-            self.advs[i] = td_error + gamma_lambda_i * self.advs[i + 1]
+            adv_i1 = torch.where(opt_terminals, adv_zeros, self.advs[i + 1])
+            self.advs[i] = td_error + gamma_lambda_i * adv_i1
             self.returns[i] = self.advs[i] + qo_i
             qo_i1 = qo_i
             # β-advantage
             delib_cost_i = self.opt_terminals[i + 1] * delib_cost
             self.beta_adv[i] = self._beta_adv(i, qo, opt) + delib_cost_i
+            opt_terminals = self.opt_terminals[i + 1]
 
 
 class AOCAgent(A2CLikeAgent[State]):

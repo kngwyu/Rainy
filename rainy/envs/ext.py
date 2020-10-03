@@ -74,6 +74,7 @@ class EnvExt(gym.Env, Generic[Action, State]):
                 )
         use_reward_monitor = _use_reward_monitor(env)
         self._spec = EnvSpec(obs_shape, self._env.action_space, use_reward_monitor)
+        self._eval = False
 
     def close(self):
         """ Inherited from gym.Env.

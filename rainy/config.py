@@ -158,6 +158,7 @@ class Config:
     def eval_env(self) -> EnvExt:
         if self.__eval_env is None:
             self.__eval_env = self.env()
+            self.__eval_env._eval = True
         return self.__eval_env
 
     @eval_env.setter
@@ -166,6 +167,7 @@ class Config:
             self.action_dim = env.action_dim
             self.state_dim = env.state_dim
         self.__eval_env = env
+        self.__eval_env._eval = True
 
     def explorer(self, key: Optional[str] = None) -> Explorer:
         return self.__explore[key]()
