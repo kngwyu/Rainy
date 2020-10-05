@@ -98,6 +98,7 @@ class Config:
 
         # For PPOC
         self.proximal_update_for_mu = False
+        self.truncate_advantage = False
 
         # Logger and logging frequency
         self.logger = ExperimentLogger(mpi.IS_MPI_ROOT)

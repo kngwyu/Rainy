@@ -101,7 +101,7 @@ class AOCRolloutStorage(RolloutStorage[State]):
             opt_terminals = self.opt_terminals[i + 1]
 
     def calc_gae_returns(
-        self, next_uo: Tensor, gamma: float, lambda_: float, delib_cost: float,
+        self, next_uo: Tensor, gamma: float, lambda_: float, delib_cost: float, truncate: bool = False,
     ) -> None:
         self.returns[-1] = next_uo
         rewards = self.device.tensor(self.rewards)
@@ -116,7 +116,10 @@ class AOCRolloutStorage(RolloutStorage[State]):
             gamma_i1 = gamma * self.masks[i + 1]
             td_error = rewards[i] + gamma_i1 * qo_i1 - qo_i
             gamma_lambda_i = gamma * lambda_ * self.masks[i]
-            adv_i1 = torch.where(opt_terminals, adv_zeros, self.advs[i + 1])
+            if truncate:
+                adv_i1 = torch.where(opt_terminals, adv_zeros, self.advs[i + 1])
+            else:
+                adv_i1 = self.advs[i + 1]
             self.advs[i] = td_error + gamma_lambda_i * adv_i1
             self.returns[i] = self.advs[i] + qo_i
             qo_i1 = qo_i
@@ -243,6 +246,7 @@ class AOCAgent(A2CLikeAgent[State]):
                 self.config.discount_factor,
                 self.config.gae_lambda,
                 self.config.opt_delib_cost,
+                self.config.truncate_advantage,
             )
         else:
             self.storage.calc_ac_returns(

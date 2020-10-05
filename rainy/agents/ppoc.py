@@ -146,6 +146,7 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
                 self.config.discount_factor,
                 self.config.gae_lambda,
                 self.config.opt_delib_cost,
+                self.config.truncate_advantage,
             )
         else:
             self.storage.calc_ac_returns(
