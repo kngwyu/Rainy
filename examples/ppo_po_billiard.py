@@ -1,3 +1,6 @@
+""" Requires mujoco-maze >= 0.1.1
+"""
+
 import os
 
 import click
@@ -9,6 +12,9 @@ from rainy.agents import PPOAgent
 
 
 class PoBilliard(rainy.envs.EnvExt):
+    """ Partially observable Billiard
+    """
+
     def __init__(self, name: str) -> None:
         import gym
         import mujoco_maze  # noqa
@@ -33,7 +39,9 @@ class PoBilliard(rainy.envs.EnvExt):
 
 
 @rainy.main(PPOAgent, script_path=os.path.realpath(__file__))
-def main(envname: str = "PointBilliard-v1", max_steps: int = int(1e6)) -> rainy.Config:
+def main(
+    envname: str = "PointBilliard-v1", max_steps: int = int(1e6), nogru: bool = False,
+) -> rainy.Config:
     c = rainy.Config()
     # Set the environment
     c.set_env(lambda: PoBilliard(envname))
@@ -41,10 +49,11 @@ def main(envname: str = "PointBilliard-v1", max_steps: int = int(1e6)) -> rainy.
         rainy.envs.pybullet_parallel(normalize_obs=False, normalize_reward=False),
     )
     # Set NN
+    rnn = rainy.net.DummyRnn if nogru else rainy.net.GruBlock
     c.set_net_fn(
         "actor-critic",
         rainy.net.actor_critic.fc_shared(
-            policy=rainy.net.policy.SeparateStdGaussianDist, rnn=rainy.net.GruBlock,
+            policy=rainy.net.policy.SeparateStdGaussianDist, rnn=rnn,
         ),
     )
     c.set_optimizer(lambda params: Adam(params, lr=3.0e-4, eps=1.0e-4))
