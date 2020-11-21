@@ -4,8 +4,10 @@ from gym.envs.classic_control import CartPoleEnv
 
 F32_MAX = np.finfo(np.float32).max
 
+__all__ = ["CartPoleSwingUp", "CartPoleSwingUpContinuous"]
 
-class _DynamicsMixIn:
+
+class _SwingUpCommon:
     def _forward(self, force):
         x, x_dot, theta, theta_dot = self.state
         costheta, sintheta = np.cos(theta), np.sin(theta)
@@ -29,8 +31,6 @@ class _DynamicsMixIn:
             theta = theta + self.tau * theta_dot
         return x, x_dot, theta, theta_dot
 
-
-class _SwingUpMixIn(_DynamicsMixIn):
     def _step(self, force):
         x, x_dot, theta, theta_dot = self._forward(force)
         done = bool(x < -self.x_threshold or x > self.x_threshold)
@@ -56,8 +56,18 @@ class _SwingUpMixIn(_DynamicsMixIn):
         self.state = x, x_dot, theta, theta_dot
         return reward, done
 
+    def _obs(self):
+        x, x_dot, theta, theta_dot = self.state
+        obs = np.zeros(5, dtype=np.float32)
+        obs[0] = x / self.x_threshold
+        obs[1] = x_dot / self.x_threshold
+        obs[2] = np.sin(theta)
+        obs[3] = np.cos(theta)
+        obs[4] = theta_dot
+        return obs
 
-class CartPoleSwingUp(CartPoleEnv, _SwingUpMixIn):
+
+class CartPoleSwingUp(CartPoleEnv, _SwingUpCommon):
     START_POSITIONS = ["arbitary", "bottom"]
     ACT_TO_FORCE = [-1.0, 1.0, 0.0]
 
@@ -106,18 +116,8 @@ class CartPoleSwingUp(CartPoleEnv, _SwingUpMixIn):
         self.steps_beyond_done = None
         return self._obs()
 
-    def _obs(self):
-        x, x_dot, theta, theta_dot = self.state
-        obs = np.zeros(5, dtype=np.float32)
-        obs[0] = x / self.x_threshold
-        obs[1] = x_dot / self.x_threshold
-        obs[2] = np.sin(theta)
-        obs[3] = np.cos(theta)
-        obs[4] = theta_dot
-        return obs
 
-
-class CartPoleSwingUpContinuous(CartPoleEnv, _SwingUpMixIn):
+class CartPoleSwingUpContinuous(CartPoleEnv, _SwingUpCommon):
     START_POSITIONS = ["arbitary", "bottom"]
 
     def __init__(
@@ -128,8 +128,6 @@ class CartPoleSwingUpContinuous(CartPoleEnv, _SwingUpMixIn):
         x_reward_threshold=1.0,
         # This is 2.4 in the original CartPole
         x_threshold=3.0,
-        # Aloow 'No operation for action'
-        allow_noop=False,
         move_cost=0.1,
         max_force=1.0,
         min_force=-1.0,
@@ -142,9 +140,6 @@ class CartPoleSwingUpContinuous(CartPoleEnv, _SwingUpMixIn):
         self._theta_dot_threshold = theta_dot_threshold
         self._x_reward_threshold = x_reward_threshold
         self._move_cost = move_cost
-        if allow_noop:
-            self.action_space = spaces.Discrete(3)
-        self.allow_noop = allow_noop
         obs_high = np.array([1.0, F32_MAX, 1.0, 1.0, F32_MAX])
         self.observation_space = spaces.Box(-obs_high, obs_high, dtype=np.float32)
         self.action_space = spaces.Box(np.array([min_force]), np.array([max_force]))
@@ -152,9 +147,6 @@ class CartPoleSwingUpContinuous(CartPoleEnv, _SwingUpMixIn):
         self.force_mag = 10.0
 
     def step(self, force):
-        """
-        action: int
-        """
         force = np.clip(force, *self._force_clipper)
         reward, done = self._step(force * self.force_mag)
         return self._obs(), reward, done, {}
@@ -167,13 +159,3 @@ class CartPoleSwingUpContinuous(CartPoleEnv, _SwingUpMixIn):
             self.state[2] += np.pi
         self.steps_beyond_done = None
         return self._obs()
-
-    def _obs(self):
-        x, x_dot, theta, theta_dot = self.state
-        obs = np.zeros(5, dtype=np.float32)
-        obs[0] = x / self.x_threshold
-        obs[1] = x_dot / self.x_threshold
-        obs[2] = np.sin(theta)
-        obs[3] = np.cos(theta)
-        obs[4] = theta_dot
-        return obs

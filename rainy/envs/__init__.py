@@ -268,6 +268,26 @@ for i, param in enumerate(SWINGUP_PARAMS):
         kwargs=param,
         reward_threshold=800,
     )
+
+
+CONTINUOUS_SWINGUP_PARAMS = [
+    # Normal
+    dict(start_position="bottom"),
+    # Difficult
+    dict(start_position="bottom", height_threshold=0.9),
+    # Easy
+    dict(
+        start_position="bottom",
+        height_threshold=0.0,
+        theta_dot_threshold=1.5,
+        x_reward_threshold=1.5,
+    ),
+    # Arbitary start
+    dict(start_position="arbitary"),
+]
+
+
+for i, param in enumerate(CONTINUOUS_SWINGUP_PARAMS):
     gym.envs.register(
         id=f"CartPoleSwingUpContinuous-v{i}",
         entry_point="rainy.envs.cartpole_ext:CartPoleSwingUpContinuous",
