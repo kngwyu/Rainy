@@ -102,8 +102,7 @@ def fc_separated(
         weight_init=fanin_uniform(), bias_init=constant(0.1)
     ),
 ) -> NetFn:
-    """SAC network with separated bodys
-    """
+    """SAC network with separated bodys"""
 
     def _net(
         state_dim: Sequence[int], action_dim: int, device: Device

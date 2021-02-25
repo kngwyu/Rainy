@@ -1,6 +1,7 @@
 from os.path import realpath
 
 import ppo_atari
+
 import rainy
 from rainy.envs import Atari, atari_parallel
 

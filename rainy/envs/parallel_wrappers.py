@@ -52,11 +52,13 @@ class ParallelEnvWrapper(ParallelEnv[Action, State]):
 
 
 class FrameStackParallel(ParallelEnvWrapper):
-    """Parallel version of atari_wrappers.FrameStack
-    """
+    """Parallel version of atari_wrappers.FrameStack"""
 
     def __init__(
-        self, penv: ParallelEnv, nstack: int = 4, dtype: type = np.float32,
+        self,
+        penv: ParallelEnv,
+        nstack: int = 4,
+        dtype: type = np.float32,
     ) -> None:
         super().__init__(penv)
         idx = 0

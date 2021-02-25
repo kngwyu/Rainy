@@ -30,7 +30,11 @@ class TCRolloutStorage(AOCRolloutStorage):
             qo, opt = self.values[i], self.options[i + 1]
             eps = self.epsilons[i]
             vo = (1 - eps) * qo.max(dim=-1)[0] + eps * qo.mean(-1)
-            ret_i1 = torch.where(opt_terminals, vo, self.returns[i + 1],)
+            ret_i1 = torch.where(
+                opt_terminals,
+                vo,
+                self.returns[i + 1],
+            )
             self.returns[i] = gamma * self.masks[i + 1] * ret_i1 + rewards[i]
             self.advs[i] = self.returns[i] - qo[self.worker_indices, opt]
             opt_terminals = self.opt_terminals[i + 1]
@@ -92,8 +96,7 @@ def calc_beta_adv(
 
 
 class ACTCAgent(A2CLikeAgent[State]):
-    """ACTC: Actor Critic Termination Critic
-    """
+    """ACTC: Actor Critic Termination Critic"""
 
     EPS = 1e-6
     SAVED_MEMBERS = "ac_net", "tc_net", "optimizer", "tc_optimizer"
@@ -141,8 +144,7 @@ class ACTCAgent(A2CLikeAgent[State]):
             self._do_xf_count = False
 
     def _setup_xf_table(self, space: gym.spaces.Box) -> None:
-        """Setup count table to get exact Pμ
-        """
+        """Setup count table to get exact Pμ"""
         if not np.issubdtype(space.dtype, np.integer):
             raise ValueError("raw_observation_space have to be tabular!")
         range_ = space.high - space.low + 1
@@ -162,8 +164,7 @@ class ACTCAgent(A2CLikeAgent[State]):
             self._xf_table[(op, *shape)] += 1
 
     def _pmu_from_count_impl(self, x: Array) -> Array:
-        """Suppose x is (batch, state_dim) array
-        """
+        """Suppose x is (batch, state_dim) array"""
         batch_size = x.shape[0]
         options = torch.cat(self.storage.options[:-1]).cpu().numpy()
         total = self._xf_table[options].reshape(batch_size, -1).sum(-1)  # (batch, )
@@ -184,10 +185,12 @@ class ACTCAgent(A2CLikeAgent[State]):
         self._xs_reserved = self.tensor(self.option_initial_states)
 
     def _sample_options(
-        self, qo: Tensor, beta: BernoulliPolicy, evaluate: bool = False,
+        self,
+        qo: Tensor,
+        beta: BernoulliPolicy,
+        evaluate: bool = False,
     ) -> Tuple[LongTensor, BoolTensor]:
-        """Sample options by ε-Greedy
-        """
+        """Sample options by ε-Greedy"""
         batch_size = qo.size(0)
         if evaluate:
             explorer = self.eval_opt_explorer
@@ -211,7 +214,11 @@ class ACTCAgent(A2CLikeAgent[State]):
         if self.eval_initial_states is None:
             self.eval_initial_states = states.copy()
         beta = self.tc_net.beta(self.eval_initial_states, states)
-        options, _ = self._sample_options(qo, beta, evaluate=True,)
+        options, _ = self._sample_options(
+            qo,
+            beta,
+            evaluate=True,
+        )
         self.eval_prev_options = options
         return opt_policy[self.worker_indices, options]
 
@@ -275,8 +282,7 @@ class ACTCAgent(A2CLikeAgent[State]):
         return (1.0 - beta_next) * qo_current + beta_next * vo
 
     def train(self, last_states: Array[State]) -> None:
-        """Train the agent using N step trajectory
-        """
+        """Train the agent using N step trajectory"""
         # N: Number of Steps W: Number of workers O: Number of options
         N, W = self.config.nsteps, self.config.nworkers
         last_states = self.tensor(self.penv.extract(last_states))

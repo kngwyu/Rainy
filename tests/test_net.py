@@ -3,6 +3,7 @@ from typing import Optional, Tuple
 import numpy as np
 import pytest
 import torch
+from test_env import DummyEnv
 
 from rainy.net import (
     CNNBody,
@@ -14,7 +15,6 @@ from rainy.net import (
 )
 from rainy.net.init import Initializer, kaiming_normal, kaiming_uniform
 from rainy.utils import Device
-from test_env import DummyEnv
 
 ACTION_DIM = 10
 

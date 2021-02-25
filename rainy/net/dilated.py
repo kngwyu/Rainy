@@ -22,7 +22,11 @@ class DilatedRnnBlock(RnnBlock[RS]):
         return self.block.forward_1step(dilated_inputs, hidden, masks)
 
     def forward_nsteps(
-        self, x: Tensor, hidden: RS, masks: Optional[Tensor], nsteps: int,
+        self,
+        x: Tensor,
+        hidden: RS,
+        masks: Optional[Tensor],
+        nsteps: int,
     ) -> Tuple[Tensor, RS]:
         dilated_inputs = self._prepare_inputs(x, nsteps).squeeze_()
         dilated_masks = self._prepare_masks(masks, nsteps)

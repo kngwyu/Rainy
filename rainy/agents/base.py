@@ -1,6 +1,5 @@
 import copy
 import warnings
-
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import (
@@ -25,7 +24,7 @@ from ..config import Config
 from ..envs import ParallelEnv
 from ..lib import mpi
 from ..net import DummyRnn, RnnState
-from ..prelude import Action, Array, State, DEFAULT_SAVEFILE_NAME
+from ..prelude import DEFAULT_SAVEFILE_NAME, Action, Array, State
 from ..replay import ReplayFeed
 
 Netout = Dict[str, Tensor]
@@ -40,8 +39,7 @@ class EpisodeResult(NamedTuple):
 
 
 class Agent(ABC):
-    """Children must call super().__init__(config) first
-    """
+    """Children must call super().__init__(config) first"""
 
     SAVED_MEMBERS: ClassVar[Sequence[str]]
     update_steps: int
@@ -61,14 +59,12 @@ class Agent(ABC):
 
     @abstractmethod
     def train_episodes(self, max_steps: int) -> Iterable[List[EpisodeResult]]:
-        """Train the agent.
-        """
+        """Train the agent."""
         pass
 
     @abstractmethod
     def eval_action(self, state: Array, net_outputs: Optional[Netout] = None) -> Action:
-        """Return the best action according to training results.
-        """
+        """Return the best action according to training results."""
         pass
 
     def eval_reset(self) -> None:
@@ -83,8 +79,7 @@ class Agent(ABC):
         self.logger.submit("network", **kwargs)
 
     def initialize_rollouts(self) -> None:
-        """ This function must be called when train re-started in a different env.
-        """
+        """This function must be called when train re-started in a different env."""
         self.storage.initialize()
 
     def close(self) -> None:
@@ -129,7 +124,11 @@ class Agent(ABC):
         return res
 
     def _result(
-        self, done: bool, info: dict, return_: float, episode_length: int,
+        self,
+        done: bool,
+        info: dict,
+        return_: float,
+        episode_length: int,
     ) -> Optional[EpisodeResult]:
         if self.env.use_reward_monitor:
             if "episode" in info:
@@ -236,8 +235,7 @@ class Agent(ABC):
 
 
 class DQNLikeAgent(Agent, Generic[State, Action, ReplayFeed]):
-    """Agent with 1 step rollout + replay buffer
-    """
+    """Agent with 1 step rollout + replay buffer"""
 
     SUPPORT_PARALLEL_ENV = False
 
@@ -302,8 +300,7 @@ class DQNLikeAgent(Agent, Generic[State, Action, ReplayFeed]):
 
 
 class A2CLikeAgent(Agent, Generic[State]):
-    """Agent with parallel env + nstep rollout
-    """
+    """Agent with parallel env + nstep rollout"""
 
     def __init__(self, config: Config) -> None:
         super().__init__(config)

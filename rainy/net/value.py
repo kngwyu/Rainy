@@ -33,8 +33,7 @@ class DiscreteQFunction(ABC):
 
 
 class DiscreteQValueNet(DiscreteQFunction, nn.Module):
-    """State -> [Value..]
-    """
+    """State -> [Value..]"""
 
     def __init__(
         self,

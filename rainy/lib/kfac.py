@@ -31,8 +31,7 @@ def get_layer(mod: nn.Module) -> Union[Layer, str]:
 def default_sgd(
     eta_max: float = 0.25, momentum: float = 0.9
 ) -> Callable[[Params], Optimizer]:
-    """Returns the SGD optimizer which has the default setting for used with K-FAC.
-    """
+    """Returns the SGD optimizer which has the default setting for used with K-FAC."""
 
     def _sgd(params: Params) -> Optimizer:
         return SGD(params, lr=eta_max * (1.0 - momentum), momentum=momentum)
@@ -54,8 +53,7 @@ class NormScaler(ABC):
 
 
 class SquaredFisherScaler(NormScaler):
-    """Section 5 in https://jimmylba.github.io/papers/nsync.pdf
-    """
+    """Section 5 in https://jimmylba.github.io/papers/nsync.pdf"""
 
     def __init__(self, eta_max: float = 0.25, delta: float = 0.001) -> None:
         self.eta_max2 = eta_max ** 2
@@ -66,8 +64,7 @@ class SquaredFisherScaler(NormScaler):
 
 
 class DiagonalScaler(NormScaler):
-    """https://arxiv.org/abs/1705.09319
-    """
+    """https://arxiv.org/abs/1705.09319"""
 
     def __init__(self, mu: float = 0.001) -> None:
         self.mu = mu
@@ -128,16 +125,14 @@ class KfacPreConditioner(PreConditioner):
         return res
 
     def _save_x(self, mod: nn.Module, input_: Tuple[Tensor, ...]) -> None:
-        """Save the inputs of the layer
-        """
+        """Save the inputs of the layer"""
         if mod.training:
             self.state[mod]["x"], *_ = input_
 
     def _save_g(
         self, mod: nn.Module, _grad_in: tuple, grad_out: Tuple[Tensor, ...]
     ) -> None:
-        """Save the output gradients of the layer
-        """
+        """Save the output gradients of the layer"""
         if mod.training and self._save_grad:
             grad, *_ = grad_out
             self.state[mod]["g"] = grad * grad.size(0)
@@ -159,8 +154,7 @@ class KfacPreConditioner(PreConditioner):
     def _update_params(
         self, weight: Tensor, bias: Optional[Tensor], layer: Layer, state: dict
     ) -> float:
-        """Updates gradients
-        """
+        """Updates gradients"""
         gw, gb = self.__fisher_grad(weight, bias, layer, state)
         fisher_norm = weight.grad.mul(gw).sum().item()
         weight.grad.data.copy_(gw)
@@ -172,8 +166,7 @@ class KfacPreConditioner(PreConditioner):
     def __fisher_grad(
         self, weight: Tensor, bias: Optional[Tensor], layer: Layer, state: dict
     ) -> Tuple[Tensor, Optional[Tensor]]:
-        """Computes F^{-1}∇h
-        """
+        """Computes F^{-1}∇h"""
         grad = weight.grad.data
         if layer is Layer.CONV2D:
             grad = grad.view(grad.size(0), -1)
@@ -189,15 +182,13 @@ class KfacPreConditioner(PreConditioner):
         return gw.reshape(weight.shape), gb
 
     def __eigend(self, state: dict) -> None:
-        """Computes eigen decomposition of E[xx] and E[gg]
-        """
+        """Computes eigen decomposition of E[xx] and E[gg]"""
         ex, state["vx"] = torch.symeig(state["xxt"], eigenvectors=True)
         eg, state["vg"] = torch.symeig(state["ggt"], eigenvectors=True)
         state["eg*ex"] = torch.ger(eg.clamp_(min=self.eps), ex.clamp_(min=self.eps))
 
     def __xxt(self, group: dict, state: dict) -> None:
-        """Computes E[xi xj]^T and memorize it
-        """
+        """Computes E[xi xj]^T and memorize it"""
         mod = group["mod"]
         x = self.state[mod]["x"]
         if group["layer_type"] is Layer.CONV2D:
@@ -210,8 +201,7 @@ class KfacPreConditioner(PreConditioner):
         self.__average(state, "xxt", x, float(x.size(1)))
 
     def __ggt(self, group: dict, state: dict) -> None:
-        """Computes E[gi gj]^T and memorize it
-        """
+        """Computes E[gi gj]^T and memorize it"""
         g = self.state[group["mod"]]["g"]
         if group["layer_type"] is Layer.CONV2D:
             g = g.data.transpose(1, 0).reshape(g.size(1), -1)
@@ -220,13 +210,15 @@ class KfacPreConditioner(PreConditioner):
         self.__average(state, "ggt", g, float(g.size(1)))
 
     def __average(self, state: dict, param: str, mat: Tensor, scale: float) -> None:
-        """Computes the moving average X <- βX + (1-β)X'
-        """
+        """Computes the moving average X <- βX + (1-β)X'"""
         if self._counter == 0:
             state[param] = torch.mm(mat, mat.t()).div_(scale)
         else:
             state[param].addmm_(
-                mat1=mat, mat2=mat.t(), beta=self.beta, alpha=(1 - self.beta) / scale,
+                mat1=mat,
+                mat2=mat.t(),
+                beta=self.beta,
+                alpha=(1 - self.beta) / scale,
             )
 
     @contextmanager

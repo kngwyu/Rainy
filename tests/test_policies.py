@@ -11,8 +11,14 @@ from rainy.net import policy as P
     "policy, check",
     [
         (P.BernoulliPolicy(logits=torch.randn(10)), lambda x: x == 0.0 or x == 1.0),
-        (P.CategoricalPolicy(logits=torch.randn(10, 10)), lambda x: 0 <= x < 10,),
-        (P.GaussianPolicy(torch.zeros(10), torch.ones(10)), lambda x: -10 <= x <= 10,),
+        (
+            P.CategoricalPolicy(logits=torch.randn(10, 10)),
+            lambda x: 0 <= x < 10,
+        ),
+        (
+            P.GaussianPolicy(torch.zeros(10), torch.ones(10)),
+            lambda x: -10 <= x <= 10,
+        ),
         (
             P.TanhGaussianPolicy(torch.zeros(10), torch.ones(10)),
             lambda x: -1 <= x <= 1,

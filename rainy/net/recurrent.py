@@ -61,7 +61,11 @@ class RnnBlock(Generic[RS], nn.Module):
 
     @abstractmethod
     def forward_nsteps(
-        self, x: Tensor, hidden: RS, masks: Optional[Tensor], nsteps: int,
+        self,
+        x: Tensor,
+        hidden: RS,
+        masks: Optional[Tensor],
+        nsteps: int,
     ) -> Tuple[Tensor, RS]:
         pass
 
@@ -156,7 +160,11 @@ class LstmBlock(RnnBlock[LstmState]):
         return out.squeeze(0), LstmState(h, c)
 
     def forward_nsteps(
-        self, x: Tensor, hidden: RS, masks: Optional[Tensor], nsteps: int,
+        self,
+        x: Tensor,
+        hidden: RS,
+        masks: Optional[Tensor],
+        nsteps: int,
     ) -> Tuple[Tensor, RS]:
         res, h, c = [], hidden.h, hidden.c
         for start, end in _haszero_iter(masks, nsteps):
@@ -212,7 +220,11 @@ class GruBlock(RnnBlock[GruState]):
         return out.squeeze(0), GruState(h.squeeze_(0))
 
     def forward_nsteps(
-        self, x: Tensor, hidden: GruState, masks: Optional[Tensor], nsteps: int,
+        self,
+        x: Tensor,
+        hidden: GruState,
+        masks: Optional[Tensor],
+        nsteps: int,
     ) -> Tuple[Tensor, GruState]:
         res, h = [], hidden.h
         for start, end in _haszero_iter(masks, nsteps):
@@ -253,7 +265,11 @@ class DummyRnn(RnnBlock[DummyState]):
         return x, hidden
 
     def forward_nsteps(
-        self, x: Tensor, hidden: DummyState, masks: Optional[Tensor], nsteps: int,
+        self,
+        x: Tensor,
+        hidden: DummyState,
+        masks: Optional[Tensor],
+        nsteps: int,
     ) -> Tuple[Tensor, DummyState]:
         return x, hidden
 

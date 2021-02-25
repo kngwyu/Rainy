@@ -337,8 +337,8 @@ def wrap_deepmind(
     frame_stack: bool = True,
 ) -> gym.Env:
     """Configure environment for DeepMind-style Atari.
-       About FireResetEnv, I recommend to see the discussion at
-       https://github.com/openai/baselines/issues/240.
+    About FireResetEnv, I recommend to see the discussion at
+    https://github.com/openai/baselines/issues/240.
     """
     if episodic_life:
         env = EpisodicLifeEnv(env)

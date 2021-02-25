@@ -61,7 +61,9 @@ class PPOAgent(A2CAgent, PPOLossMixIn):
 
         if self.config.use_gae:
             self.storage.calc_gae_returns(
-                next_value, self.config.discount_factor, self.config.gae_lambda,
+                next_value,
+                self.config.discount_factor,
+                self.config.gae_lambda,
             )
         else:
             self.storage.calc_ac_returns(next_value, self.config.discount_factor)

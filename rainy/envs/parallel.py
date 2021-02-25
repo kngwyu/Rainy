@@ -9,8 +9,8 @@ from typing import (
     NamedTuple,
     Optional,
     Sequence,
-    Union,
     Type,
+    Union,
 )
 
 import numpy as np
@@ -95,8 +95,7 @@ class ParallelEnv(ABC, Generic[Action, State]):
         return self
 
     def as_cls(self, cls: Union[str, Type[Self]]) -> Optional[Self]:
-        """Get the specified class from the wrapper `self`
-        """
+        """Get the specified class from the wrapper `self`"""
         if isinstance(cls, str):
             if self.__class__.__name__ == cls:
                 return self

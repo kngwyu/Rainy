@@ -22,8 +22,7 @@ class EnvTransition(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
 
 
 class EnvSpec:
-    """EnvSpec holds obs/action dims and monitors
-    """
+    """EnvSpec holds obs/action dims and monitors"""
 
     def __init__(
         self,
@@ -77,28 +76,23 @@ class EnvExt(gym.Env, Generic[Action, State]):
         self._eval = False
 
     def close(self):
-        """ Inherited from gym.Env.
-        """
+        """Inherited from gym.Env."""
         self._env.close()
 
     def reset(self) -> State:
-        """ Inherited from gym.Env.
-        """
+        """Inherited from gym.Env."""
         return self._env.reset()
 
     def render(self, mode: str = "human") -> Optional[Array]:
-        """ Inherited from gym.Env.
-        """
+        """Inherited from gym.Env."""
         return self._env.render(mode=mode)
 
     def seed(self, seed: int) -> None:
-        """ Inherited from gym.Env.
-        """
+        """Inherited from gym.Env."""
         self._env.seed(seed)
 
     def step(self, action: Action) -> EnvTransition:
-        """ Inherited from gym.Env.
-        """
+        """Inherited from gym.Env."""
         return EnvTransition(*self._env.step(action))
 
     def step_and_render(self, action: Action, render: bool = False) -> EnvTransition:
@@ -116,8 +110,7 @@ class EnvExt(gym.Env, Generic[Action, State]):
 
     @property
     def unwrapped(self) -> gym.Env:
-        """ Inherited from gym.Env.
-        """
+        """Inherited from gym.Env."""
         return self._env.unwrapped
 
     @property
@@ -138,8 +131,7 @@ class EnvExt(gym.Env, Generic[Action, State]):
 
     @property
     def use_reward_monitor(self) -> bool:
-        """ Atari wrappers need RewardMonitor for evaluation.
-        """
+        """Atari wrappers need RewardMonitor for evaluation."""
         return self._spec.use_reward_monitor
 
     @property

@@ -89,7 +89,12 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
         else:
             self._mu_policy_loss = self._normal_policy_loss
 
-    def _normal_policy_loss(self, policy: Policy, advantages: Tensor, *args,) -> Tensor:
+    def _normal_policy_loss(
+        self,
+        policy: Policy,
+        advantages: Tensor,
+        *args,
+    ) -> Tensor:
         return -(policy.log_prob() * advantages).mean()
 
     def _value_loss(self, qo: Tensor, options: Tensor, returns: Tensor) -> Tensor:
@@ -100,7 +105,10 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
         batch_size = states.shape[0]
         pio, _, beta, mu = self.net(states)
         options, _ = self._sample_options(
-            mu, beta, self.eval_prev_options[:batch_size], evaluation_phase=True,
+            mu,
+            beta,
+            self.eval_prev_options[:batch_size],
+            evaluation_phase=True,
         )
         self.eval_prev_options[:batch_size] = options
         return pio, options
@@ -168,7 +176,9 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
                 pi = pio[self.batch_indices, batch.options]
                 pi.set_action(batch.actions)
                 policy_loss = self._proximal_policy_loss(
-                    pi, batch.advantages, batch.old_log_probs,
+                    pi,
+                    batch.advantages,
+                    batch.old_log_probs,
                 )
                 # Value loss
                 value_loss = self._value_loss(qo, batch.options, batch.returns)
@@ -212,6 +222,11 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
 
         p, v, b, pe, m, me = (x / self.num_updates for x in (p, v, b, pe, m, me))
         self.network_log(
-            policy_loss=p, value_loss=v, beta_loss=b, entropy=pe, mu=m, mu_entropy=me,
+            policy_loss=p,
+            value_loss=v,
+            beta_loss=b,
+            entropy=pe,
+            mu=m,
+            mu_entropy=me,
         )
         self.storage.reset()

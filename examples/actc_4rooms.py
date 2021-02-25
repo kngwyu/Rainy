@@ -8,6 +8,7 @@ from typing import Tuple
 
 import numpy as np
 import torch
+from rlpy.gym import RLPyEnv
 from torch import Tensor, optim
 
 import rainy
@@ -15,7 +16,6 @@ from rainy.envs import MultiProcEnv, RLPyGridWorld
 from rainy.lib.hooks import EvalHook
 from rainy.net import termination_critic as tc
 from rainy.prelude import State
-from rlpy.gym import RLPyEnv
 
 
 def _to_np(batch_size: int, env: RLPyEnv) -> callable:
@@ -70,7 +70,10 @@ class OptionVisualizeHook(EvalHook):
             )
 
     def reset(
-        self, agent: rainy.agents.Agent, env: rainy.envs.EnvExt, initial_state: State,
+        self,
+        agent: rainy.agents.Agent,
+        env: rainy.envs.EnvExt,
+        initial_state: State,
     ) -> None:
         xs, xf = self._xs_xf(env.unwrapped, initial_state, env.extract)
         to_np = _to_np(xf.size(0), env.unwrapped)
@@ -153,10 +156,13 @@ def main(
     c.tc_exact_pmu = "GridWorld" in envname
     if obs_type == "image":
         CONV_ARGS = dict(
-            hidden_channels=(8, 8), feature_dim=128, cnn_params=[(4, 1), (2, 1)],
+            hidden_channels=(8, 8),
+            feature_dim=128,
+            cnn_params=[(4, 1), (2, 1)],
         )
         c.set_net_fn(
-            "actor-critic", tc.oac_conv_shared(num_options=num_options, **CONV_ARGS),
+            "actor-critic",
+            tc.oac_conv_shared(num_options=num_options, **CONV_ARGS),
         )
         c.set_net_fn(
             "termination-critic",
@@ -164,10 +170,12 @@ def main(
         )
     else:
         c.set_net_fn(
-            "actor-critic", tc.oac_fc_shared(num_options=num_options),
+            "actor-critic",
+            tc.oac_fc_shared(num_options=num_options),
         )
         c.set_net_fn(
-            "termination-critic", tc.tc_fc_shared(num_options=num_options),
+            "termination-critic",
+            tc.tc_fc_shared(num_options=num_options),
         )
     return c
 

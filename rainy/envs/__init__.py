@@ -149,7 +149,10 @@ class RLPyGridWorld(EnvExt):
     }
 
     def __init__(
-        self, name: str = "4Rooms", obs_type: str = "image", max_steps: int = 100,
+        self,
+        name: str = "4Rooms",
+        obs_type: str = "image",
+        max_steps: int = 100,
     ) -> None:
         try:
             from rlpy.gym import gridworld_obs
@@ -171,8 +174,7 @@ class RLPyGridWorld(EnvExt):
 
 
 class PyBullet(EnvExt):
-    """PyBullet  environment.
-    """
+    """PyBullet  environment."""
 
     def __init__(
         self, name: str = "Hopper", add_timestep: bool = False, nosuffix: bool = False

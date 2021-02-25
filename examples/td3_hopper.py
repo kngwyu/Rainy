@@ -9,7 +9,9 @@ from rainy.lib import explore
 
 @rainy.main(TD3Agent, os.path.realpath(__file__))
 def main(
-    envname: str = "Hopper", nworkers: int = 1, mujoco: bool = False,
+    envname: str = "Hopper",
+    nworkers: int = 1,
+    mujoco: bool = False,
 ) -> rainy.Config:
     c = rainy.Config()
     if mujoco:

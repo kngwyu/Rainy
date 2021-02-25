@@ -11,8 +11,7 @@ from .atari_wrappers import LazyFrames
 
 
 class TransposeObs(gym.ObservationWrapper):
-    """Transpose & Scale image
-    """
+    """Transpose & Scale image"""
 
     def __init__(
         self,
@@ -40,8 +39,7 @@ class TransposeObs(gym.ObservationWrapper):
 
 
 class ScaleObs(gym.ObservationWrapper):
-    """Transpose & Scale image
-    """
+    """Transpose & Scale image"""
 
     def __init__(self, env: gym.Env, scale: float = 255.0) -> None:
         super().__init__(env)

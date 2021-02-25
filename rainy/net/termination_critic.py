@@ -17,34 +17,29 @@ from .prelude import NetFn
 
 
 class OptionActorCriticNet(nn.Module, ABC):
-    """Actor Critic Networks with options
-    """
+    """Actor Critic Networks with options"""
 
     num_options: int
     state_dim: Sequence[int]
 
     @abstractmethod
     def qo(self, states: ArrayLike) -> Tensor:
-        """ Returns Qo(states, ・), of which the shape is batch_size x n_options.
-        """
+        """Returns Qo(states, ・), of which the shape is batch_size x n_options."""
         pass
 
     @abstractmethod
     def policy(self, states: ArrayLike) -> Policy:
-        """ Returns π(states), of which the shape is batch_size x n_options.
-        """
+        """Returns π(states), of which the shape is batch_size x n_options."""
         pass
 
     @abstractmethod
     def forward(self, states: ArrayLike) -> Tuple[Policy, Tensor]:
-        """ Returns π(states) and Qo(states, ・).
-        """
+        """Returns π(states) and Qo(states, ・)."""
         pass
 
 
 class SharedOACNet(OptionActorCriticNet):
-    """ OptionCriticNet with shared body and separate π and Qo heads.
-    """
+    """OptionCriticNet with shared body and separate π and Qo heads."""
 
     def __init__(
         self,
@@ -107,7 +102,9 @@ def oac_conv_shared(
 
 
 def oac_fc_shared(
-    num_options: int = 4, policy: Type[PolicyDist] = CategoricalDist, **fc_args,
+    num_options: int = 4,
+    policy: Type[PolicyDist] = CategoricalDist,
+    **fc_args,
 ) -> NetFn:
     def _net(state_dim: Sequence[int], action_dim: int, device: Device) -> SharedOACNet:
         body = FCBody(state_dim[0], **fc_args)
@@ -127,8 +124,7 @@ class TCOutput(NamedTuple):
 
 
 class TerminationCriticNet(nn.Module, ABC):
-    """Termination β and with transition models
-    """
+    """Termination β and with transition models"""
 
     state_dim: Sequence[int]
 
@@ -161,13 +157,16 @@ class SharedTCNet(TerminationCriticNet):
         feature_in = body1.output_dim + body2.output_dim
         self.feature = LinearHead(feature_in, feature_dim, init=init)
         self.beta_head = nn.Sequential(
-            LinearHead(feature_dim, num_options, init=init), BernoulliDist(),
+            LinearHead(feature_dim, num_options, init=init),
+            BernoulliDist(),
         )
         self.p_head = nn.Sequential(
-            LinearHead(feature_dim, num_options, init=init), nn.Sigmoid(),
+            LinearHead(feature_dim, num_options, init=init),
+            nn.Sigmoid(),
         )
         self.p_mu_head = nn.Sequential(
-            LinearHead(feature_dim, num_options, init=init), nn.Sigmoid(),
+            LinearHead(feature_dim, num_options, init=init),
+            nn.Sigmoid(),
         )
         self.baseline_head = LinearHead(feature_dim, num_options, init=init)
         self.device = device

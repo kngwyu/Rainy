@@ -19,8 +19,7 @@ class ACKTRAgent(A2CAgent):
         self.precond = config.preconditioner(self.net)
 
     def _pre_backward(self, policy: Policy, value: torch.Tensor) -> None:
-        """Calculate emprical fisher loss
-        """
+        """Calculate emprical fisher loss"""
         self.net.zero_grad()
         policy_fisher_loss = -policy.log_prob().mean()
         sample_value = torch.randn_like(value) + value.detach()
@@ -30,8 +29,7 @@ class ACKTRAgent(A2CAgent):
             fisher_loss.backward(retain_graph=True)
 
     def _step_optimizer(self) -> None:
-        """Approximates F^-1∇h and apply it.
-        """
+        """Approximates F^-1∇h and apply it."""
         self.precond.step()
         self.optimizer.step()
         self.lr_cooler.lr_decay(self.optimizer)

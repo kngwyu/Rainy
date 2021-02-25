@@ -175,7 +175,10 @@ class Experiment:
         self._retrain_impl(eval_render)
 
     def evaluate(
-        self, render: bool = False, replay: bool = False, pause: bool = False,
+        self,
+        render: bool = False,
+        replay: bool = False,
+        pause: bool = False,
     ) -> None:
         if self.config.save_eval_actions:
             action_file = "eval-" + self._action_file.as_posix()
@@ -216,7 +219,10 @@ class Experiment:
         self.evaluate(render=render, replay=replay, pause=pause)
 
     def random(
-        self, render: bool = False, replay: bool = False, pause: bool = False,
+        self,
+        render: bool = False,
+        replay: bool = False,
+        pause: bool = False,
     ) -> None:
 
         if self.config.save_eval_actions:

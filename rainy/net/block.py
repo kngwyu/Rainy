@@ -11,8 +11,7 @@ from .init import Initializer, orthogonal
 
 
 class NetworkBlock(nn.Module, ABC):
-    """Defines a NN block which returns 1-dimension Tensor
-    """
+    """Defines a NN block which returns 1-dimension Tensor"""
 
     input_dim: Sequence[int]
     output_dim: int
@@ -24,8 +23,7 @@ class DummyBlock(nn.Module):
 
 
 class LinearHead(NetworkBlock):
-    """One FC layer
-    """
+    """One FC layer"""
 
     def __init__(
         self, input_dim: int, output_dim: int, init: Initializer = Initializer()
@@ -40,8 +38,7 @@ class LinearHead(NetworkBlock):
 
 
 class RPFLinearHead(NetworkBlock):
-    """FC layer with Randomized Prior function(https://arxiv.org/abs/1806.03335)
-    """
+    """FC layer with Randomized Prior function(https://arxiv.org/abs/1806.03335)"""
 
     def __init__(
         self,
@@ -96,8 +93,7 @@ class CNNBody(NetworkBlock):
 
 
 class CNNBodyWithoutFC(NetworkBlock):
-    """Almost the same as CNNBody, but has no FC layer
-    """
+    """Almost the same as CNNBody, but has no FC layer"""
 
     def __init__(
         self,
@@ -147,7 +143,10 @@ class BatchNormCNN(NetworkBlock):
 
 class ResBlock(nn.Sequential):
     def __init__(
-        self, channel: int, stride: int = 1, use_batch_norm: bool = True,
+        self,
+        channel: int,
+        stride: int = 1,
+        use_batch_norm: bool = True,
     ) -> None:
         super().__init__(
             nn.ReLU(inplace=True),
@@ -183,8 +182,7 @@ class ResBlock(nn.Sequential):
 
 
 class ResNetBody(NetworkBlock):
-    """Convolutuion Network used in IMPALA
-    """
+    """Convolutuion Network used in IMPALA"""
 
     def __init__(
         self,
@@ -275,8 +273,7 @@ def make_cnns(
     params: Sequence[tuple],
     hidden_channels: Sequence[int],
 ) -> Tuple[List[nn.Conv2d], int]:
-    """Make a list of CNNs from lists of parameters.
-    """
+    """Make a list of CNNs from lists of parameters."""
     channel, height, width = input_dim  # input is CHW
     hiddens = list(hidden_channels)
     res = []
@@ -290,7 +287,7 @@ def calc_cnn_hidden(
     params: Sequence[tuple], height: int, width: int
 ) -> Tuple[int, int]:
     """Calcurate hidden dim of a CNN.
-       See https://pytorch.org/docs/stable/nn.html#torch.nn.Conv2d for detail.
+    See https://pytorch.org/docs/stable/nn.html#torch.nn.Conv2d for detail.
     """
     for param in params:
         kernel, stride, pad = param if len(param) > 2 else (*param, 0)

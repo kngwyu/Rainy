@@ -8,7 +8,9 @@ from rainy.lib import kfac
 
 @rainy.main(ACKTRAgent, script_path=os.path.realpath(__file__))
 def main(
-    envname: str = "CartPole-v0", tau: float = 12 * 20, update_freq: int = 10,
+    envname: str = "CartPole-v0",
+    tau: float = 12 * 20,
+    update_freq: int = 10,
 ) -> rainy.Config:
     c = rainy.Config()
     c.set_env(lambda: ClassicControl(envname))

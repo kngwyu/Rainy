@@ -31,7 +31,9 @@ class TD3Agent(DDPGAgent):
         self.eval_explorer = config.explorer(key="eval")
         self.replay = config.replay_buffer()
         self.batch_indices = config.device.indices(config.replay_batch_size)
-        self.action_range = tuple(torch.from_numpy(t) for t in self.env._spec._act_range)
+        self.action_range = tuple(
+            torch.from_numpy(t) for t in self.env._spec._act_range
+        )
 
     @torch.no_grad()
     def _q_next(self, next_states: Array) -> Tensor:

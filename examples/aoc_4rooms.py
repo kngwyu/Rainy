@@ -7,6 +7,7 @@ import os
 
 import numpy as np
 import torch
+from rlpy.gym import RLPyEnv
 from torch import optim
 
 import rainy
@@ -14,7 +15,6 @@ from rainy.envs import MultiProcEnv, RLPyGridWorld
 from rainy.lib.hooks import EvalHook
 from rainy.net import option_critic as oc
 from rainy.prelude import State
-from rlpy.gym import RLPyEnv
 
 
 def _to_np(batch_size: int, env: RLPyEnv) -> callable:
@@ -36,7 +36,10 @@ def _to_np(batch_size: int, env: RLPyEnv) -> callable:
 
 class OptionVisualizeHook(EvalHook):
     def __init__(
-        self, num_options: int, vis_beta: bool = True, vis_pi: bool = True,
+        self,
+        num_options: int,
+        vis_beta: bool = True,
+        vis_pi: bool = True,
     ) -> None:
         self.num_options = num_options
         self.vis_beta = vis_beta

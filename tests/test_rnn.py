@@ -12,7 +12,8 @@ def dilated_gru(input_dim: int, output_dim: int) -> DilatedRnnBlock:
 
 
 @pytest.mark.parametrize(
-    "rnn_gen", [GruBlock, LstmBlock, dilated_gru],
+    "rnn_gen",
+    [GruBlock, LstmBlock, dilated_gru],
 )
 def test_rnn(rnn_gen: Callable[[int, int], RnnBlock]) -> None:
     TIME_STEP = 10
