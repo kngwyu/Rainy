@@ -1,3 +1,4 @@
+import dataclasses
 from abc import ABC, abstractmethod
 from typing import Generic, Iterable, Optional, Tuple, TypeVar
 
@@ -105,13 +106,10 @@ def _haszero_iter(mask: Tensor) -> Iterable[Tuple[int, int]]:
     return zip([0] + zero_indices_plus1, zero_indices_plus1 + [mask.size(0)])
 
 
+@dataclasses.dataclass()
 class LstmState(RnnState):
-    def __init__(self, h: Tensor, c: Tensor, squeeze: bool = True) -> None:
-        self.h = h
-        self.c = c
-        if squeeze:
-            self.h.squeeze_(0)
-            self.c.squeeze_(0)
+    h: Tensor
+    c: Tensor
 
     def __getitem__(self, x: Index) -> Self:
         return LstmState(self.h[x], self.c[x])
@@ -151,7 +149,7 @@ class LstmBlock(RnnBlock[LstmState]):
         self, x: Tensor, hidden: RS, masks: Optional[Tensor]
     ) -> Tuple[Tensor, RS]:
         out, (h, c) = self.lstm(x.unsqueeze(0), _apply_mask2(masks, hidden.h, hidden.c))
-        return out.squeeze(0), LstmState(h, c)
+        return out.squeeze(0), LstmState(h.squeeze_(0), c.squeeze_(0))
 
     def forward_nsteps(
         self,
@@ -164,14 +162,17 @@ class LstmBlock(RnnBlock[LstmState]):
             m = masks[start].view(1, -1, 1)
             processed, (h, c) = self.lstm(x[start:end], (h * m, c * m))
             res.append(processed)
-        return torch.cat(res), LstmState(h, c)
+        return torch.cat(res), LstmState(h.squeeze_(0), c.squeeze_(0))
 
     def initial_state(self, batch_size: int, device: Device) -> LstmState:
         zeros = device.zeros((batch_size, self.output_dim))
-        return LstmState(zeros, zeros, squeeze=False)
+        return LstmState(zeros, zeros)
 
 
+@dataclasses.dataclass()
 class GruState(RnnState):
+    h: Tensor
+
     def __init__(self, h: Tensor) -> None:
         self.h = h
 
