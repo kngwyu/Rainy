@@ -60,6 +60,7 @@ def test_acnet(
     assert policy.log_prob().shape == batch_size
     assert policy.entropy().shape == batch_size
     assert values.shape == batch_size
+    env.close()
 
 
 @pytest.mark.parametrize(
