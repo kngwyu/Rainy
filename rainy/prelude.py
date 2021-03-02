@@ -2,18 +2,6 @@ from typing import Any, Iterable, List, Sequence, Tuple, TypeVar, Union
 
 from torch import Tensor
 
-try:
-    from typing import GenericMeta, NamedTupleMeta  # type: ignore
-
-    class GenericNamedMeta(NamedTupleMeta, GenericMeta):
-        pass
-
-
-except ImportError:
-    from typing import NamedTupleMeta  # type: ignore
-
-    GenericNamedMeta = NamedTupleMeta  # type: ignore
-
 T = TypeVar("T")
 Self = Any
 Index = Union[None, int, slice, Tensor, List[Any], Tuple[Any, ...]]

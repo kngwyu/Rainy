@@ -56,14 +56,19 @@ class BootDQNAgent(DQNLikeAgent):
         self,
         state: State,
         action: Action,
-        next_state: State,
-        reward: float,
-        terminal: bool,
+        transition: EnvTransition,
     ) -> None:
         randn = np.random.uniform(0, 1, self.config.num_ensembles)
         # Masks some observations per ensemble
         mask = randn < self.config.replay_prob
-        self.replay.append(state, action, next_state, reward, terminal, mask)
+        self.replay.append(
+            state,
+            action,
+            transition.state,
+            transition.reward,
+            transiiton.terminal,
+            mask,
+        )
         # If the episode ends, change the executing policy
         if terminal:
             self.active_head = np.random.randint(self.config.num_ensembles)

@@ -1,8 +1,9 @@
-from typing import Callable, Generic, List, NamedTuple, Tuple, Type
+import dataclasses
+from typing import Callable, Generic, List, Tuple, Type
 
 import numpy as np
 
-from ..prelude import Array, GenericNamedMeta, State
+from ..prelude import Array, State
 from ..utils import sample_indices
 from .array_deque import ArrayDeque
 from .base import ReplayBuffer, ReplayFeed
@@ -33,7 +34,8 @@ class UniformReplayBuffer(ReplayBuffer, Generic[ReplayFeed]):
         return len(self.buf)
 
 
-class DQNReplayFeed(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
+@dataclasses.dataclass(frozen=True)
+class DQNReplayFeed(Generic[State]):
     state: State
     action: int
     next_state: State
@@ -52,7 +54,8 @@ class DQNReplayFeed(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
         )
 
 
-class BootDQNReplayFeed(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
+@dataclasses.dataclass(frozen=True)
+class BootDQNReplayFeed(Generic[State]):
     state: State
     action: int
     next_state: State

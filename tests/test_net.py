@@ -52,7 +52,7 @@ def test_acnet(
     assert net.action_dim == ACTION_DIM
     env = DummyEnv()
     states = np.stack(
-        [env.step(None)[0].to_array(state_dim) for _ in range(batch_size)]
+        [env.step(None).state.to_array(state_dim) for _ in range(batch_size)]
     )
     policy, values, _ = net(states)
     batch_size = torch.Size([batch_size])

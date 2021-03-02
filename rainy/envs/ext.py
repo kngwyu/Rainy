@@ -1,24 +1,25 @@
 """Environment specifications:
 """
-from typing import Callable, Generic, NamedTuple, Optional, Sequence, Type, Union
+import dataclasses
+from typing import Any, Generic, Iterable, Optional, Sequence, Type, Union
 
 import gym
 import numpy as np
 from gym import spaces
 
-from ..prelude import Action, Array, GenericNamedMeta, Self, State
+from ..prelude import Action, Array, Self, State
 from .monitor import RewardMonitor
 
 
-class EnvTransition(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
+@dataclasses.dataclass(frozen=True)
+class EnvTransition(Generic[State]):
     state: State
     reward: float
     terminal: bool
     info: dict
 
-    def map_r(self, f: Callable[[float], float]) -> Self:
-        s, r, t, i = self
-        return EnvTransition(s, f(r), t, i)
+    def __iter__(self) -> Iterable[Any]:
+        return iter(dataclasses.astuple(self))
 
 
 class EnvSpec:
@@ -104,7 +105,7 @@ class EnvExt(gym.Env, Generic[Action, State]):
     def step_and_reset(self, action: Action) -> EnvTransition:
         transition = self.step(action)
         if transition.terminal:
-            return EnvTransition(self.reset(), *transition[1:])
+            return dataclasses.replace(transition, state=self.reset())
         else:
             return transition
 

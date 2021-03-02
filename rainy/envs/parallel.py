@@ -1,37 +1,28 @@
+import dataclasses
 import multiprocessing as mp
 from abc import ABC, abstractmethod
 from multiprocessing.connection import Connection
-from typing import (
-    Any,
-    Callable,
-    Generic,
-    Iterable,
-    NamedTuple,
-    Optional,
-    Sequence,
-    Type,
-    Union,
-)
+from typing import Any, Callable, Generic, Iterable, Optional, Sequence, Type, Union
 
 import numpy as np
 from numpy import ndarray
 
-from ..prelude import Action, Array, GenericNamedMeta, Self, State
+from ..prelude import Action, Array, Self, State
 from ..utils import mp_utils
 from .ext import EnvExt, EnvSpec
 
 EnvGen = Callable[[], EnvExt]
 
 
-class PEnvTransition(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
+@dataclasses.dataclass(frozen=True)
+class PEnvTransition(Generic[State]):
     states: Array[State]
     rewards: Array[float]
     terminals: Array[bool]
     infos: Array[dict]
 
-    def map_r(self, f: Callable[[Array[float]], Array[float]]) -> Self:
-        s, r, t, i = self
-        return PEnvTransition(s, f(r), t, i)
+    def __iter__(self) -> Iterable[Array]:
+        return iter(dataclasses.astuple(self))
 
 
 class ParallelEnv(ABC, Generic[Action, State]):
@@ -128,7 +119,7 @@ class MultiProcEnv(ParallelEnv):
     def step(self, actions: Iterable[Action]) -> PEnvTransition:
         for env, action in zip(self.envs, actions):
             env.step(action)
-        res = [env.recv() for env in self.envs]
+        res = [dataclasses.astuple(env.recv()) for env in self.envs]
         return PEnvTransition(*map(np.array, zip(*res)))
 
     def seed(self, seeds: Iterable[int]) -> None:
@@ -229,7 +220,10 @@ class DummyParallelEnv(ParallelEnv):
         return np.array([e.reset() for e in self.envs])
 
     def step(self, actions: Iterable[Action]) -> PEnvTransition:
-        res = [e.step_and_reset(a) for (a, e) in zip(actions, self.envs)]
+        res = [
+            dataclasses.astuple(e.step_and_reset(a))
+            for (a, e) in zip(actions, self.envs)
+        ]
         return PEnvTransition(*map(np.array, zip(*res)))
 
     def seed(self, seeds: Iterable[int]) -> None:

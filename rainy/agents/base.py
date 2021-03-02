@@ -1,6 +1,7 @@
 import copy
 import warnings
 from abc import ABC, abstractmethod
+from dataclasses import replace
 from pathlib import Path
 from typing import (
     Callable,
@@ -21,7 +22,7 @@ import torch
 from torch import Tensor, nn
 
 from ..config import Config
-from ..envs import ParallelEnv
+from ..envs import EnvTransition, ParallelEnv
 from ..lib import mpi
 from ..net import DummyRnn, RnnState
 from ..prelude import DEFAULT_SAVEFILE_NAME, Action, Array, State
@@ -255,11 +256,11 @@ class DQNLikeAgent(Agent, Generic[State, Action, ReplayFeed]):
         self,
         state: State,
         action: Action,
-        next_state: State,
-        reward: float,
-        terminal: bool,
+        transiiton: EnvTransition,
     ) -> None:
-        self.replay.append(state, action, next_state, reward, terminal)
+        self.replay.append(
+            state, action, transiiton.state, transition.reward, transiiton.terminal
+        )
 
     @property
     def train_started(self) -> bool:
@@ -276,8 +277,8 @@ class DQNLikeAgent(Agent, Generic[State, Action, ReplayFeed]):
         reward_scale = self.config.reward_scale
         while True:
             action = self.action(state)
-            transition = self.env.step(action).map_r(lambda r: r * reward_scale)
-            self.store_transition(state, action, *transition[:-1])  # Do not pass info
+            transition = replace(transition, rewards=transition.rewards * reward_scale)
+            self.store_transition(state, action, transiiton)
             if self.train_started and self.total_steps % self.config.update_freq == 0:
                 self.train(self.replay.sample(self.config.replay_batch_size))
                 self.update_steps += 1
@@ -397,8 +398,11 @@ class A2CLikeAgent(Agent, Generic[State]):
 
     def _one_step(self, states: Array[State]) -> Array[State]:
         actions, net_outputs = self.actions(states)
-        transition = self.penv.step(actions).map_r(lambda r: r * self.reward_scale)
-        self.storage.push(*transition[:3], **net_outputs)
+        transition = self.penv.step(actions)
+        transition = replace(transition, rewards=transition.rewards * self.reward_scale)
+        self.storage.push(
+            transition.states, transition.rewards, transition.terminals, **net_outputs
+        )
         self.returns += transition.rewards
         self.episode_length += 1
         self._report_reward(transition.terminals, transition.infos)

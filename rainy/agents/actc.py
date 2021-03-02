@@ -4,6 +4,7 @@ which is described in
 - The Termination Critic
   - https://arxiv.org/abs/1902.09996
 """
+from dataclasses import replace
 from typing import Optional, Tuple
 
 import gym
@@ -262,11 +263,14 @@ class ACTCAgent(A2CLikeAgent[State]):
 
     def _one_step(self, states: Array[State]) -> Array[State]:
         actions, net_outputs = self.actions(states)
-        transition = self.penv.step(actions).map_r(lambda r: r * self.reward_scale)
+        transition = self.penv.step(actions)
+        transition = replace(transiiton, rewards=transiiton.rewards * self.reward_scale)
         opt_terminals = net_outputs["opt_terminals"].cpu().numpy()
         states = self.penv.extract(transition.states)
         self.option_initial_states[opt_terminals] = states[opt_terminals]
-        self.storage.push(*transition[:3], **net_outputs)
+        self.storage.push(
+            transition.states, transition.rewards, transition.terminals, **net_outputs
+        )
         self.returns += transition.rewards
         self.episode_length += 1
         self._report_reward(transition.terminals, transition.infos)

@@ -1,3 +1,4 @@
+from dataclasses import replace
 from typing import Any, Iterable, Optional, Tuple, Type, Union
 
 import numpy as np
@@ -77,7 +78,7 @@ class FrameStackParallel(ParallelEnvWrapper):
         for i, _ in filter(lambda t: t[1], enumerate(transition.terminals)):
             self.obs[i] = 0.0
         self.obs[:, -1] = self.extract(transition.states).squeeze()
-        return PEnvTransition(self.obs, *transition[1:])
+        return replace(transition, states=self.obs)
 
     def reset(self) -> Array[State]:
         self.obs.fill(0)
@@ -99,7 +100,7 @@ class NormalizeObsParallel(ParallelEnvWrapper[Action, Array[float]]):
 
     def step(self, actions: Iterable[Action]) -> PEnvTransition:
         transition = self.penv.step(actions)
-        return PEnvTransition(self._filter_obs(transition.states), *transition[1:])
+        return replace(transition, states=self._filter_obs(transition.states))
 
     def _filter_obs(self, obs: Array[Array[float]]) -> Array[Array[float]]:
         if self._training_mode:
@@ -139,9 +140,9 @@ class NormalizeRewardParallel(ParallelEnvWrapper[Action, State]):
             ret = self._ret * self.gamma + transition.rewards
             self._rms.update(ret)
             self._ret = ret * (1.0 - transition.terminals)
-        return transition.map_r(
-            lambda r: np.clip(r / self._rms.std(), -self.reward_clip, self.reward_clip)
-        )
+        normalized = transition.rewards / self._rms.std()
+        clipped = np.clip(normalized, -self.reward_clip, self.reward_clip)
+        return replace(transition, rewards=clipped)
 
     def reset(self) -> Array[State]:
         self._ret.fill(0.0)

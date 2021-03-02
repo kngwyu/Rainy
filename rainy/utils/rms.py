@@ -89,9 +89,8 @@ class RunningMeanStdTorch(TensorStateDict):
         return torch.sqrt(self.var + eps)
 
 
-@torch.jit.script
 def _update_rms_torch(mean, var, count, batch_mean, batch_var, batch_count):
-    """PyTorch version of _update_rms"""
+    """Inplace, PyTorch implementation of _update_rms"""
     delta = batch_mean - mean
     tot_count = count + batch_count
     mean.add_(delta * batch_count / tot_count)

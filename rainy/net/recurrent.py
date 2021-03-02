@@ -48,9 +48,14 @@ class RnnBlock(Generic[RS], nn.Module):
         if x_size0 == batch_size:
             return self.forward_1step(x, hidden, masks)
         else:
+
             nsteps = x_size0 // batch_size
-            inputs, masks = _reshape_batch(x, masks, nsteps)
-            output, hidden = self.forward_nsteps(inputs, hidden, masks, nsteps)
+            inputs = x.view(nsteps, -1, x.size(-1))
+            if masks is None:
+                masks = torch.ones_like(inputs[:, :, 0])
+            else:
+                masks = masks.view(nsteps, -1)
+            output, hidden = self.forward_nsteps(inputs, hidden, masks)
             return output.view(x_size0, self.output_dim), hidden
 
     @abstractmethod
@@ -65,7 +70,6 @@ class RnnBlock(Generic[RS], nn.Module):
         x: Tensor,
         hidden: RS,
         masks: Optional[Tensor],
-        nsteps: int,
     ) -> Tuple[Tensor, RS]:
         pass
 
@@ -91,24 +95,14 @@ def _apply_mask2(
         return m.mul(x1), m.mul(x2)
 
 
-@torch.jit.script
-def _reshape_batch(
-    x: Tensor, mask: Optional[Tensor], nsteps: int
-) -> Tuple[Tensor, Tensor]:
-    x = x.view(nsteps, -1, x.size(-1))
-    if mask is None:
-        return x, torch.ones_like(x[:, :, 0])
+def _haszero_iter(mask: Tensor) -> Iterable[Tuple[int, int]]:
+    assert mask.dim() <= 2, f"Expect a tensor with dimension <= 2, got {mask.dim()}"
+    zero_indices = torch.where(mask[1:] == 0.0)[0]
+    if zero_indices.dim() == 0:
+        zero_indices_plus1 = [zero_indices.item() + 1]
     else:
-        return x, mask.view(nsteps, -1)
-
-
-def _haszero_iter(mask: Tensor, nstep: int) -> Iterable[Tuple[int, int]]:
-    has_zeros = (mask[1:] == 0.0).any(dim=-1).nonzero().squeeze().cpu()
-    if has_zeros.dim() == 0:
-        haszero = [int(has_zeros.item() + 1)]
-    else:
-        haszero = (has_zeros + 1).tolist()
-    return zip([0] + haszero, haszero + [nstep])
+        zero_indices_plus1 = (zero_indices + 1).tolist()
+    return zip([0] + zero_indices_plus1, zero_indices_plus1 + [mask.size(0)])
 
 
 class LstmState(RnnState):
@@ -164,10 +158,9 @@ class LstmBlock(RnnBlock[LstmState]):
         x: Tensor,
         hidden: RS,
         masks: Optional[Tensor],
-        nsteps: int,
     ) -> Tuple[Tensor, RS]:
         res, h, c = [], hidden.h, hidden.c
-        for start, end in _haszero_iter(masks, nsteps):
+        for start, end in _haszero_iter(masks):
             m = masks[start].view(1, -1, 1)
             processed, (h, c) = self.lstm(x[start:end], (h * m, c * m))
             res.append(processed)
@@ -224,10 +217,9 @@ class GruBlock(RnnBlock[GruState]):
         x: Tensor,
         hidden: GruState,
         masks: Optional[Tensor],
-        nsteps: int,
     ) -> Tuple[Tensor, GruState]:
         res, h = [], hidden.h
-        for start, end in _haszero_iter(masks, nsteps):
+        for start, end in _haszero_iter(masks):
             processed, h = self.gru(x[start:end], h * masks[start].view(1, -1, 1))
             res.append(processed)
         return torch.cat(res), GruState(h.squeeze_(0))
@@ -269,7 +261,6 @@ class DummyRnn(RnnBlock[DummyState]):
         x: Tensor,
         hidden: DummyState,
         masks: Optional[Tensor],
-        nsteps: int,
     ) -> Tuple[Tensor, DummyState]:
         return x, hidden
 

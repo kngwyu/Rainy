@@ -3,18 +3,11 @@ from typing import Callable
 import pytest
 import torch
 
-from rainy.net import DilatedRnnBlock, GruBlock, LstmBlock, RnnBlock
+from rainy.net import GruBlock, LstmBlock, RnnBlock
 from rainy.utils import Device
 
 
-def dilated_gru(input_dim: int, output_dim: int) -> DilatedRnnBlock:
-    return DilatedRnnBlock(GruBlock(input_dim, output_dim), 4)
-
-
-@pytest.mark.parametrize(
-    "rnn_gen",
-    [GruBlock, LstmBlock, dilated_gru],
-)
+@pytest.mark.parametrize("rnn_gen", [GruBlock, LstmBlock])
 def test_rnn(rnn_gen: Callable[[int, int], RnnBlock]) -> None:
     TIME_STEP = 10
     BATCH_SIZE = 5

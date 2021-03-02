@@ -7,7 +7,6 @@ from ..envs import ParallelEnv, State
 from ..net import DummyRnn, Policy, RnnState
 from ..prelude import Array, Index
 from ..utils import Device
-from ..utils.misc import normalize_
 from ..utils.sample import FeedForwardBatchSampler, RecurrentBatchSampler
 
 
@@ -171,7 +170,9 @@ class RolloutSampler:
         self.rnn_init = storage.rnn_states[0]
         self.advantages = storage.advs[:-1].flatten()
         if adv_normalize_eps is not None:
-            normalize_(self.advantages, adv_normalize_eps)
+            adv_mean = self.advantages.mean()
+            adv_std = self.advantages.std()
+            self.advantages.sub_(adv_mean).div_(adv_std.add_(adv_normalize_eps))
 
     def _make_batch(self, i: Index) -> RolloutBatch:
         return RolloutBatch(
