@@ -55,8 +55,7 @@ def zero() -> InitFn:
 
 
 def lstm_bias(forget: float = 1.0, other: float = 0.0) -> InitFn:
-    """Set forget bias and others separately.
-    """
+    """Set forget bias and others separately."""
 
     @torch.no_grad()
     def __set_bias(t: Tensor) -> Tensor:
@@ -68,8 +67,7 @@ def lstm_bias(forget: float = 1.0, other: float = 0.0) -> InitFn:
 
 
 class Initializer:
-    """Utility Class to initialize weight parameters of NN
-    """
+    """Utility Class to initialize weight parameters of NN"""
 
     def __init__(
         self,
@@ -78,7 +76,7 @@ class Initializer:
         scale: float = 1.0,
     ) -> None:
         """If nonlinearity is specified, use orthogonal
-           with calucurated gain by torch.init.calculate_gain.
+        with calucurated gain by torch.init.calculate_gain.
         """
         self.weight_init = weight_init
         self.bias_init = bias_init

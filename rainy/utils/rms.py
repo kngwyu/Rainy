@@ -13,8 +13,7 @@ from ..utils.state_dict import TensorStateDict
 
 
 class RunningMeanStd:
-    """Calcurate running mean and variance
-    """
+    """Calcurate running mean and variance"""
 
     def __init__(self, shape: Sequence[int], epsilon: float = 1.0e-4) -> None:
         self.mean = np.zeros(shape, dtype=np.float64)
@@ -51,8 +50,7 @@ def _update_rms(
     batch_var: float,
     batch_count: int,
 ) -> Tuple[Array[float], Array[float], float]:
-    """https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Parallel_algorithm
-    """
+    """https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Parallel_algorithm"""
     delta = batch_mean - mean
     tot_count = count + batch_count
     new_mean = np.add(mean, delta * batch_count / tot_count)
@@ -65,8 +63,7 @@ def _update_rms(
 
 
 class RunningMeanStdTorch(TensorStateDict):
-    """Same as RunningMeanStd, but uses PyTorch Tensor
-    """
+    """Same as RunningMeanStd, but uses PyTorch Tensor"""
 
     def __init__(
         self, shape: torch.Size, device: Device, epsilon: float = 1.0e-4
@@ -92,10 +89,8 @@ class RunningMeanStdTorch(TensorStateDict):
         return torch.sqrt(self.var + eps)
 
 
-@torch.jit.script
 def _update_rms_torch(mean, var, count, batch_mean, batch_var, batch_count):
-    """PyTorch version of _update_rms
-    """
+    """Inplace, PyTorch implementation of _update_rms"""
     delta = batch_mean - mean
     tot_count = count + batch_count
     mean.add_(delta * batch_count / tot_count)

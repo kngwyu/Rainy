@@ -22,8 +22,7 @@ from .prelude import NetFn
 
 
 class OptionCriticNet(nn.Module, ABC):
-    """Network for option critic
-    """
+    """Network for option critic"""
 
     has_mu: bool
     num_options: int
@@ -31,26 +30,22 @@ class OptionCriticNet(nn.Module, ABC):
 
     @abstractmethod
     def qo(self, states: ArrayLike) -> Tensor:
-        """ Returns Qo(states, ・), of which the shape is batch_size x n_options.
-        """
+        """Returns Qo(states, ・), of which the shape is batch_size x n_options."""
         pass
 
     @abstractmethod
     def beta(self, states: ArrayLike) -> BernoulliPolicy:
-        """ Returns β(states, ・), of which the shape is batch_size x n_options.
-        """
+        """Returns β(states, ・), of which the shape is batch_size x n_options."""
         pass
 
     @abstractmethod
     def qo_and_beta(self, states: ArrayLike) -> Tuple[Tensor, BernoulliPolicy]:
-        """ Returns Qo(states, ・) and β(states, ・).
-        """
+        """Returns Qo(states, ・) and β(states, ・)."""
         pass
 
 
 class SharedBodyOCNet(OptionCriticNet):
-    """ OptionCriticNet with shared body and separate π, Qo and β heads.
-    """
+    """OptionCriticNet with shared body and separate π, Qo and β heads."""
 
     def __init__(
         self,
@@ -94,8 +89,7 @@ class SharedBodyOCNet(OptionCriticNet):
         return self.qo_head(feature), self.beta_dist(self.beta_head(feature))
 
     def forward(self, states: ArrayLike) -> Tuple[Policy, Tensor, BernoulliPolicy]:
-        """ Returns π(states), Qo(states, ・) and β(states, ・).
-        """
+        """Returns π(states), Qo(states, ・) and β(states, ・)."""
         feature = self.body(self.device.tensor(states))
         policy = self.actor_head(feature).view(-1, self.num_options, self.action_dim)
         qo = self.qo_head(feature)
@@ -136,8 +130,7 @@ class SharedBodyOCNetWithMu(SharedBodyOCNet):
     def forward(
         self, states: ArrayLike
     ) -> Tuple[Policy, Tensor, BernoulliPolicy, CategoricalPolicy]:
-        """ Returns π(states), Qo(states, ・), β(states, ・) and μ(states).
-        """
+        """Returns π(states), Qo(states, ・), β(states, ・) and μ(states)."""
         feature = self.body(self.device.tensor(states))
         policy = self.actor_head(feature).view(-1, self.num_options, self.action_dim)
         qo = self.qo_head(feature)

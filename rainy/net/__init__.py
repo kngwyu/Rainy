@@ -13,7 +13,6 @@ from .block import (
     make_cnns,
 )
 from .deterministic import DDPGNet, DeterministicPolicyNet, SeparatedDDPGNet, SoftUpdate
-from .dilated import DilatedRnnBlock
 from .init import InitFn, Initializer
 from .option_critic import OptionCriticNet, SharedBodyOCNet
 from .policy import Policy, PolicyDist

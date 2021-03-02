@@ -14,8 +14,7 @@ from .recurrent import DummyRnn, RnnBlock, RnnState
 
 
 class ActorCriticNet(nn.Module, ABC):
-    """Network with Policy + Value Head
-    """
+    """Network with Policy + Value Head"""
 
     state_dim: Sequence[int]
     action_dim: int
@@ -54,8 +53,7 @@ class ActorCriticNet(nn.Module, ABC):
 
 
 class SeparatedACNet(nn.Module, ABC):
-    """Separated Actor Critic network
-    """
+    """Separated Actor Critic network"""
 
     def __init__(
         self,
@@ -187,13 +185,15 @@ class SharedACNet(ActorCriticNet):
 
 
 def policy_init(gain: float = 0.01) -> Initializer:
-    """Use small value for policy layer to make policy entroy larger
-    """
+    """Use small value for policy layer to make policy entroy larger"""
     return Initializer(weight_init=orthogonal(gain))
 
 
 def _make_ac_shared(
-    body: NetworkBlock, policy_dist: PolicyDist, device: Device, rnn: Type[RnnBlock],
+    body: NetworkBlock,
+    policy_dist: PolicyDist,
+    device: Device,
+    rnn: Type[RnnBlock],
 ) -> SharedACNet:
     rnn_ = rnn(body.output_dim, body.output_dim)
     ac_head = LinearHead(body.output_dim, policy_dist.input_dim, policy_init())
@@ -212,7 +212,7 @@ def conv_shared(
     **kwargs,
 ) -> NetFn:
     """Convolutuion network used for atari experiments
-       in A3C paper(https://arxiv.org/abs/1602.01783)
+    in A3C paper(https://arxiv.org/abs/1602.01783)
     """
 
     def _net(
@@ -234,8 +234,7 @@ def conv_shared(
 def fc_shared(
     policy: Type[PolicyDist] = CategoricalDist, rnn: Type[RnnBlock] = DummyRnn, **kwargs
 ) -> NetFn:
-    """FC body head ActorCritic network
-    """
+    """FC body head ActorCritic network"""
 
     def _net(state_dim: Sequence[int], action_dim: int, device: Device) -> SharedACNet:
         body = FCBody(state_dim[0], **kwargs)
@@ -251,8 +250,7 @@ def fc_separated(
     init: Initializer = Initializer(),
     policy_type: Type[PolicyDist] = CategoricalDist,
 ) -> NetFn:
-    """SAC network with separated bodys
-    """
+    """SAC network with separated bodys"""
 
     def _net(
         state_dim: Sequence[int], action_dim: int, device: Device
@@ -271,8 +269,7 @@ def impala_conv(
     rnn: Type[RnnBlock] = DummyRnn,
     **kwargs,
 ) -> NetFn:
-    """Convolutuion network used in IMPALA
-    """
+    """Convolutuion network used in IMPALA"""
 
     def _net(
         state_dim: Tuple[int, int, int], action_dim: int, device: Device

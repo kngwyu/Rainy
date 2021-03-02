@@ -7,7 +7,10 @@ from rainy.envs import Atari, atari_parallel
 
 
 @rainy.main(rainy.agents.PPOAgent, script_path=os.path.realpath(__file__))
-def main(envname: str = "Breakout", use_rnn: bool = False,) -> rainy.Config:
+def main(
+    envname: str = "Breakout",
+    use_rnn: bool = False,
+) -> rainy.Config:
     c = rainy.Config()
     c.set_env(lambda: Atari(envname, frame_stack=False))
     if use_rnn:

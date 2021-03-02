@@ -11,11 +11,17 @@ from .lib import mpi
 @click.group()
 @click.option("--model", type=str, default=None, help="Name of the save file")
 @click.option(
-    "--action-file", type=str, default="actions.json", help="Name of the action file",
+    "--action-file",
+    type=str,
+    default="actions.json",
+    help="Name of the action file",
 )
 @click.pass_context
 def rainy_cli(
-    ctx: click.Context, model: Optional[str], action_file: Optional[str], **kwargs,
+    ctx: click.Context,
+    model: Optional[str],
+    action_file: Optional[str],
+    **kwargs,
 ) -> None:
     config = ctx.obj.config_gen(**kwargs)
     ag = ctx.obj.get_agent(config, **kwargs)
@@ -44,7 +50,8 @@ def train(
     script_path = ctx.obj.script_path
     if script_path is not None:
         fingerprint = dict(
-            comment="" if comment is None else comment, kwargs=ctx.obj.kwargs,
+            comment="" if comment is None else comment,
+            kwargs=ctx.obj.kwargs,
         )
         experiment.logger.setup_from_script_path(
             script_path, dirname=logdir, fingerprint=fingerprint
@@ -71,7 +78,10 @@ def train(
     "--eval-render", is_flag=True, help="Render the environment when evaluating"
 )
 def retrain(
-    ctx: click.Context, logdir_or_file: str, additional_steps: int, eval_render: bool,
+    ctx: click.Context,
+    logdir_or_file: str,
+    additional_steps: int,
+    eval_render: bool,
 ) -> None:
     experiment = ctx.obj.experiment
     experiment.retrain(logdir_or_file, additional_steps, eval_render)
@@ -208,14 +218,21 @@ def _annot_to_clargs(f: callable) -> None:
             default = {}
             value = None
         if cls is bool and value is False:
-            option = click.Option(["--" + name.replace("_", "-")], is_flag=True,)
+            option = click.Option(
+                ["--" + name.replace("_", "-")],
+                is_flag=True,
+            )
         elif _is_optional(cls):
             option = click.Option(
-                ["--" + name.replace("_", "-")], type=cls.__args__[0], **default,
+                ["--" + name.replace("_", "-")],
+                type=cls.__args__[0],
+                **default,
             )
         else:
             option = click.Option(
-                ["--" + name.replace("_", "-")], type=annot[name], **default,
+                ["--" + name.replace("_", "-")],
+                type=annot[name],
+                **default,
             )
         rainy_cli.params.append(option)
 

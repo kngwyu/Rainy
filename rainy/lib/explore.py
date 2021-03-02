@@ -21,8 +21,7 @@ class Cooler(ABC):
 
 
 class LinearCooler(Cooler):
-    """decrease epsilon linearly, from initial to minimal, via `max_step` steps
-    """
+    """decrease epsilon linearly, from initial to minimal, via `max_step` steps"""
 
     def __init__(self, initial: float, minimal: float, max_step: int) -> None:
         if initial < minimal:
@@ -41,8 +40,7 @@ class LinearCooler(Cooler):
 
 
 class DummyCooler(Cooler):
-    """Do nothing
-    """
+    """Do nothing"""
 
     def __init__(self, initial: float, *args) -> None:
         self.initial = initial
@@ -73,8 +71,7 @@ class Explorer(ABC):
 
 
 class Greedy(Explorer):
-    """deterministic greedy policy
-    """
+    """deterministic greedy policy"""
 
     def select_from_value(self, value: Tensor, same_device: bool = False) -> LongTensor:
         return value.argmax(-1)  # type: ignore
@@ -84,8 +81,7 @@ class Greedy(Explorer):
 
 
 class EpsGreedy(Explorer):
-    """ε-greedy policy
-    """
+    """ε-greedy policy"""
 
     def __init__(self, epsilon: float, cooler: Optional[Cooler] = None) -> None:
         self.epsilon = epsilon

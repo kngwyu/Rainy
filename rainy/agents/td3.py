@@ -14,7 +14,6 @@ from torch.nn import functional as F
 from ..config import Config
 from ..prelude import Array
 from ..replay import DQNReplayFeed
-from ..utils.misc import clamp_actions_
 from .base import DQNLikeAgent
 from .ddpg import DDPGAgent
 
@@ -31,13 +30,17 @@ class TD3Agent(DDPGAgent):
         self.eval_explorer = config.explorer(key="eval")
         self.replay = config.replay_buffer()
         self.batch_indices = config.device.indices(config.replay_batch_size)
-        self.action_range = tuple(torch.from_numpy(t) for t in self.env._spec._act_range)
+        self.action_range = tuple(
+            torch.from_numpy(t) for t in self.env._spec._act_range
+        )
 
     @torch.no_grad()
     def _q_next(self, next_states: Array) -> Tensor:
         actions = self.target_net.action(next_states)
         actions = self.target_explorer.add_noise(actions)
-        clamp_actions_(actions, *self.action_range)
+        # Clamp actions
+        for i, (min_act, max_act) in enumerate(self.env._spec._act_range):
+            actions[:, i].clamp_(min_act, max_act)
         q1, q2 = self.target_net.q_values(next_states, actions)
         return torch.min(q1, q2)
 

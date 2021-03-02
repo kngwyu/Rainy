@@ -147,8 +147,7 @@ class ExperimentLogger:
         self.ready = True
 
     def submit(self, name: str, **kwargs) -> None:
-        """Stores log.
-        """
+        """Stores log."""
         kwargs["sec"] = (dt.datetime.now() - self.exp_start).total_seconds()
         current_length = self._store[name].submit(kwargs)
         if self._show_summary:

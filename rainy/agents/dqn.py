@@ -81,8 +81,7 @@ class DQNAgent(DQNLikeAgent):
 class DoubleDQNAgent(DQNAgent):
     @torch.no_grad()
     def _q_next(self, next_states: Array) -> Tensor:
-        """Returns Q values of next_states, supposing torch.no_grad() is called
-        """
+        """Returns Q values of next_states, supposing torch.no_grad() is called"""
         q_next = self.target_net(next_states)
         q_value = self.net.q_value(next_states, nostack=True)
         return q_next[self.batch_indices, q_value.argmax(dim=-1)]

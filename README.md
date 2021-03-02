@@ -61,7 +61,7 @@ See [examples](./examples/README.md) directory for more.
 COMING SOON
 
 ## Supported python version
-Python >= 3.6.1
+Python >= 3.7
 
 ## Implementation Status
 

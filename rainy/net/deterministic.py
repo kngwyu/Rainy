@@ -111,8 +111,7 @@ def fc_seprated(
     critic_units: List[int] = [400, 300],
     init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
 ) -> NetFn:
-    """DDPG network with separated bodys
-    """
+    """DDPG network with separated bodys"""
 
     def _net(
         state_dim: Sequence[int], action_dim: int, device: Device
@@ -137,8 +136,7 @@ def td3_fc_seprated(
     critic_units: List[int] = [400, 300],
     init: Initializer = Initializer(weight_init=kaiming_uniform(a=3 ** 0.5)),
 ) -> NetFn:
-    """TD3 network with separated bodys
-    """
+    """TD3 network with separated bodys"""
 
     def _net(
         state_dim: Sequence[int], action_dim: int, device: Device

@@ -1,29 +1,29 @@
 """Environment specifications:
 """
-from typing import Callable, Generic, NamedTuple, Optional, Sequence, Type, Union
+import dataclasses
+from typing import Any, Generic, Iterable, Optional, Sequence, Type, Union
 
 import gym
 import numpy as np
 from gym import spaces
 
-from ..prelude import Action, Array, GenericNamedMeta, Self, State
+from ..prelude import Action, Array, Self, State
 from .monitor import RewardMonitor
 
 
-class EnvTransition(NamedTuple, Generic[State], metaclass=GenericNamedMeta):
+@dataclasses.dataclass(frozen=True)
+class EnvTransition(Generic[State]):
     state: State
     reward: float
     terminal: bool
     info: dict
 
-    def map_r(self, f: Callable[[float], float]) -> Self:
-        s, r, t, i = self
-        return EnvTransition(s, f(r), t, i)
+    def __iter__(self) -> Iterable[Any]:
+        return iter(dataclasses.astuple(self))
 
 
 class EnvSpec:
-    """EnvSpec holds obs/action dims and monitors
-    """
+    """EnvSpec holds obs/action dims and monitors"""
 
     def __init__(
         self,
@@ -77,28 +77,23 @@ class EnvExt(gym.Env, Generic[Action, State]):
         self._eval = False
 
     def close(self):
-        """ Inherited from gym.Env.
-        """
+        """Inherited from gym.Env."""
         self._env.close()
 
     def reset(self) -> State:
-        """ Inherited from gym.Env.
-        """
+        """Inherited from gym.Env."""
         return self._env.reset()
 
     def render(self, mode: str = "human") -> Optional[Array]:
-        """ Inherited from gym.Env.
-        """
+        """Inherited from gym.Env."""
         return self._env.render(mode=mode)
 
     def seed(self, seed: int) -> None:
-        """ Inherited from gym.Env.
-        """
+        """Inherited from gym.Env."""
         self._env.seed(seed)
 
     def step(self, action: Action) -> EnvTransition:
-        """ Inherited from gym.Env.
-        """
+        """Inherited from gym.Env."""
         return EnvTransition(*self._env.step(action))
 
     def step_and_render(self, action: Action, render: bool = False) -> EnvTransition:
@@ -110,14 +105,13 @@ class EnvExt(gym.Env, Generic[Action, State]):
     def step_and_reset(self, action: Action) -> EnvTransition:
         transition = self.step(action)
         if transition.terminal:
-            return EnvTransition(self.reset(), *transition[1:])
+            return dataclasses.replace(transition, state=self.reset())
         else:
             return transition
 
     @property
     def unwrapped(self) -> gym.Env:
-        """ Inherited from gym.Env.
-        """
+        """Inherited from gym.Env."""
         return self._env.unwrapped
 
     @property
@@ -138,8 +132,7 @@ class EnvExt(gym.Env, Generic[Action, State]):
 
     @property
     def use_reward_monitor(self) -> bool:
-        """ Atari wrappers need RewardMonitor for evaluation.
-        """
+        """Atari wrappers need RewardMonitor for evaluation."""
         return self._spec.use_reward_monitor
 
     @property

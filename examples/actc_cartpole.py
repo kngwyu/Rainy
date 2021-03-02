@@ -24,10 +24,12 @@ def main(envname: str = "CartPole-v0", num_options: int = 2) -> rainy.Config:
     c.entropy_weight = 0.001
     c.value_loss_weight = 1.0
     c.set_net_fn(
-        "actor-critic", tc.oac_fc_shared(num_options=num_options),
+        "actor-critic",
+        tc.oac_fc_shared(num_options=num_options),
     )
     c.set_net_fn(
-        "termination-critic", tc.tc_fc_shared(num_options=num_options),
+        "termination-critic",
+        tc.tc_fc_shared(num_options=num_options),
     )
     return c
 

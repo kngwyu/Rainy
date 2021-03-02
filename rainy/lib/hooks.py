@@ -15,8 +15,7 @@ Agent, Config = Any, Any
 
 
 class EvalHook(ABC):
-    """Evaluation hooks: do some stuff when evaluating
-    """
+    """Evaluation hooks: do some stuff when evaluating"""
 
     def setup(self, config: Config) -> None:
         pass
@@ -38,8 +37,7 @@ class EvalHook(ABC):
 
 
 class VideoWriterHook(EvalHook):
-    """Record video using env.render
-    """
+    """Record video using env.render"""
 
     def __init__(
         self, fps: float = 20.0, image_shape: str = "HWC", video_name: str = "video"
@@ -144,7 +142,11 @@ class ImageWriterHook(_WriterHookImpl):
 
 
 class StateWriterHook(_WriterHookImpl):
-    def __init__(self, out_dir: str = "dataset", extract: bool = False,) -> None:
+    def __init__(
+        self,
+        out_dir: str = "dataset",
+        extract: bool = False,
+    ) -> None:
         super().__init__(out_dir)
         self._extract = extract
 

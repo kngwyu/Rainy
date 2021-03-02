@@ -25,7 +25,11 @@ from .base import A2CLikeAgent, Netout
 
 class AOCRolloutStorage(RolloutStorage[State]):
     def __init__(
-        self, nsteps: int, nworkers: int, device: Device, num_options: int,
+        self,
+        nsteps: int,
+        nworkers: int,
+        device: Device,
+        num_options: int,
     ) -> None:
         super().__init__(nsteps, nworkers, device)
         self.options = [self.device.zeros(self.nworkers, dtype=torch.long)]
@@ -101,7 +105,12 @@ class AOCRolloutStorage(RolloutStorage[State]):
             opt_terminals = self.opt_terminals[i + 1]
 
     def calc_gae_returns(
-        self, next_uo: Tensor, gamma: float, lambda_: float, delib_cost: float, truncate: bool = False,
+        self,
+        next_uo: Tensor,
+        gamma: float,
+        lambda_: float,
+        delib_cost: float,
+        truncate: bool = False,
     ) -> None:
         self.returns[-1] = next_uo
         rewards = self.device.tensor(self.rewards)
@@ -154,7 +163,8 @@ class AOCAgent(A2CLikeAgent[State]):
         ):
             return ValueError("Currently only Epsilon Greedy is supported as Explorer")
         self.eval_prev_options: LongTensor = config.device.zeros(
-            config.nworkers, dtype=torch.long,
+            config.nworkers,
+            dtype=torch.long,
         )
 
     def _reset(self, initial_states: Array[State]) -> None:
@@ -188,7 +198,10 @@ class AOCAgent(A2CLikeAgent[State]):
         batch_size = states.shape[0]
         pio, qo, beta = self.net(states)
         options, _ = self._sample_options(
-            qo, beta, self.eval_prev_options[:batch_size], evaluation_phase=True,
+            qo,
+            beta,
+            self.eval_prev_options[:batch_size],
+            evaluation_phase=True,
         )
         self.eval_prev_options[:batch_size] = options
         return pio, options
@@ -250,7 +263,9 @@ class AOCAgent(A2CLikeAgent[State]):
             )
         else:
             self.storage.calc_ac_returns(
-                next_uo, self.config.discount_factor, self.config.opt_delib_cost,
+                next_uo,
+                self.config.discount_factor,
+                self.config.opt_delib_cost,
             )
 
         prev_options, options = self.storage.batch_options()

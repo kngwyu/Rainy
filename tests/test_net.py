@@ -3,6 +3,7 @@ from typing import Optional, Tuple
 import numpy as np
 import pytest
 import torch
+from test_env import DummyEnv
 
 from rainy.net import (
     CNNBody,
@@ -14,7 +15,6 @@ from rainy.net import (
 )
 from rainy.net.init import Initializer, kaiming_normal, kaiming_uniform
 from rainy.utils import Device
-from test_env import DummyEnv
 
 ACTION_DIM = 10
 
@@ -52,7 +52,7 @@ def test_acnet(
     assert net.action_dim == ACTION_DIM
     env = DummyEnv()
     states = np.stack(
-        [env.step(None)[0].to_array(state_dim) for _ in range(batch_size)]
+        [env.step(None).state.to_array(state_dim) for _ in range(batch_size)]
     )
     policy, values, _ = net(states)
     batch_size = torch.Size([batch_size])
@@ -60,6 +60,7 @@ def test_acnet(
     assert policy.log_prob().shape == batch_size
     assert policy.entropy().shape == batch_size
     assert values.shape == batch_size
+    env.close()
 
 
 @pytest.mark.parametrize(

@@ -9,7 +9,9 @@ from rainy.net.policy import SeparateStdGaussianDist
 
 @main(ACKTRAgent, script_path=os.path.realpath(__file__))
 def main(
-    envname: str = "Hopper", tau: float = 12 * 20, update_freq: int = 10,
+    envname: str = "Hopper",
+    tau: float = 12 * 20,
+    update_freq: int = 10,
 ) -> Config:
     c = Config()
     c.max_steps = int(4e5)

@@ -4,7 +4,7 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [packages]
-torch = "==1.5.0"
+torch = "==1.7.1"
 
 [packages.rainy]
 editable = true

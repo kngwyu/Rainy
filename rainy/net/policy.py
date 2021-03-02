@@ -11,8 +11,7 @@ from ..utils import Device
 
 
 class Policy(ABC):
-    """ Represents parameterized stochastic policies.
-    """
+    """Represents parameterized stochastic policies."""
 
     def __init__(self, dist: Distribution) -> None:
         self.dist = dist
@@ -20,39 +19,33 @@ class Policy(ABC):
         self._baction: Optional[Tensor] = None
 
     def action(self) -> Tensor:
-        """ Sample actions or returns cached actions.
-        """
+        """Sample actions or returns cached actions."""
         if self._action is None:
             self._action = self.sample()
         # If batch size == 1, flatten the action
         return self._action.squeeze(dim=0)
 
     def baction(self) -> Tensor:
-        """ Sample 'backwardable' actions by PyTorch's ``rsample``.
-        """
+        """Sample 'backwardable' actions by PyTorch's ``rsample``."""
         if self._baction is None:
             self._baction = self.rsample()
         return self._baction.squeeze(dim=0)
 
     def set_action(self, action: Tensor) -> None:
-        """ Set cached actions.
-        """
+        """Set cached actions."""
         self._action = action
 
     @torch.no_grad()
     def sample(self) -> Tensor:
-        """ Sample actions with ``requires_grad=True``.
-        """
+        """Sample actions with ``requires_grad=True``."""
         return self.dist.sample()
 
     def rsample(self) -> Tensor:
-        """ Sample with reparameterization trick. Returned tensor is backwardable.
-        """
+        """Sample with reparameterization trick. Returned tensor is backwardable."""
         return self.dist.rsample()
 
     def eval_action(self, deterministic: bool = False, to_numpy: bool = True) -> Array:
-        """ Sample actions for evaluation without setting cached actions.
-        """
+        """Sample actions for evaluation without setting cached actions."""
         if deterministic:
             act = self.best_action()
         else:
@@ -72,7 +65,9 @@ class Policy(ABC):
 
     @abstractmethod
     def log_prob(
-        self, action: Optional[Tensor] = None, use_baction: bool = False,
+        self,
+        action: Optional[Tensor] = None,
+        use_baction: bool = False,
     ) -> Tensor:
         pass
 
@@ -94,7 +89,9 @@ class BernoulliPolicy(Policy):
         return self.dist.probs > 0.5
 
     def log_prob(
-        self, action: Optional[Tensor] = None, use_baction: bool = False,
+        self,
+        action: Optional[Tensor] = None,
+        use_baction: bool = False,
     ) -> Tensor:
         if action is None:
             action = self.bactions() if use_baction else self.action()
@@ -119,7 +116,9 @@ class CategoricalPolicy(Policy):
         return self.dist.probs.argmax(dim=-1)
 
     def log_prob(
-        self, action: Optional[Tensor] = None, use_baction: bool = False,
+        self,
+        action: Optional[Tensor] = None,
+        use_baction: bool = False,
     ) -> Tensor:
         if action is None:
             action = self.bactions() if use_baction else self.action()
@@ -147,7 +146,9 @@ class GaussianPolicy(Policy):
         return self.dist.entropy().sum(-1)
 
     def log_prob(
-        self, action: Optional[Tensor] = None, use_baction: bool = False,
+        self,
+        action: Optional[Tensor] = None,
+        use_baction: bool = False,
     ) -> Tensor:
         if action is None:
             action = self.bactions() if use_baction else self.action()
@@ -180,7 +181,9 @@ class TanhGaussianPolicy(GaussianPolicy):
         return torch.tanh(self.dist.mean)
 
     def log_prob(
-        self, action: Optional[Tensor] = None, use_baction: bool = False,
+        self,
+        action: Optional[Tensor] = None,
+        use_baction: bool = False,
     ) -> Tensor:
         if action is None:
             action = self._baction if use_baction else self.action()
@@ -208,8 +211,7 @@ class PolicyDist(ABC, nn.Module):
 
 
 class BernoulliDist(PolicyDist):
-    """ Bernoulli policy with no learnable parameter
-    """
+    """Bernoulli policy with no learnable parameter"""
 
     def __init__(self, action_dim: int = 1, *args, **kwargs) -> None:
         super().__init__(action_dim)
@@ -219,16 +221,14 @@ class BernoulliDist(PolicyDist):
 
 
 class CategoricalDist(PolicyDist):
-    """ Categorical policy with no learnable parameter
-    """
+    """Categorical policy with no learnable parameter"""
 
     def forward(self, x: Tensor) -> Policy:
         return CategoricalPolicy(logits=x)
 
 
 class GaussinanDist(PolicyDist):
-    """ Gaussian policy which takes both mean and stdev as inputs.
-    """
+    """Gaussian policy which takes both mean and stdev as inputs."""
 
     @property
     def input_dim(self) -> int:
@@ -241,8 +241,7 @@ class GaussinanDist(PolicyDist):
 
 
 class TanhGaussianDist(GaussinanDist):
-    """ Tanh clipped Gaussian policy.
-    """
+    """Tanh clipped Gaussian policy."""
 
     def __init__(
         self,
@@ -262,8 +261,8 @@ class TanhGaussianDist(GaussinanDist):
 
 
 class SeparateStdGaussianDist(PolicyDist):
-    """ Gaussian policy which takes only mean as an input, and has a standard deviation
-        independent with states, as a lernable parameter.
+    """Gaussian policy which takes only mean as an input, and has a standard deviation
+    independent with states, as a lernable parameter.
     """
 
     def __init__(self, action_dim: int, device: Device, *args, **kwargs) -> None:
@@ -275,8 +274,7 @@ class SeparateStdGaussianDist(PolicyDist):
 
 
 class PerOptionStdGaussianDist(PolicyDist):
-    """ The same as `SeparateStdGaussianDist`, but has a dimention for options
-    """
+    """The same as `SeparateStdGaussianDist`, but has a dimention for options"""
 
     def __init__(
         self, action_dim: int, device: Device, *args, noptions: int = 1, **kwargs

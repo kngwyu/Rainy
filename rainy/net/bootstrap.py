@@ -59,8 +59,7 @@ class SeparatedBootQValueNet(BootstrappedQFunction, nn.Module):
 
 
 class SharedBootQValueNet(DiscreteQFunction, nn.Module):
-    """INCOMPLETE
-    """
+    """INCOMPLETE"""
 
     def __init__(
         self, body: NetworkBlock, heads: List[NetworkBlock], device: Device = Device()
@@ -86,8 +85,7 @@ class SharedBootQValueNet(DiscreteQFunction, nn.Module):
 
 
 class RPFQValueNet(DiscreteQFunction, nn.Module):
-    """QValueNet with Randomized Prior function(https://arxiv.org/abs/1806.03335)
-    """
+    """QValueNet with Randomized Prior function(https://arxiv.org/abs/1806.03335)"""
 
     def __init__(
         self,

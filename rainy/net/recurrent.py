@@ -1,3 +1,4 @@
+import dataclasses
 from abc import ABC, abstractmethod
 from typing import Generic, Iterable, Optional, Tuple, TypeVar
 
@@ -48,9 +49,14 @@ class RnnBlock(Generic[RS], nn.Module):
         if x_size0 == batch_size:
             return self.forward_1step(x, hidden, masks)
         else:
+
             nsteps = x_size0 // batch_size
-            inputs, masks = _reshape_batch(x, masks, nsteps)
-            output, hidden = self.forward_nsteps(inputs, hidden, masks, nsteps)
+            inputs = x.view(nsteps, -1, x.size(-1))
+            if masks is None:
+                masks = torch.ones_like(inputs[:, :, 0])
+            else:
+                masks = masks.view(nsteps, -1)
+            output, hidden = self.forward_nsteps(inputs, hidden, masks)
             return output.view(x_size0, self.output_dim), hidden
 
     @abstractmethod
@@ -61,7 +67,10 @@ class RnnBlock(Generic[RS], nn.Module):
 
     @abstractmethod
     def forward_nsteps(
-        self, x: Tensor, hidden: RS, masks: Optional[Tensor], nsteps: int,
+        self,
+        x: Tensor,
+        hidden: RS,
+        masks: Optional[Tensor],
     ) -> Tuple[Tensor, RS]:
         pass
 
@@ -87,33 +96,20 @@ def _apply_mask2(
         return m.mul(x1), m.mul(x2)
 
 
-@torch.jit.script
-def _reshape_batch(
-    x: Tensor, mask: Optional[Tensor], nsteps: int
-) -> Tuple[Tensor, Tensor]:
-    x = x.view(nsteps, -1, x.size(-1))
-    if mask is None:
-        return x, torch.ones_like(x[:, :, 0])
+def _haszero_iter(mask: Tensor) -> Iterable[Tuple[int, int]]:
+    assert mask.dim() <= 2, f"Expect a tensor with dimension <= 2, got {mask.dim()}"
+    zero_indices = torch.where(mask[1:] == 0.0)[0]
+    if zero_indices.dim() == 0:
+        zero_indices_plus1 = [zero_indices.item() + 1]
     else:
-        return x, mask.view(nsteps, -1)
+        zero_indices_plus1 = (zero_indices + 1).tolist()
+    return zip([0] + zero_indices_plus1, zero_indices_plus1 + [mask.size(0)])
 
 
-def _haszero_iter(mask: Tensor, nstep: int) -> Iterable[Tuple[int, int]]:
-    has_zeros = (mask[1:] == 0.0).any(dim=-1).nonzero().squeeze().cpu()
-    if has_zeros.dim() == 0:
-        haszero = [int(has_zeros.item() + 1)]
-    else:
-        haszero = (has_zeros + 1).tolist()
-    return zip([0] + haszero, haszero + [nstep])
-
-
+@dataclasses.dataclass()
 class LstmState(RnnState):
-    def __init__(self, h: Tensor, c: Tensor, squeeze: bool = True) -> None:
-        self.h = h
-        self.c = c
-        if squeeze:
-            self.h.squeeze_(0)
-            self.c.squeeze_(0)
+    h: Tensor
+    c: Tensor
 
     def __getitem__(self, x: Index) -> Self:
         return LstmState(self.h[x], self.c[x])
@@ -153,24 +149,30 @@ class LstmBlock(RnnBlock[LstmState]):
         self, x: Tensor, hidden: RS, masks: Optional[Tensor]
     ) -> Tuple[Tensor, RS]:
         out, (h, c) = self.lstm(x.unsqueeze(0), _apply_mask2(masks, hidden.h, hidden.c))
-        return out.squeeze(0), LstmState(h, c)
+        return out.squeeze(0), LstmState(h.squeeze_(0), c.squeeze_(0))
 
     def forward_nsteps(
-        self, x: Tensor, hidden: RS, masks: Optional[Tensor], nsteps: int,
+        self,
+        x: Tensor,
+        hidden: RS,
+        masks: Optional[Tensor],
     ) -> Tuple[Tensor, RS]:
         res, h, c = [], hidden.h, hidden.c
-        for start, end in _haszero_iter(masks, nsteps):
+        for start, end in _haszero_iter(masks):
             m = masks[start].view(1, -1, 1)
             processed, (h, c) = self.lstm(x[start:end], (h * m, c * m))
             res.append(processed)
-        return torch.cat(res), LstmState(h, c)
+        return torch.cat(res), LstmState(h.squeeze_(0), c.squeeze_(0))
 
     def initial_state(self, batch_size: int, device: Device) -> LstmState:
         zeros = device.zeros((batch_size, self.output_dim))
-        return LstmState(zeros, zeros, squeeze=False)
+        return LstmState(zeros, zeros)
 
 
+@dataclasses.dataclass()
 class GruState(RnnState):
+    h: Tensor
+
     def __init__(self, h: Tensor) -> None:
         self.h = h
 
@@ -212,10 +214,13 @@ class GruBlock(RnnBlock[GruState]):
         return out.squeeze(0), GruState(h.squeeze_(0))
 
     def forward_nsteps(
-        self, x: Tensor, hidden: GruState, masks: Optional[Tensor], nsteps: int,
+        self,
+        x: Tensor,
+        hidden: GruState,
+        masks: Optional[Tensor],
     ) -> Tuple[Tensor, GruState]:
         res, h = [], hidden.h
-        for start, end in _haszero_iter(masks, nsteps):
+        for start, end in _haszero_iter(masks):
             processed, h = self.gru(x[start:end], h * masks[start].view(1, -1, 1))
             res.append(processed)
         return torch.cat(res), GruState(h.squeeze_(0))
@@ -253,7 +258,10 @@ class DummyRnn(RnnBlock[DummyState]):
         return x, hidden
 
     def forward_nsteps(
-        self, x: Tensor, hidden: DummyState, masks: Optional[Tensor], nsteps: int,
+        self,
+        x: Tensor,
+        hidden: DummyState,
+        masks: Optional[Tensor],
     ) -> Tuple[Tensor, DummyState]:
         return x, hidden
 

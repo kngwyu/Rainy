@@ -8,7 +8,9 @@ from rainy.agents import SACAgent
 
 @rainy.main(SACAgent, os.path.realpath(__file__))
 def main(
-    envname: str = "Hopper", nworkers: int = 1, mujoco: bool = False,
+    envname: str = "Hopper",
+    nworkers: int = 1,
+    mujoco: bool = False,
 ) -> rainy.Config:
     c = rainy.Config()
     if mujoco:

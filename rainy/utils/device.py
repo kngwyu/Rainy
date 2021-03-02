@@ -9,8 +9,7 @@ from ..prelude import ArrayLike, Self
 
 
 class Device:
-    """Utilities for handling devices
-    """
+    """Utilities for handling devices"""
 
     def __init__(self, use_cpu: bool = False, gpu_indices: List[int] = []) -> None:
         """
@@ -24,8 +23,7 @@ class Device:
             self.device = torch.device("cuda:{}".format(self.gpu_indices[0]))
 
     def split(self) -> Self:
-        """If self has multiple GPUs, split them into two devices.
-        """
+        """If self has multiple GPUs, split them into two devices."""
         num_gpus = len(self.gpu_indices)
         if num_gpus < 2:
             return self

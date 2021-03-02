@@ -8,7 +8,9 @@ from rainy.lib import kfac
 
 @rainy.main(ACKTRAgent, script_path=os.path.realpath(__file__))
 def main(
-    envname: str = "Breakout", tau: float = 32 * 20 // 2, update_freq: int = 10,
+    envname: str = "Breakout",
+    tau: float = 32 * 20 // 2,
+    update_freq: int = 10,
 ) -> rainy.Config:
     c = rainy.Config()
     c.set_env(lambda: Atari(envname, frame_stack=False))
