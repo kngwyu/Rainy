@@ -60,13 +60,13 @@ class PPOAgent(A2CAgent, PPOLossMixIn):
             next_value = self.net.value(*self._network_in(last_states))
 
         if self.config.use_gae:
-            self.storage.calc_gae_returns(
+            self.storage.set_gae_returns(
                 next_value,
                 self.config.discount_factor,
                 self.config.gae_lambda,
             )
         else:
-            self.storage.calc_ac_returns(next_value, self.config.discount_factor)
+            self.storage.set_ac_returns(next_value, self.config.discount_factor)
         p, v, e = 0.0, 0.0, 0.0
         sampler = RolloutSampler(
             self.storage,

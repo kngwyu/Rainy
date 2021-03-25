@@ -19,7 +19,8 @@ def test_kfac():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         precond = KfacPreConditioner(net)
-    out = net(torch.randn(*in_shape))
+    input_ = torch.randn(*in_shape).requires_grad_()
+    out = net(input_)
     loss = nn.MSELoss()(out, torch.randn(in_shape[0], 10))
     with precond.save_grad():
         loss.backward()

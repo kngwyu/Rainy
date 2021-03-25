@@ -6,7 +6,7 @@ import click
 
 from .agents import Agent, DQNLikeAgent, DQNLikeParallel, EpisodeResult
 from .lib.mpi import IS_MPI_ROOT
-from .prelude import DEFAULT_ACTIONFILE_NAME, DEFAULT_SAVEFILE_NAME
+from .prelude import DEFAULT_SAVEFILE_NAME
 
 
 class Experiment:
@@ -14,7 +14,6 @@ class Experiment:
         self,
         ag: Agent,
         save_file_name: Optional[str] = None,
-        action_file_name: Optional[str] = None,
     ) -> None:
         if isinstance(ag, DQNLikeAgent) and ag.config.nworkers > 1:
             self.ag = DQNLikeParallel(ag)
@@ -34,8 +33,6 @@ class Experiment:
             interval=ag.config.eval_times,
             color="green",
         )
-        action_file = action_file_name or DEFAULT_ACTIONFILE_NAME
-        self._action_file = Path(action_file)
         self._save_file_name = save_file_name or DEFAULT_SAVEFILE_NAME
         self._has_eval_parallel = hasattr(self.ag, "eval_parallel")
         self.episode_offset = 0
@@ -52,20 +49,8 @@ class Experiment:
                 length=res.length,
             )
 
-    def action_file(self) -> Path:
-        return self.logger.logdir.joinpath(
-            "{}-{}{}".format(self.action_file.stem, episodes, self.action_file.suffix)
-        )
-
     def log_eval(self, episodes: int, eval_render: bool = False) -> None:
-        logdir = self.logger.logdir
-        if self.config.save_eval_actions and logdir is not None:
-            fname = logdir.joinpath(
-                "{}-{}{}".format(action_file.stem, episodes, action_file.suffix)
-            )
-            results = self._eval_impl(render=eval_render, action_file=fname)
-        else:
-            results = self._eval_impl(render=eval_render)
+        results = self._eval_impl(render=eval_render)
         for res in results:
             self.logger.submit(
                 "eval",
@@ -123,16 +108,10 @@ class Experiment:
         render: bool = False,
         replay: bool = False,
         pause: bool = False,
-        action_file: Optional[str] = None,
     ) -> List[EpisodeResult]:
         n = self.config.eval_times
         self.ag.set_mode(train=False)
-        if action_file is not None:
-            res = [
-                self.ag.eval_and_save(action_file, render=render, pause=pause)
-                for _ in range(n)
-            ]
-        elif self._has_eval_parallel and not (render or replay) and n > 1:
+        if self._has_eval_parallel and not (render or replay) and n > 1:
             res = self.ag.eval_parallel(n)  # type: ignore
         else:
             res = [self.ag.eval_episode(render=render, pause=pause) for _ in range(n)]
@@ -180,11 +159,7 @@ class Experiment:
         replay: bool = False,
         pause: bool = False,
     ) -> None:
-        if self.config.save_eval_actions:
-            action_file = "eval-" + self._action_file.as_posix()
-        else:
-            action_file = None
-        result = self._eval_impl(render, replay, pause, action_file)
+        result = self._eval_impl(render, replay, pause)
         click.secho("====== Results ======", bg="cyan", fg="black")
         if len(result) == 0:
             click.echo(result[0])
@@ -224,12 +199,7 @@ class Experiment:
         replay: bool = False,
         pause: bool = False,
     ) -> None:
-
-        if self.config.save_eval_actions:
-            action_file = "random-" + self._action_file.as_posix()
-            res = self.ag.random_and_save(action_file, render=render, pause=pause)
-        else:
-            res = self.ag.random_episode(render=render, pause=pause)
+        res = self.ag.random_episode(render=render, pause=pause)
         click.echo(res)
         if render:
             click.pause("---Press any key to exit---")

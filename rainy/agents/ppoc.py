@@ -149,7 +149,7 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
     def train(self, last_states: Array[State]) -> None:
         next_uo = self._next_uo(last_states)
         if self.config.use_gae:
-            self.storage.calc_gae_returns(
+            self.storage.set_gae_returns(
                 next_uo,
                 self.config.discount_factor,
                 self.config.gae_lambda,
@@ -157,7 +157,7 @@ class PPOCAgent(AOCAgent, PPOLossMixIn):
                 self.config.truncate_advantage,
             )
         else:
-            self.storage.calc_ac_returns(
+            self.storage.set_ac_returns(
                 next_uo, self.config.discount_factor, self.config.opt_delib_cost
             )
 

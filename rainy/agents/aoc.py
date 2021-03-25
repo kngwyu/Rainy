@@ -88,7 +88,7 @@ class AOCRolloutStorage(RolloutStorage[State]):
         vo = torch.einsum("bo,bo->b", qo, probs)
         return qo[self.worker_indices, options] - vo
 
-    def calc_ac_returns(self, next_uo: Tensor, gamma: float, delib_cost: float) -> None:
+    def set_ac_returns(self, next_uo: Tensor, gamma: float, delib_cost: float) -> None:
         self.returns[-1] = next_uo
         rewards = self.device.tensor(self.rewards)
         opt_terminals = self.device.zeros((self.nworkers,), dtype=torch.bool)
@@ -104,7 +104,7 @@ class AOCRolloutStorage(RolloutStorage[State]):
             self.beta_adv[i] = self._beta_adv(i, qo, opt) + delib_cost_i
             opt_terminals = self.opt_terminals[i + 1]
 
-    def calc_gae_returns(
+    def set_gae_returns(
         self,
         next_uo: Tensor,
         gamma: float,
@@ -254,7 +254,7 @@ class AOCAgent(A2CLikeAgent[State]):
     def train(self, last_states: Array[State]) -> None:
         next_uo = self._next_uo(last_states)
         if self.config.use_gae:
-            self.storage.calc_gae_returns(
+            self.storage.set_gae_returns(
                 next_uo,
                 self.config.discount_factor,
                 self.config.gae_lambda,
@@ -262,7 +262,7 @@ class AOCAgent(A2CLikeAgent[State]):
                 self.config.truncate_advantage,
             )
         else:
-            self.storage.calc_ac_returns(
+            self.storage.set_ac_returns(
                 next_uo,
                 self.config.discount_factor,
                 self.config.opt_delib_cost,

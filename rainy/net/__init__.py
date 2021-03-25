@@ -9,7 +9,7 @@ from .block import (
     NetworkBlock,
     ResNetBody,
     RPFLinearHead,
-    calc_cnn_hidden,
+    cnn_hidden_dims,
     make_cnns,
 )
 from .deterministic import DDPGNet, DeterministicPolicyNet, SeparatedDDPGNet, SoftUpdate

@@ -39,4 +39,3 @@ State = TypeVar("State")
 
 
 DEFAULT_SAVEFILE_NAME = "rainy-agent.pth"
-DEFAULT_ACTIONFILE_NAME = "actions.json"

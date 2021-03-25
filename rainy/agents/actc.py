@@ -23,7 +23,7 @@ from .base import A2CLikeAgent, Netout
 
 
 class TCRolloutStorage(AOCRolloutStorage):
-    def calc_ac_returns(self, next_uo: Tensor, gamma: float) -> None:
+    def set_ac_returns(self, next_uo: Tensor, gamma: float) -> None:
         self.returns[-1] = next_uo
         rewards = self.device.tensor(self.rewards)
         opt_terminals = self.device.zeros((self.nworkers,), dtype=torch.bool)
@@ -40,7 +40,7 @@ class TCRolloutStorage(AOCRolloutStorage):
             self.advs[i] = self.returns[i] - qo[self.worker_indices, opt]
             opt_terminals = self.opt_terminals[i + 1]
 
-    def calc_p_target(self, beta_x: Tensor, beta_xf: Tensor) -> Tensor:
+    def p_target(self, beta_x: Tensor, beta_xf: Tensor) -> Tensor:
         res = self.device.zeros((self.nsteps, self.nworkers))
         beta_x = beta_x.view(self.nsteps, self.nworkers)
         p_xiplus1_xf = beta_xf
@@ -86,7 +86,7 @@ class TCRolloutStorage(AOCRolloutStorage):
         return np.concatenate(res)
 
 
-def calc_beta_adv(
+def _beta_adv(
     p_mu_x: Tensor, p_x_xs: Tensor, p_mu_xf: Tensor, p_xf_xs: Tensor
 ) -> Tensor:
     P_EPS = 1e-8  # Prevent p=0 -> log(p) = -inf
@@ -310,7 +310,7 @@ class ACTCAgent(A2CLikeAgent[State]):
         p_xf_x = p_xf_x[self.batch_indices, prev_options]
         if self._do_xf_count:
             p_mu_x_count, p_mu_xf_count = self._pmu_from_count()
-            beta_adv_raw = calc_beta_adv(
+            beta_adv_raw = _beta_adv(
                 self.tensor(p_mu_x_count), p_x_xs, self.tensor(p_mu_xf_count), p_xf_xs
             )
         else:
@@ -320,17 +320,17 @@ class ACTCAgent(A2CLikeAgent[State]):
                 .mean(0)
                 .repeat(N, 1)[self.batch_indices, prev_options]
             )
-            beta_adv_raw = calc_beta_adv(p_mu_x.detach(), p_x_xs, p_mu_xf_avg, p_xf_xs)
+            beta_adv_raw = _beta_adv(p_mu_x.detach(), p_x_xs, p_mu_xf_avg, p_xf_xs)
         p_mu_xf = p_mu_xf[self.batch_indices, prev_options]
         baseline = baseline[self.batch_indices, prev_options]
 
         next_uo = self._next_uo(last_states, beta_xf[-self.config.nworkers :])
-        self.storage.calc_ac_returns(next_uo, self.config.discount_factor)
+        self.storage.set_ac_returns(next_uo, self.config.discount_factor)
 
         beta_adv = beta_adv_raw - baseline.detach()
         beta_loss = -(beta_x.dist.logits * beta_x.dist.probs.detach() * beta_adv).mean()
         beta_xf_averaged = beta_xf.view(N, W).mean(dim=0)
-        p_target = self.storage.calc_p_target(
+        p_target = self.storage.p_target(
             beta_x.dist.probs.detach(), beta_xf_averaged
         )
         p_loss = F.mse_loss(p_xf_x, p_target.flatten())

@@ -101,24 +101,22 @@ class RolloutStorage(Generic[State]):
     def batch_log_probs(self) -> Tensor:
         return torch.cat([p.log_prob() for p in self.policies])
 
-    def _calc_ret_common(self, next_value: Tensor) -> Tensor:
+    def _ret_common(self, next_value: Tensor) -> Tensor:
         self.returns[-1] = next_value
         self.values.append(next_value)
         torch.stack(self.values[: self.nsteps], dim=0, out=self.batch_values)
         return self.device.tensor(self.rewards)
 
-    def calc_ac_returns(self, next_value: Tensor, gamma: float) -> None:
-        rewards = self._calc_ret_common(next_value)
+    def set_ac_returns(self, next_value: Tensor, gamma: float) -> None:
+        rewards = self._ret_common(next_value)
         for i in reversed(range(self.nsteps)):
             self.returns[i] = (
                 rewards[i] + gamma * self.masks[i + 1] * self.returns[i + 1]
             )
         self.advs[:-1] = self.returns[:-1] - self.batch_values
 
-    def calc_gae_returns(
-        self, next_value: Tensor, gamma: float, lambda_: float
-    ) -> None:
-        rewards = self._calc_ret_common(next_value)
+    def set_gae_returns(self, next_value: Tensor, gamma: float, lambda_: float) -> None:
+        rewards = self._ret_common(next_value)
         self.advs.fill_(0.0)
         for i in reversed(range(self.nsteps)):
             gamma_i = gamma * self.masks[i + 1]

@@ -3,7 +3,7 @@ import warnings
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Callable, Generator, List, Optional, Tuple, Union
+from typing import Callable, Generator, List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor, nn
@@ -111,31 +111,25 @@ class KfacPreConditioner(PreConditioner):
                 )
                 continue
             mod.register_forward_pre_hook(self._save_x)
-            mod.register_backward_hook(self._save_g)
+            mod.register_backward_hook(self._save_gx)
             params = [mod.weight]
             if mod.bias is not None:
                 params.append(mod.bias)
             self.params.append({"params": params, "mod": mod, "layer_type": layer_type})
         super().__init__(self.params, {})
 
-    def with_saving_grad(self, f: Callable[[], Any]) -> Any:
-        self._save_grad = True
-        res = f()
-        self._save_grad = False
-        return res
-
     def _save_x(self, mod: nn.Module, input_: Tuple[Tensor, ...]) -> None:
         """Save the inputs of the layer"""
         if mod.training:
             self.state[mod]["x"], *_ = input_
 
-    def _save_g(
+    def _save_gx(
         self, mod: nn.Module, _grad_in: tuple, grad_out: Tuple[Tensor, ...]
     ) -> None:
         """Save the output gradients of the layer"""
         if mod.training and self._save_grad:
             grad, *_ = grad_out
-            self.state[mod]["g"] = grad * grad.size(0)
+            self.state[mod]["gx"] = grad * grad.size(0)
 
     def step(self) -> None:
         fisher_norm = 0.0
@@ -147,7 +141,7 @@ class KfacPreConditioner(PreConditioner):
             if self._counter % self.update_freq == 0:
                 self.__eigend(state)
             fisher_norm += self._update_params(weight, bias, group["layer_type"], state)
-            del self.state[group["mod"]]["x"], self.state[group["mod"]]["g"]
+            del self.state[group["mod"]]["x"], self.state[group["mod"]]["gx"]
         self.norm_scaler(self.param_groups, fisher_norm)
         self._counter += 1
 
@@ -202,7 +196,7 @@ class KfacPreConditioner(PreConditioner):
 
     def __ggt(self, group: dict, state: dict) -> None:
         """Computes E[gi gj]^T and memorize it"""
-        g = self.state[group["mod"]]["g"]
+        g = self.state[group["mod"]]["gx"]
         if group["layer_type"] is Layer.CONV2D:
             g = g.data.transpose(1, 0).reshape(g.size(1), -1)
         else:

@@ -104,7 +104,6 @@ class Config:
         self.logger = ExperimentLogger(mpi.IS_MPI_ROOT)
         self.eval_freq = 10000
         self.save_freq = int(1e6)
-        self.save_eval_actions = False
         self.episode_log_freq = 1000
         self.network_log_freq = 10000
 

@@ -10,22 +10,15 @@ from .lib import mpi
 
 @click.group()
 @click.option("--model", type=str, default=None, help="Name of the save file")
-@click.option(
-    "--action-file",
-    type=str,
-    default="actions.json",
-    help="Name of the action file",
-)
 @click.pass_context
 def rainy_cli(
     ctx: click.Context,
     model: Optional[str],
-    action_file: Optional[str],
     **kwargs,
 ) -> None:
     config = ctx.obj.config_gen(**kwargs)
     ag = ctx.obj.get_agent(config, **kwargs)
-    ctx.obj.experiment = Experiment(ag, model, action_file)
+    ctx.obj.experiment = Experiment(ag, model)
 
 
 @rainy_cli.command(help="Train agents")

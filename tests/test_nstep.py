@@ -68,7 +68,7 @@ def test_oc_storage() -> None:
             epsilon=0.5,
         )
     next_value = torch.randn(NWORKERS, NOPTIONS).max(dim=-1)[0]
-    storage.calc_ac_returns(next_value, 0.99, 0.01)
+    storage.set_ac_returns(next_value, 0.99, 0.01)
     assert tuple(storage.beta_adv.shape) == (NSTEP, NWORKERS)
     penv.close()
 

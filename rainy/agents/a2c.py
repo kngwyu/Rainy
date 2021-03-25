@@ -88,11 +88,11 @@ class A2CAgent(A2CLikeAgent[State]):
         with torch.no_grad():
             next_value = self.net.value(*self._network_in(last_states))
         if self.config.use_gae:
-            self.storage.calc_gae_returns(
+            self.storage.set_gae_returns(
                 next_value, self.config.discount_factor, self.config.gae_lambda
             )
         else:
-            self.storage.calc_ac_returns(next_value, self.config.discount_factor)
+            self.storage.set_ac_returns(next_value, self.config.discount_factor)
         policy, value, _ = self.net(
             self.storage.batch_states(self.penv),
             self.storage.rnn_states[0],

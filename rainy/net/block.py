@@ -210,7 +210,7 @@ class ResNetBody(NetworkBlock):
             [layer(*t) for t in zip([input_dim[0]] + channels, channels, maxpools)]
         )
         self.relu = nn.ReLU(inplace=True)
-        conved = calc_cnn_hidden(maxpools, *input_dim[1:])
+        conved = cnn_hidden_dims(maxpools, *input_dim[1:])
         fc_in = np.prod((channels[-1], *conved))
         self.fc = nn.Linear(fc_in, fc_out)
 
@@ -279,11 +279,11 @@ def make_cnns(
     res = []
     for ic, oc, param in zip([channel] + hiddens, hiddens, params):
         res.append(nn.Conv2d(ic, oc, *param))
-    hidden = (hidden_channels[-1], *calc_cnn_hidden(params, height, width))
+    hidden = (hidden_channels[-1], *cnn_hidden_dims(params, height, width))
     return res, np.prod(hidden)
 
 
-def calc_cnn_hidden(
+def cnn_hidden_dims(
     params: Sequence[tuple], height: int, width: int
 ) -> Tuple[int, int]:
     """Calcurate hidden dim of a CNN.

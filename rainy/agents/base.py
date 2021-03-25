@@ -146,25 +146,8 @@ class Agent(ABC):
 
         return self.__eval_episode(act, render, pause)
 
-    def random_and_save(
-        self, fname: str, render: bool = False, pause: bool = False
-    ) -> EpisodeResult:
-        def act(_state, *args) -> Action:
-            return self.config.eval_env._spec.random_action()
-
-        res = self.__eval_episode(act, render, pause)
-        self.config.eval_env.save_history(fname)
-        return res
-
     def eval_episode(self, render: bool = False, pause: bool = False) -> EpisodeResult:
         return self.__eval_episode(self.eval_action, render, pause)
-
-    def eval_and_save(
-        self, fname: str, render: bool = False, pause: bool = False
-    ) -> EpisodeResult:
-        res = self.__eval_episode(self.eval_action, render, pause)
-        self.config.eval_env.save_history(fname)
-        return res
 
     def savedict_hook(self, save_dict: dict) -> None:
         pass
