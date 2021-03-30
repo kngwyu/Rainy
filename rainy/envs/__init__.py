@@ -153,6 +153,7 @@ class RLPyGridWorld(EnvExt):
         name: str = "4Rooms",
         obs_type: str = "image",
         max_steps: int = 100,
+        wrapper: Optional[Callable[[gym.Env], gym.Env]] = None,
     ) -> None:
         try:
             from rlpy.gym import gridworld_obs
@@ -161,6 +162,10 @@ class RLPyGridWorld(EnvExt):
 
         envname = self.ALIASES.get(name, name)
         env = gym.make(envname + "-v1")
+
+        if wrapper is not None:
+            env = wrapper(env)
+
         if max_steps is not None:
             env._max_episode_steps = max_steps
         self.domain = env.unwrapped.domain  # Get RLPy domain
