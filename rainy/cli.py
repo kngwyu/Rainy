@@ -105,7 +105,6 @@ def eval(
     pause: bool,
     replay: bool,
 ) -> None:
-    ctx.obj.experiment.config.save_eval_actions |= save
     ctx.obj.experiment.load_and_evaluate(logdir_or_file, render, replay, pause)
 
 
@@ -122,7 +121,6 @@ def eval(
 def random(
     ctx: click.Context, save: bool, render: bool, pause: bool, replay: bool
 ) -> None:
-    ctx.obj.experiment.config.save_eval_actions |= save
     ctx.obj.experiment.random(render, replay, pause)
 
 
