@@ -85,6 +85,8 @@ class Agent(ABC):
 
     def close(self) -> None:
         self.env.close()
+        if self.config.eval_env is not None:
+            self.config.eval_env.close()
         if not self.config.keep_logger:
             self.logger.close()
 
