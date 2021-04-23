@@ -149,6 +149,7 @@ class Experiment:
         agent_file = self._load_agent(Path(logdir_or_file))
         if agent_file is None:
             self._msg(f"{logdir_or_file} does not exist!", fg="red")
+            self.ag.close()
             return
         self._msg(f"Loaded {agent_file} for re-training")
         total_steps, episodes = self.logger.retrive(agent_file.parent)
@@ -195,6 +196,7 @@ class Experiment:
         agent_file = self._load_agent(Path(logdir_or_file))
         if agent_file is None:
             self._msg(f"{logdir_or_file} does not exist!", fg="red")
+            self.ag.close()
             return
         self._msg(f"Loaded {agent_file} for evaluation")
         self.evaluate(render=render, replay=replay, pause=pause)
