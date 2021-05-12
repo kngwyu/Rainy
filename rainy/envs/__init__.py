@@ -154,6 +154,7 @@ class RLPyGridWorld(EnvExt):
         obs_type: str = "image",
         max_steps: int = 100,
         wrapper: Optional[Callable[[gym.Env], gym.Env]] = None,
+        **kwargs,
     ) -> None:
         try:
             from rlpy.gym import gridworld_obs
@@ -161,7 +162,7 @@ class RLPyGridWorld(EnvExt):
             raise ImportError("RLPy3 is not installed")
 
         envname = self.ALIASES.get(name, name)
-        env = gym.make(envname + "-v1")
+        env = gym.make(envname + "-v1", **kwargs)
 
         if wrapper is not None:
             env = wrapper(env)
