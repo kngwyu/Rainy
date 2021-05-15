@@ -37,6 +37,7 @@ class Experiment:
         self._has_eval_parallel = hasattr(self.ag, "eval_parallel")
         self.episode_offset = 0
         self.config.initialize_hooks()
+        self.noeval = False
 
     def log_episode(self, episodes: int, results: List[EpisodeResult]) -> None:
         for i, res in enumerate(results):
@@ -50,6 +51,10 @@ class Experiment:
             )
 
     def log_eval(self, episodes: int, eval_render: bool = False) -> None:
+        if self.noeval:
+            self._msg("Do not run evaluation since noeval=True")
+            return
+
         results = self._eval_impl(render=eval_render)
         for res in results:
             self.logger.submit(
@@ -118,7 +123,7 @@ class Experiment:
         self.ag.set_mode(train=True)
         return res
 
-    def _load_agent(self, logdir_or_file: Path) -> Optional[Path]:
+    def _load_agent(self, logdir_or_file: Path) -> Path:
         if not logdir_or_file.exists():
             return None
         if logdir_or_file.is_file():
