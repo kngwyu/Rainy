@@ -155,7 +155,7 @@ class ExperimentLogger:
             if current_length % interval == 0:
                 self.show_summary(name)
         if current_length >= self.LOG_CAPACITY:
-            self._truncate_and_dump(name)
+            self.flush(name)
 
     def summary_setting(
         self,
@@ -194,10 +194,10 @@ class ExperimentLogger:
         if self._closed:
             return
         for key in self._store.keys():
-            self._truncate_and_dump(key)
+            self.flush(key)
         self._closed = True
 
-    def _truncate_and_dump(self, name: str) -> None:
+    def flush(self, name: str) -> None:
         df = self._store[name].into_df()
         path = self.logdir.joinpath(name + ".csv")
         include_header = not path.exists()
