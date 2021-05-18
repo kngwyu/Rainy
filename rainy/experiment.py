@@ -75,6 +75,14 @@ class Experiment:
     def _msg(self, msg: str, fg: str = "black") -> None:
         click.secho("☔ " + msg + " ☔", bg="white", fg=fg)
 
+    def switch_agent(self, new_ag: Agent, load: bool = False) -> Agent:
+        new_ag.logger = self.logger
+        new_ag.total_steps = self.ag.total_steps
+        old_ag = self.ag
+        self.ag = new_ag
+        self._load_agent(self.logger.logdir)
+        return old_ag
+
     def train(self, saveid_start: int = 0, eval_render: bool = False) -> None:
         if not self.logger.ready:
             self.logger.setup_logdir()
