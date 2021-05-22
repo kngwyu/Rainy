@@ -83,11 +83,22 @@ class Experiment:
         self._load_agent(self.logger.logdir)
         return old_ag
 
-    def train(self, saveid_start: int = 0, eval_render: bool = False) -> None:
+    def train(
+        self,
+        saveid_start: int = 0,
+        eval_render: bool = False,
+        pretrained_agent_path: Optional[str] = None,
+    ) -> None:
         if not self.logger.ready:
             self.logger.setup_logdir()
         logdir = self.logger.logdir.as_posix()
         self._msg(f"Train started (Logdir: {logdir})")
+
+        if pretrained_agent_path is not None:
+            if self._load_agent(Path(pretrained_agent_path)) is None:
+                self._msg(f"{pretrained_agent_path} does not exist!", fg="red")
+            else:
+                self._msg(f"Loaded {pretrained_agent_path} before training")
 
         episodes = 0
         steps = 0

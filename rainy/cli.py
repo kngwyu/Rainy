@@ -33,11 +33,19 @@ def rainy_cli(
 @click.option(
     "--eval-render", is_flag=True, help="Render the environment when evaluating"
 )
+@click.option(
+    "--pretrained-agent-path",
+    type=str,
+    default=None,
+    help="Path to pretrained agent. "
+    + "If this option is passed, pretrained agent is loaded before training",
+)
 def train(
     ctx: click.Context,
     comment: Optional[str],
     logdir: Optional[str],
     eval_render: bool = True,
+    pretrained_agent_path: Optional[str] = None,
 ) -> None:
     experiment = ctx.obj.experiment
     script_path = ctx.obj.script_path
@@ -49,7 +57,10 @@ def train(
         experiment.logger.setup_from_script_path(
             script_path, dirname=logdir, fingerprint=fingerprint
         )
-    experiment.train(eval_render=eval_render)
+    experiment.train(
+        eval_render=eval_render,
+        pretrained_agent_path=pretrained_agent_path,
+    )
     if mpi.IS_MPI_ROOT:
         print(
             "random play: {}, trained: {}".format(
