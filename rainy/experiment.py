@@ -72,8 +72,12 @@ class Experiment:
     def _save(self, suffix: str = "") -> None:
         self.ag.save(self._save_file_name + suffix, self.logger.logdir)
 
-    def _msg(self, msg: str, fg: str = "black") -> None:
-        click.secho("☔ " + msg + " ☔", bg="white", fg=fg)
+    def _msg(self, msg: str, fg: str = "black", error: bool = False) -> None:
+        click.secho("☔ " + msg + " ☔", bg="white", fg=fg, err=error)
+
+    def abort(self, msg: str) -> None:
+        self._msg(msg, fg="red", error=True)
+        self.close()
 
     def switch_agent(self, new_ag: Agent, load: bool = False) -> Agent:
         new_ag.logger = self.logger
@@ -96,7 +100,8 @@ class Experiment:
 
         if pretrained_agent_path is not None:
             if self._load_agent(Path(pretrained_agent_path)) is None:
-                self._msg(f"{pretrained_agent_path} does not exist!", fg="red")
+                self.abort(f"{pretrained_agent_path} does not exist!")
+                return
             else:
                 self._msg(f"Loaded {pretrained_agent_path} before training")
 
@@ -172,8 +177,7 @@ class Experiment:
     ) -> None:
         agent_file = self._load_agent(Path(logdir_or_file))
         if agent_file is None:
-            self._msg(f"{logdir_or_file} does not exist!", fg="red")
-            self.ag.close()
+            self.abort(f"{logdir_or_file} does not exist!")
             return
         self._msg(f"Loaded {agent_file} for re-training")
         total_steps, episodes = self.logger.retrive(agent_file.parent)
@@ -219,8 +223,7 @@ class Experiment:
     ) -> None:
         agent_file = self._load_agent(Path(logdir_or_file))
         if agent_file is None:
-            self._msg(f"{logdir_or_file} does not exist!", fg="red")
-            self.ag.close()
+            self.abort(f"{logdir_or_file} does not exist!")
             return
         self._msg(f"Loaded {agent_file} for evaluation")
         self.evaluate(render=render, replay=replay, pause=pause)
