@@ -77,7 +77,7 @@ class Experiment:
 
     def abort(self, msg: str) -> None:
         self._msg(msg, fg="red", error=True)
-        self.close()
+        self.ag.close()
 
     def switch_agent(self, new_ag: Agent, load: bool = False) -> Agent:
         new_ag.logger = self.logger
