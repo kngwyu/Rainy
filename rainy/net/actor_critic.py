@@ -245,10 +245,10 @@ def fc_shared(
 
 
 def fc_separated(
+    policy: Type[PolicyDist] = CategoricalDist,
     actor_units: List[int] = [64, 64],
     critic_units: List[int] = [64, 64],
     init: Initializer = Initializer(),
-    policy_type: Type[PolicyDist] = CategoricalDist,
 ) -> NetFn:
     """SAC network with separated bodys"""
 
@@ -257,8 +257,10 @@ def fc_separated(
     ) -> SeparatedACNet:
         actor_body = FCBody(state_dim[0], units=actor_units, init=init)
         critic_body = FCBody(state_dim[0], units=critic_units, init=init)
-        policy = policy_type(action_dim)
-        return SeparatedACNet(actor_body, critic_body, policy, device=device, init=init)
+        policy_dist = policy(action_dim, device)
+        return SeparatedACNet(
+            actor_body, critic_body, policy_dist, device=device, init=init
+        )
 
     return _net
 
