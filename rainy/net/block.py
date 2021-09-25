@@ -1,7 +1,7 @@
 """Defines some reusable NN layers, called 'Block'
 """
 from abc import ABC
-from typing import List, Optional, Sequence, Tuple
+from typing import Callable, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -228,6 +228,7 @@ class FCBody(NetworkBlock):
         units: List[int] = [64, 64],
         activator: nn.Module = nn.ReLU(inplace=True),
         init: Initializer = Initializer(),
+        linear_fn: Callable[[int, int], nn.Module] = nn.Linear,
     ) -> None:
         super().__init__()
         self.input_dim = (input_dim,)
